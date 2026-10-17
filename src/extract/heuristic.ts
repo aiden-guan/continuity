@@ -32,9 +32,10 @@ export function sentences(text: string): string[] {
 const HEDGE = /\b(probably|might|maybe|perhaps|hopefully|hoping|tentative(?:ly)?|possibly|should be able|may be able|i think|not sure|we'll try|we will try|aim to|ideally)\b/i;
 const CORRECTION = /\b(correction|correcting|to correct|apolog(?:y|ies|ize)|my mistake|update[d]?:|revised|revision|actually|instead|no longer|unfortunately|change of plan|changed)\b/i;
 const BOILERPLATE = /(let (me|us) know if you have any (other |further )?questions|any questions|hope this helps|thanks in advance|best regards|kind regards)/i;
-const INJECTION = /(ignore (all |any )?(previous|prior|above) (instructions|messages)|disregard (the |all )?(previous|prior|above) (instructions|messages|rules)|you are (now )?an? (ai|assistant|agent)|system prompt|as an ai (agent|model)|new instructions:|override (your|the) (rules|instructions)|reveal (your|the) (api key|instructions|prompt))/i;
-const COMMITMENT = /\b(?:i'll|i will|we'll|we will|i'm going to|we're going to|i shall|we shall)\s+(?!need\b|have to\b|be able\b|try\b)(.+?)[.!]?$/i;
+const INJECTION = /(\b(?:attention|note to|dear|hey|to)?\s*(?:ai|automated|llm)[ -](?:booking |processing )?(?:agents?|assistants?|systems?|models?)\b(?: processing [^:]{0,40})?\s*[:,]|ignore (all |any )?(previous|prior|above) (instructions|messages)|disregard (the |all )?(previous|prior|above) (instructions|messages|rules)|you are (now )?an? (ai|assistant|agent)|system prompt|as an ai (agent|model)|new instructions:|override (your|the) (rules|instructions)|reveal (your|the) (api key|instructions|prompt))/i;
+const COMMITMENT = /\b(?:i'll|i will|we'll|we will|i'm going to|we're going to|i shall|we shall)\s+(?!(?:also |still |just )?(?:need|have to|be able|try)\b)(.+?)[.!]?$/i;
 const REQUEST = /\b(please(?! (?:note|be advised|find|see (?:attached|below)))|kindly|could you|can you|would you|let (?:me|us) know|confirm)\b/i;
+const PASSIVE_PROMISE = /\b((?:the|a|an|our|my|your)\s+(?:[\w-]+\s+){0,3}?[\w-]+)\s+(?:will|should|is going to|are going to)\s+(?:go out|be (?:sent|out|over|issued|attached|ready|with you|in your inbox)|follow|come (?:over|through)|arrive)\b[^.!?]*/i;
 const LIST_ITEM = /^\s*(?:\d+[.)]|[-*•])\s+/;
 
 /** "Can you confirm: 1. final unit price? 2. whether all 500 can arrive Friday?" becomes one question per item. */
@@ -85,8 +86,17 @@ function extractFromText(text: string, input: ExtractInput, fromAttachment: stri
   const listed = fromAttachment ? { items: [], raw: new Set<string>() } : questionItems(body);
   const partOfList = (s: string) => [...listed.raw].some((r) => r === s || r.endsWith(s) || r.startsWith(s));
 
+  // a line that carries instruction-like text, or hidden markup, is untrusted as a whole: an "override" next to
+  // an injected instruction is part of the attack, not a term
+  const tainted = new Set<string>();
+  const hidden = /<!--[^]*?-->|\[\[[^]*?\]\]/g;
+  for (const block of body.match(hidden) ?? []) for (const x of sentences(block)) tainted.add(x);
+  for (const line of body.replace(hidden, (m) => m.replace(/\n/g, ' ')).split('\n')) {
+    if (INJECTION.test(line) || /<!--|\[\[/.test(line)) for (const x of sentences(line)) tainted.add(x);
+  }
+
   for (const s of [...sentences(body).filter((x) => !partOfList(x)), ...listed.items]) {
-    if (INJECTION.test(s)) {
+    if (INJECTION.test(s) || tainted.has(s)) {
       // quarantine: instruction-like text is recorded as a flag and never becomes state
       p.injection_flags.push({ evidence: s.slice(0, 240) });
       continue;
@@ -113,8 +123,16 @@ function extractFromText(text: string, input: ExtractInput, fromAttachment: stri
       addObligation(p, { kind: 'commitment', debtor: 'sender', text: action, topic_keys: topics, expects_artifact: expectsArtifact(action, pack), evidence: s, confidence: 0.8 });
       continue;
     }
-    if (REQUEST.test(s) && topics.length) {
-      const expects = /\b(send|share|attach|forward|return)\b/i.test(s) ? expectsArtifact(s, pack) : null;
+    // a document promised in the passive ("the revised contract will go out by Friday"), for the pack's own documents
+    const passive = pack.documents && !hedged ? s.match(PASSIVE_PROMISE) : null;
+    const promised = passive ? pack.documents!.find((d) => d.mention.test(passive[1])) : undefined;
+    if (passive && promised && senderRole !== 'self') {
+      addObligation(p, { kind: 'commitment', debtor: 'sender', text: passive[0].trim(), topic_keys: topics, expects_artifact: promised.kind, evidence: s, confidence: 0.75 });
+      continue;
+    }
+    const expects = REQUEST.test(s) && /\b(send|share|attach|forward|return)\b/i.test(s) ? expectsArtifact(s, pack) : null;
+    // a request for one of the pack's documents counts even when it names no term ("Please send the contract.")
+    if (REQUEST.test(s) && (topics.length || (expects && pack.documents?.some((d) => d.kind === expects)))) {
       addObligation(p, { kind: 'request', debtor: 'recipient', text: s, topic_keys: topics, expects_artifact: expects, evidence: s, confidence: 0.7 });
     }
   }

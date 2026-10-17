@@ -144,6 +144,8 @@ export function applyProposal(inp: ApplyInput) {
       if (earlier.status === 'superseded') continue;
       if (earlier.sha256 === incoming.sha256) continue;
       if (incoming.kind === 'document') continue; // generic documents never supersede; only versioned business docs do
+      if (earlier.event_id === incoming.event_id) continue; // documents sent together are a set, not versions
+      if (pack.documents?.find((d) => d.kind === incoming.kind)?.multipart) continue;
       store.updateArtifact(earlier.id, 'superseded', incoming.id);
       log('artifact_superseded', `${earlier.filename} superseded by ${incoming.filename}`, earlier.id, { by: incoming.id });
     }
@@ -452,6 +454,24 @@ export function applyProposal(inp: ApplyInput) {
   for (const o of openNow()) {
     if (openedHere.has(o.id)) continue;
     if (o.debtor !== speaker) continue;
+    if (o.expects_artifact && o.quantity != null) {
+      // "I'll send all 3 BEOs": each matching document counts toward the promise
+      const matching = inp.artifacts.filter((a) => artifactMatches(o, a).ok).length;
+      if (!matching) continue;
+      const delivered = Math.min(o.quantity, (o.fulfilled_quantity ?? 0) + matching);
+      if (delivered >= o.quantity) {
+        store.updateObligation(o.id, { fulfilled_quantity: delivered });
+        close({ ...o, fulfilled_quantity: delivered }, doneStatus(o), `${delivered} of ${o.quantity} ${o.expects_artifact} documents received`);
+      } else {
+        store.updateObligation(o.id, {
+          status: 'partially_fulfilled', fulfilled_quantity: delivered,
+          notes: [...o.notes, `${event.id}: ${matching} ${o.expects_artifact} received (${delivered}/${o.quantity}); ${o.quantity - delivered} outstanding`],
+        });
+        log('obligation_partially_fulfilled', `${who} sent ${delivered} of ${o.quantity} ${o.expects_artifact} documents ("${o.text}"); ${o.quantity - delivered} still outstanding`, o.id,
+          { fulfilled: delivered, outstanding: o.quantity - delivered });
+      }
+      continue;
+    }
     if (o.expects_artifact) {
       const found = findMatchingArtifact(o);
       if (found.artifact) {
@@ -508,7 +528,9 @@ export function refreshDerived(store: StateStore, task: TaskSpec, eventId: strin
 
   for (const a of store.artifactsForTask(task.id)) {
     const backing = store.claimsSupportedByArtifact(a.id);
-    const outdated = backing.filter((c) => c.status === 'superseded' || c.status === 'retracted');
+    // a term is stale on the document only while its current value differs (a value that came back is current again)
+    const currentAgain = (c: Claim) => claims.some((x) => x.status === 'active' && x.key === c.key && x.speaker === c.speaker && sameValue(x.value, c.value));
+    const outdated = backing.filter((c) => (c.status === 'superseded' && !currentAgain(c)) || c.status === 'retracted');
     let status: Artifact['status'];
     if (a.superseded_by) status = 'superseded';
     else if (withdrawn.has(a.owner.toLowerCase())) status = 'withdrawn';

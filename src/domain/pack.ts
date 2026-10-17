@@ -34,6 +34,9 @@ export interface DocumentKind {
   match: RegExp;
   /** Matches a sentence that talks about sending this kind of document ("I'll send the corrected rate con"). */
   mention: RegExp;
+  /** Separate parts of one set (a BEO per day, a POD per load, a signature page per entity): a newer one
+   *  does not supersede an older one, and a promise of N of them is fulfilled one document at a time. */
+  multipart?: boolean;
 }
 
 /** One sentence of message or document text, as the offline extractor sees it. */

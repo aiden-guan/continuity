@@ -94,7 +94,8 @@ export function standardActions(ctx: ActionContext, o: { approvalPrefix: string;
     }
   }
 
-  const committed = live.some((c) => c.key === o.decisionKey && c.speaker === self);
+  // our own decision, or the counterparty confirming the deal is done (a fully executed contract)
+  const committed = live.some((c) => c.key === o.decisionKey && (c.speaker === self || /execut|countersign|booked/i.test(String(c.value))));
   const failingParties = new Set(checks.filter((c) => c.status !== 'pass').map((c) => c.party));
   const ready = task.participants.filter((p) => p.role === 'counterparty' && checks.some((c) => c.party === p.address) && !failingParties.has(p.address));
   // an approval still being asked for holds the commitment; one never asked for does not (the hard requirement already caps it)
