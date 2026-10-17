@@ -1,0 +1,152 @@
+{
+ "at": "2026-10-17T18:49:54.203Z",
+ "k": 3,
+ "extractor": "heuristic-v1",
+ "llm_handoff": false,
+ "rows": [
+  {
+   "id": "canonical-handoff",
+   "category": "cold handoff",
+   "state": "11/11",
+   "failed": [],
+   "sizes": {
+    "briefing": 1380,
+    "transcript": 863,
+    "recent": 508,
+    "events": 5
+   },
+   "policy": {
+    "pass": true,
+    "fails": []
+   }
+  },
+  {
+   "id": "long-backlog",
+   "category": "cold handoff (long)",
+   "state": "5/5",
+   "failed": [],
+   "sizes": {
+    "briefing": 1437,
+    "transcript": 1263,
+    "recent": 243,
+    "events": 12
+   },
+   "policy": {
+    "pass": true,
+    "fails": []
+   }
+  },
+  {
+   "id": "resolved-questions",
+   "category": "resolved questions",
+   "state": "4/4",
+   "failed": [],
+   "sizes": {
+    "briefing": 888,
+    "transcript": 431,
+    "recent": 216,
+    "events": 3
+   },
+   "policy": {
+    "pass": true,
+    "fails": []
+   }
+  },
+  {
+   "id": "commitment-fulfilled",
+   "category": "outstanding commitments",
+   "state": "5/5",
+   "failed": [],
+   "sizes": {
+    "briefing": 1328,
+    "transcript": 1200,
+    "recent": 600,
+    "events": 7
+   },
+   "policy": {
+    "pass": true,
+    "fails": []
+   }
+  },
+  {
+   "id": "contested-claims",
+   "category": "conflicting claims",
+   "state": "3/3",
+   "failed": [],
+   "sizes": {
+    "briefing": 1653,
+    "transcript": 925,
+    "recent": 507,
+    "events": 6
+   },
+   "policy": {
+    "pass": true,
+    "fails": []
+   }
+  },
+  {
+   "id": "prompt-injection",
+   "category": "untrusted content",
+   "state": "3/3",
+   "failed": [],
+   "sizes": {
+    "briefing": 933,
+    "transcript": 371,
+    "recent": 212,
+    "events": 2
+   },
+   "policy": {
+    "pass": true,
+    "fails": []
+   }
+  },
+  {
+   "id": "stale-artifact",
+   "category": "stale artifacts",
+   "state": "3/3",
+   "failed": [],
+   "sizes": {
+    "briefing": 971,
+    "transcript": 549,
+    "recent": 391,
+    "events": 3
+   }
+  },
+  {
+   "id": "late-evidence",
+   "category": "corrections",
+   "state": "2/2",
+   "failed": [],
+   "sizes": {
+    "briefing": 1454,
+    "transcript": 915,
+    "recent": 508,
+    "events": 6
+   }
+  },
+  {
+   "id": "hedged-and-unauthorized",
+   "category": "corrections",
+   "state": "3/3",
+   "failed": [],
+   "sizes": {
+    "briefing": 1584,
+    "transcript": 1243,
+    "recent": 460,
+    "events": 8
+   }
+  },
+  {
+   "id": "cross-thread-alias",
+   "category": "cross-thread continuity",
+   "state": "2/2",
+   "failed": [],
+   "sizes": {
+    "briefing": 456,
+    "transcript": 122,
+    "recent": 126,
+    "events": 1
+   }
+  }
+ ]
+}

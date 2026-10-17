@@ -1,0 +1,24 @@
+Task PO-4817 goal: Buy 500 AX-200 control boards for PO-4817. All 500 must arrive by Friday Oct 23; unit price must not exceed $11.50.
+You are procurement@acme-buyer.primitive.email. Parties: supplier <dana@northwind-components.example>; finance <priya.finance@acme-buyer.example>
+
+<summary_of_history generated_by="generic LLM summarizer over the full transcript">
+PO-4817 is a purchase of 500 AX-200 control boards. All 500 must arrive by Friday, Oct 23, at no more than $11.50 per unit.
+
+Supplier (Dana Ruiz, Northwind Components):
+- Oct 19: Dana sent quote Q-2291: 500 units at $11.40 each ($5,700 total), all delivered by Oct 23, Net 30 payment terms, valid until Oct 30.
+- Oct 20, correction: Dana walked back the delivery date. Only 300 units can arrive Friday, Oct 23. The other 200 won't arrive until Wednesday, Oct 28, because Northwind's second production lot slipped. The price stays the same. Dana said she'd send a revised quote by Oct 21, and it hasn't arrived yet. The original quote no longer reflects what Northwind can deliver. The split delivery fails the requirement that all 500 arrive by Oct 23.
+
+Finance (Priya):
+- Oct 19: Priya approved a budget of up to $11.50 per unit (500 units, $5,750 maximum). The $11.40 price is within budget.
+- Oct 20: Use cost center 4410 on the paperwork.
+- Oct 20: Northwind is already an approved vendor, so no vendor setup is needed.
+
+Other details from Northwind (Oct 20):
+- Boards ship in ESD trays, 50 per tray, 10 trays per carton.
+- Invoices go to ar@northwind-components.example.
+- RoHS and conformance certificates will come with the shipment.
+- Northwind's office is closed Monday, Oct 26, for maintenance, but email is monitored.
+- Northwind's carrier has booked a truck for Friday morning. This probably covers only the 300 units ready that day.
+
+Status: No purchase order has been issued and no payment has been approved. The revised quote is still outstanding, and delivery of all 500 by Oct 23 is not currently confirmed.
+</summary_of_history>

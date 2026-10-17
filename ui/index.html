@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Primitive Continuity</title>
+<style>
+/* ---------- palette (light, with a dark override) */
+:root {
+  --bg: #f6f5f2;
+  --panel: #ffffff;
+  --ink: #1d1d1b;
+  --muted: #6b6a66;
+  --line: #e4e2dc;
+  --soft: #f0eee9;
+  --accent: #3b5bdb;
+  --red: #c92a2a;     --red-bg: #fff0f0;
+  --green: #2b8a3e;   --green-bg: #ebfbee;
+  --amber: #b35c00;   --amber-bg: #fff4e6;
+  --violet: #6741d9;  --violet-bg: #f3f0ff;
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141413;
+    --panel: #1d1c1a;
+    --ink: #ecebe6;
+    --muted: #9c9a92;
+    --line: #2e2d2a;
+    --soft: #262522;
+    --accent: #7b96ff;
+    --red: #ff8787;     --red-bg: #2c1717;
+    --green: #69db7c;   --green-bg: #15261a;
+    --amber: #ffb35c;   --amber-bg: #2b2012;
+    --violet: #b197fc;  --violet-bg: #221c33;
+  }
+}
+
+/* ---------- page */
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+}
+header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+header h1 { margin: 0; font-size: 15px; letter-spacing: .01em; }
+header h1 span { font-weight: 400; color: var(--muted); }
+.goal { max-width: 640px; color: var(--muted); }
+.badges { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+.badge {
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.badge.warn { border-color: transparent; background: var(--amber-bg); color: var(--amber); }
+.badge.ok { border-color: transparent; background: var(--green-bg); color: var(--green); }
+
+main {
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(360px, 1.15fr) minmax(320px, 1fr);
+  align-items: start;
+  gap: 14px;
+  padding: 14px;
+}
+@media (max-width: 1100px) { main { grid-template-columns: 1fr; } }
+section.col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+.card {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+.card h2 {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ---------- who acts next */
+.next { display: flex; align-items: baseline; gap: 12px; }
+.actor { font-size: 22px; font-weight: 700; letter-spacing: .02em; }
+.actor.us { color: var(--red); }
+.actor.them { color: var(--accent); }
+.actor.none { color: var(--green); }
+
+/* ---------- timeline */
+.ev { position: relative; padding: 2px 0 10px 12px; border-left: 2px solid var(--line); }
+.ev::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: 7px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.ev.outbound::before { background: var(--accent); }
+.ev.unlinked { opacity: .55; }
+.ev .meta { font-size: 12px; color: var(--muted); }
+.ev .subj { font-weight: 600; cursor: pointer; }
+.ev pre {
+  max-height: 260px;
+  overflow: auto;
+  margin: 6px 0 0;
+  padding: 8px;
+  border-radius: 6px;
+  background: var(--soft);
+  font: 12px/1.45 var(--mono);
+  white-space: pre-wrap;
+}
+
+/* transition chips */
+.chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.chip { padding: 1px 7px; border-radius: 5px; background: var(--soft); font-size: 11px; color: var(--muted); }
+.chip.claim_superseded, .chip.conflict_detected { background: var(--red-bg); color: var(--red); }
+.chip.obligation_opened { background: var(--amber-bg); color: var(--amber); }
+.chip.obligation_resolved, .chip.conflict_resolved, .chip.check_passed { background: var(--green-bg); color: var(--green); }
+.chip.artifact_status, .chip.artifact_superseded, .chip.artifact_added { background: var(--violet-bg); color: var(--violet); }
+.chip.injection_quarantined, .chip.claim_tentative, .chip.claim_contested { background: var(--amber-bg); color: var(--amber); }
+
+/* ---------- tables + rows */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+td, th { padding: 5px 6px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+th { font-size: 11px; font-weight: 600; color: var(--muted); }
+td.term { font-family: var(--mono); font-size: 12px; color: var(--accent); white-space: nowrap; cursor: pointer; }
+.ids { font: 11px var(--mono); color: var(--muted); }
+.old { color: var(--muted); text-decoration: line-through; }
+.conflict { margin-bottom: 6px; padding: 8px 10px; border-radius: 7px; background: var(--red-bg); color: var(--red); }
+.ok-row { color: var(--green); }
+.ob { padding: 6px 0; border-bottom: 1px solid var(--line); }
+.ob:last-child { border-bottom: 0; }
+.ob .who { font-weight: 600; }
+.ob.done { color: var(--muted); }
+
+/* status pills */
+.st { padding: 1px 6px; border-radius: 4px; background: var(--soft); font-size: 11px; }
+.st.open { background: var(--amber-bg); color: var(--amber); }
+.st.answered, .st.fulfilled, .st.current, .st.pass { background: var(--green-bg); color: var(--green); }
+.st.partially_stale, .st.fail { background: var(--red-bg); color: var(--red); }
+.st.superseded { background: var(--soft); color: var(--muted); }
+
+/* ---------- agent sessions + context */
+.run { margin-bottom: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.run.sel { border-color: var(--violet); box-shadow: 0 0 0 1px var(--violet); }
+.run .k { font-weight: 700; }
+.fresh { font-weight: 600; color: var(--violet); }
+pre.brief {
+  max-height: 520px;
+  overflow: auto;
+  margin: 0;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--soft);
+  font: 11.5px/1.45 var(--mono);
+  white-space: pre-wrap;
+}
+pre.mail {
+  margin: 6px 0 0;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--violet-bg);
+  font: 12.5px/1.5 var(--mono);
+  white-space: pre-wrap;
+}
+.tabs { display: flex; gap: 4px; }
+.tabs button {
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.tabs button.on { border-color: var(--ink); background: var(--ink); color: var(--panel); }
+
+/* ---------- explain dialog */
+dialog {
+  max-width: min(760px, 92vw);
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--ink);
+}
+dialog::backdrop { background: rgba(0, 0, 0, .35); }
+
+.empty { font-style: italic; color: var(--muted); }
+.stat { display: flex; flex-wrap: wrap; gap: 18px; font-size: 12px; color: var(--muted); }
+.stat b { display: block; font-size: 16px; color: var(--ink); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Primitive Continuity <span id="alias"></span></h1>
+  <div id="goal" class="goal"></div>
+  <div id="badges" class="badges"></div>
+</header>
+
+<main>
+  <section class="col">
+    <div class="card"><h2>Communication history <span id="evcount"></span></h2><div id="timeline"></div></div>
+  </section>
+
+  <section class="col">
+    <div class="card"><h2>Who acts next</h2><div class="next"><div id="actor" class="actor"></div><div id="actorwhy" class="goal"></div></div></div>
+    <div class="card"><h2>Conflicts &amp; checks</h2><div id="checks"></div></div>
+    <div class="card"><h2>Current terms <span>click a term to explain</span></h2><div id="terms"></div></div>
+    <div class="card"><h2>Superseded &amp; tentative</h2><div id="superseded"></div></div>
+    <div class="card"><h2>Open loops</h2><div id="loops"></div></div>
+    <div class="card"><h2>Documents</h2><div id="docs"></div></div>
+  </section>
+
+  <section class="col">
+    <div class="card"><h2>Agent sessions</h2><div id="runs"></div></div>
+    <div class="card">
+      <h2><span>Context supplied to agent</span><span class="tabs"><button data-t="brief" class="on">briefing</button><button data-t="json">json</button><button data-t="live">live now</button></span></h2>
+      <div id="ctxstat" class="stat"></div>
+      <pre id="brief" class="brief"></pre>
+    </div>
+  </section>
+</main>
+
+<dialog id="dlg"><div id="dlgbody"></div><p><button id="dlg-close">Close</button></p></dialog>
+
+<script>
+(() => {
+  const byId = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const stamp = (iso, len) => esc(String(iso ?? '').slice(0, len).replace('T', ' '));
+
+  // Hosted mode: open the console once as /#token=ctk_…; the token then lives in this tab's
+  // sessionStorage and is removed from the URL.
+  const TOKEN_KEY = 'continuity_token';
+  const token = (() => {
+    const hit = location.hash.match(/token=([^&]+)/);
+    try {
+      if (hit) {
+        sessionStorage.setItem(TOKEN_KEY, hit[1]);
+        history.replaceState(null, '', location.pathname);
+      }
+      return sessionStorage.getItem(TOKEN_KEY) || '';
+    } catch {
+      return hit ? hit[1] : '';
+    }
+  })();
+  const api = (path) => fetch(path, token ? { headers: { authorization: `Bearer ${token}` } } : {}).then((r) => r.json());
+
+  const view = {
+    task: null,
+    version: 0,
+    data: null,       // { health, state, timeline, ctx, runs }
+    selectedRun: null,
+    tab: 'brief',     // 'brief' | 'json' | 'live' | 'asof'
+    asOf: null,
+  };
+
+  // ---------------------------------------------------------------- data
+  async function load() {
+    const tasks = await api('/tasks');
+    if (!tasks.length) {
+      byId('goal').textContent = 'No tasks yet — run `npm run demo`.';
+      return false;
+    }
+    view.task = view.task ?? tasks[0].id;
+    const t = view.task;
+    const [health, state, timeline, ctx, runs] = await Promise.all([
+      api('/api/health'), api(`/tasks/${t}/state`), api(`/tasks/${t}/timeline`), api(`/tasks/${t}/context`), api(`/tasks/${t}/agent-runs`),
+    ]);
+    view.data = { health, state, timeline, ctx, runs };
+    view.version = state.state_version;
+    render();
+    return true;
+  }
+
+  async function poll() {
+    for (;;) {
+      try {
+        if (view.task) {
+          const r = await api(`/tasks/${view.task}/wait?since=${view.version}&timeout_ms=20000`);
+          if (r.state_version !== view.version) await load();
+        } else if (!(await load())) {
+          await wait(1500);
+        }
+      } catch {
+        await wait(1500);
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------- sections
+  function renderHeader(health, state) {
+    byId('alias').textContent = `· ${state.task.alias}`;
+    byId('goal').textContent = state.task.goal;
+    const live = health.transport === 'primitive';
+    const signed = health.webhook_signature_verification;
+    byId('badges').innerHTML = [
+      `<span class="badge ${live ? 'ok' : 'warn'}">transport: ${live ? 'Primitive (live)' : 'local simulation'}</span>`,
+      `<span class="badge">extractor: ${esc(health.extractor)}</span>`,
+      `<span class="badge ${signed ? 'ok' : 'warn'}">webhook signatures ${signed ? 'verified' : 'NOT verified'}</span>`,
+      `<span class="badge">state v${state.state_version}</span>`,
+    ].join('');
+  }
+
+  function renderTimeline(timeline) {
+    const events = timeline.events;
+    byId('evcount').textContent = `${events.length} events · ${timeline.threads.length} threads`;
+    const threadNo = Object.fromEntries(timeline.threads.map((t, i) => [t.thread_id, i + 1]));
+    const linked = events.map((e) => {
+      const files = e.attachments.length ? ' · ' + e.attachments.map((a) => esc(a.filename)).join(', ') : '';
+      const chips = e.transitions.map((t) => `<span class="chip ${esc(t.type)}" title="${esc(t.type)}">${esc(t.summary)}</span>`).join('');
+      return `
+    <div class="ev ${esc(e.direction)}">
+      <div class="meta">${stamp(e.occurred_at, 16)} · <span class="ids">${esc(e.id)}</span> · thread #${threadNo[e.thread_id] ?? '?'} · ${esc(e.direction)}</div>
+      <div class="subj" data-act="toggle">${esc(e.from_label)} → ${esc(e.to_labels.join(', '))}: ${esc(e.subject)}${e.attachments.length ? ' 📎' : ''}</div>
+      <div class="meta">${esc(e.link_reason ?? '')}${files} · <a href="#" data-asof="${esc(e.id)}">state as of here</a></div>
+      <pre hidden>${esc(e.body_text)}</pre>
+      <div class="chips">${chips}</div>
+    </div>`;
+    }).join('');
+    const strays = timeline.unlinked.map((u) => `
+    <div class="ev unlinked"><div class="meta">${stamp(u.at, 16)} · <span class="ids">${esc(u.id)}</span> · not linked to any task</div><div class="subj">${esc(u.from)}: ${esc(u.subject)}</div></div>`).join('');
+    byId('timeline').innerHTML = linked + strays;
+  }
+
+  function renderNextActor(c) {
+    const actor = byId('actor');
+    actor.textContent = c.next_actor.toUpperCase();
+    actor.className = `actor ${c.next_actor}`;
+    byId('actorwhy').textContent = c.next_actor_reason;
+  }
+
+  function renderChecks(c) {
+    const conflicts = c.conflicts.map((x) => `<div class="conflict"><b>${esc(x.check)}</b> — ${esc(x.detail)}</div>`).join('');
+    const rows = c.checks.map((x) => `<tr><td><span class="st ${esc(x.status)}">${esc(x.status)}</span></td><td>${esc(x.check)}</td><td>${esc(x.detail)}</td></tr>`).join('');
+    byId('checks').innerHTML = `${conflicts}<table>${rows}</table>`;
+  }
+
+  function renderTerms(c) {
+    if (!c.current_terms.length) {
+      byId('terms').innerHTML = '<div class="empty">No terms yet</div>';
+      return;
+    }
+    const rows = c.current_terms.map((t) => {
+      const contested = t.status === 'contested' ? ' <span class="st fail">contested</span>' : '';
+      const docs = t.documents.length ? '<br>' + t.documents.map(esc).join(', ') : '';
+      return `<tr><td>${esc(t.party)}</td><td class="term" data-term="${esc(t.term)}">${esc(t.term)}</td><td><b>${esc(t.value)}</b>${contested}</td><td class="ids">${t.stated_in.map(esc).join(', ')}${docs}</td></tr>`;
+    }).join('');
+    byId('terms').innerHTML = `<table><tr><th>party</th><th>term</th><th>value</th><th>evidence</th></tr>${rows}</table>`;
+  }
+
+  function renderSuperseded(c) {
+    const replaced = c.superseded_terms_do_not_use;
+    const tentative = c.tentative_not_applied;
+    if (!replaced.length && !tentative.length) {
+      byId('superseded').innerHTML = '<div class="empty">Nothing superseded</div>';
+      return;
+    }
+    const a = replaced.map((s) => `<tr><td>${esc(s.party)}</td><td class="term" data-term="${esc(s.term)}">${esc(s.term)}</td><td><span class="old">${esc(s.old_value)}</span> → ${esc(s.current_value)}<div class="ids">${esc(s.reason)}</div></td></tr>`).join('');
+    const b = tentative.map((t) => `<tr><td>${esc(t.party)}</td><td class="term">${esc(t.term)}</td><td>${esc(t.value)} <span class="st open">tentative</span><div class="ids">${esc(t.why_not_applied)}</div></td></tr>`).join('');
+    byId('superseded').innerHTML = `<table>${a}${b}</table>`;
+  }
+
+  function renderLoops(state) {
+    const obligations = state.obligations;
+    if (!obligations.length) {
+      byId('loops').innerHTML = '<div class="empty">No obligations</div>';
+      return;
+    }
+    byId('loops').innerHTML = obligations.map((o) => {
+      const open = o.status === 'open';
+      const resolved = o.resolved_by_event_id ? ` · resolved ${esc(o.resolved_by_event_id)}: ${esc(o.resolution_note)}` : '';
+      const closes = o.expects_artifact && open ? ` · closes when a ${esc(o.expects_artifact)} arrives` : '';
+      const due = o.due_at ? ` · due ${esc(o.due_at)}` : '';
+      return `<div class="ob ${open ? '' : 'done'}"><span class="st ${esc(o.status)}">${esc(o.status)}</span> <span class="who">${esc(o.debtor_label)}</span> owes ${esc(o.creditor_label)} · <i>${esc(o.kind)}</i><br>${esc(o.text)}<div class="ids">${esc(o.id)} · opened ${esc(o.source_event_id)}${resolved}${closes}${due}</div></div>`;
+    }).join('');
+  }
+
+  function renderDocs(c) {
+    if (!c.documents.length) {
+      byId('docs').innerHTML = '<div class="empty">No documents</div>';
+      return;
+    }
+    byId('docs').innerHTML = c.documents.map((d) => {
+      const by = d.superseded_by ? `<div class="ids">superseded by ${esc(d.superseded_by)}</div>` : '';
+      const ok = d.still_current_terms.length ? `<div class="ok-row">✓ ${d.still_current_terms.map(esc).join(' · ')}</div>` : '';
+      const stale = d.stale_terms.map((s) => `<div style="color:var(--red)">✗ ${esc(s.term)}: <span class="old">${esc(s.document_says)}</span> → now ${esc(s.now)} <span class="ids">(${esc(s.changed_by)})</span></div>`).join('');
+      return `<div class="ob"><span class="st ${esc(d.status)}">${esc(d.status.replace('_', ' '))}</span> <b>${esc(d.filename)}</b> <span class="ids">${esc(d.artifact_id)} · ${esc(d.received_in)}</span>${by}
+      ${ok}
+      ${stale}</div>`;
+    }).join('');
+  }
+
+  function renderRuns(runs) {
+    if (!runs.length) {
+      byId('runs').innerHTML = '<div class="empty">No agent has run yet</div>';
+      return;
+    }
+    byId('runs').innerHTML = runs.map((r, i) => {
+      const d = r.decision ?? {};
+      const memory = d.prior_messages_in_process_memory;
+      return `<div class="run ${view.selectedRun === i ? 'sel' : ''}" data-run="${i}">
+      <div><span class="k">${esc(r.agent_id)}</span> <span class="ids">pid ${esc(d.pid ?? '?')} · ${esc(r.mode)} · ${esc(d.wake_reason ?? '')}</span></div>
+      <div class="ids">${stamp(r.started_at, 19)} · context ~${esc(r.context_tokens)} tok (transcript ~${esc(r.transcript_tokens)}) · <span class="${memory === 0 ? 'fresh' : ''}">prior messages in process memory: ${esc(memory ?? '?')}</span></div>
+      <div>${esc(d.action ?? '')}${d.sent?.length ? ` → sent ${d.sent.map(esc).join(', ')}` : ''}${d.blocked?.length ? ' · <span style="color:var(--red)">blocked</span>' : ''}</div>
+    </div>`;
+    }).join('');
+  }
+
+  const tabButtons = () => document.querySelectorAll('.tabs button');
+
+  function renderContext({ state, ctx, runs }) {
+    // a historical view, replayed from the event log
+    if (view.tab === 'asof' && view.asOf) {
+      const a = view.asOf;
+      tabButtons().forEach((b) => b.classList.remove('on'));
+      byId('ctxstat').innerHTML = `<div><b>as of ${esc(a.id)}</b>replayed from the event log</div><div><b>~${esc(a.briefing_tokens)}</b>briefing tokens</div><div><b>${esc(a.context.next_actor)}</b>next actor then</div>`;
+      byId('brief').textContent = a.briefing;
+      return;
+    }
+    const run = view.selectedRun != null ? runs[view.selectedRun] : null;
+    const live = view.tab === 'live' || !run;
+    const briefing = live ? ctx.briefing : run.briefing;
+    const json = live ? ctx.context : run.context;
+    tabButtons().forEach((b) => b.classList.toggle('on', b.dataset.t === (run ? view.tab : 'live')));
+
+    const tokens = live ? ctx.briefing_tokens : run.context_tokens;
+    const transcript = live ? ctx.transcript_tokens : run.transcript_tokens;
+    const who = live ? 'live' : esc(run.agent_id);
+    const ver = live ? `state v${state.state_version}` : `state v${run.context?.meta?.state_version}`;
+    byId('ctxstat').innerHTML = `<div><b>~${esc(tokens)}</b>briefing tokens</div><div><b>~${esc(transcript)}</b>full transcript tokens</div><div><b>${who}</b>${esc(ver)}</div>`;
+
+    let mails = '';
+    if (run && !live) {
+      const d = run.decision ?? {};
+      mails = (d.messages ?? []).map((m) => `\n\n──── email written by ${run.agent_id} → ${m.to} ────\n${m.body}`).join('');
+      if (d.blocked?.length) mails += `\n\nBLOCKED: ${JSON.stringify(d.blocked, null, 1)}`;
+    }
+    byId('brief').textContent = view.tab === 'json' ? JSON.stringify(json, null, 1) : briefing + mails;
+  }
+
+  function render() {
+    const d = view.data;
+    if (!d) return;
+    const c = d.ctx.context;
+    renderHeader(d.health, d.state);
+    renderTimeline(d.timeline);
+    renderNextActor(c);
+    renderChecks(c);
+    renderTerms(c);
+    renderSuperseded(c);
+    renderLoops(d.state);
+    renderDocs(c);
+    renderRuns(d.runs);
+    renderContext(d);
+  }
+
+  // ---------------------------------------------------------------- actions
+  async function showAsOf(id) {
+    view.asOf = { id, ...(await api(`/tasks/${view.task}/context?as_of=${id}`)) };
+    view.selectedRun = null;
+    view.tab = 'asof';
+    render();
+  }
+
+  async function explain(term) {
+    const x = await api(`/tasks/${view.task}/explain?term=${encodeURIComponent(term)}`);
+    const rows = x.chain.map((c) => {
+      const evidence = c.evidence.map((e) => `<div class="ids">${esc(e.event_id)}${e.artifact ? ' / ' + esc(e.artifact) : ''}</div><div style="font-size:12px">“${esc(e.quote.slice(0, 200))}”</div>`).join('');
+      return `<tr><td class="ids">${esc(c.claim_id)}</td><td>${esc(c.speaker)}</td><td>${esc(c.value)}</td><td><span class="st ${c.status === 'active' ? 'current' : esc(c.status)}">${esc(c.status)}</span><div class="ids">${esc(c.reason ?? '')}</div></td><td>${evidence}</td></tr>`;
+    }).join('');
+    byId('dlgbody').innerHTML = `<h3 style="margin-top:0;font-family:var(--mono)">${esc(term)}</h3><p>${esc(x.explanation)}</p>
+    <table><tr><th>claim</th><th>speaker</th><th>value</th><th>status</th><th>evidence</th></tr>${rows}</table>`;
+    byId('dlg').showModal();
+  }
+
+  // ---------------------------------------------------------------- wiring
+  tabButtons().forEach((b) => {
+    b.onclick = () => {
+      view.tab = b.dataset.t;
+      if (view.tab === 'live') view.selectedRun = null;
+      render();
+    };
+  });
+
+  byId('timeline').addEventListener('click', (e) => {
+    const asOfLink = e.target.closest('[data-asof]');
+    if (asOfLink) {
+      e.preventDefault();
+      showAsOf(asOfLink.dataset.asof);
+      return;
+    }
+    const subject = e.target.closest('[data-act="toggle"]');
+    if (subject) {
+      const body = subject.closest('.ev').querySelector('pre');
+      body.hidden = !body.hidden;
+    }
+  });
+
+  const onTermClick = (e) => {
+    const cell = e.target.closest('[data-term]');
+    if (cell) explain(cell.dataset.term);
+  };
+  byId('terms').addEventListener('click', onTermClick);
+  byId('superseded').addEventListener('click', onTermClick);
+
+  byId('runs').addEventListener('click', (e) => {
+    const card = e.target.closest('[data-run]');
+    if (!card) return;
+    view.selectedRun = Number(card.dataset.run);
+    view.tab = 'brief';
+    render();
+  });
+
+  byId('dlg-close').addEventListener('click', () => byId('dlg').close());
+
+  load().catch(() => {}).then(poll);
+})();
+</script>
+</body>
+</html>

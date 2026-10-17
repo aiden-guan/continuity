@@ -1,0 +1,22 @@
+Task PO-4817 goal: Buy 500 AX-200 control boards for PO-4817. All 500 must arrive by Friday Oct 23; unit price must not exceed $11.50.
+You are procurement@tiny-koi.primitive.email. Parties: supplier <supplier@tiny-koi.primitive.email>; finance <finance@tiny-koi.primitive.email>
+
+<recent_messages count="3">
+From: supplier@tiny-koi.primitive.email
+To: procurement@tiny-koi.primitive.email
+Date: 2026-10-19T11:20:00.000Z
+Subject: Re: RFQ — PO-4817
+Attachments: Northwind-Quote-Q-2291.pdf
+
+Hi,
+
+Thanks for reaching out. We can deliver 500 units Friday (Oct 23) at $11.40 each. I've attached the quote.
+
+Let me know if you have any questions.
+
+Dana Ruiz
+Northwind Components
+
+On Mon, 19 Oct 2026 09:00:00 GMT, procurement@tiny-koi.primitive.email wrote:
+> Hi Dana, can you deliver all 500 units by Friday, Oct 23, and what is your unit price?
+</recent_messages>

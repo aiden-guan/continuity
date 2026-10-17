@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Continuity Engine — live</title>
+  <meta name="theme-color" content="#090807">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23090807'/%3E%3Cpath d='M4 16h24' stroke='%23ff6a2b' stroke-width='2'/%3E%3Crect x='9' y='13' width='6' height='6' fill='%23ffd9a0'/%3E%3C/svg%3E">
+
+  <link rel="stylesheet" href="assets/site.css">
+  <link rel="stylesheet" href="assets/live.css">
+</head>
+<body>
+
+  <!-- ============ presenter view (default): one thing at a time -->
+  <div id="pres" class="pres">
+    <header class="p-top">
+      <a class="logo" href="index.html" aria-label="Back to the story">
+        <svg viewBox="0 0 30 14" aria-hidden="true">
+          <line x1="0" y1="7" x2="30" y2="7" stroke="var(--ember)" stroke-width="1.5"/>
+          <rect x="5" y="4" width="6" height="6" fill="var(--gold)"/>
+          <rect x="19" y="4" width="6" height="6" fill="none" stroke="var(--ink-2)" stroke-width="1.2"/>
+        </svg>
+        Continuity
+      </a>
+      <span id="p-count" class="p-count"></span>
+      <button id="p-details" class="p-details" title="Show the full engine view">Details <span class="kbd">D</span></button>
+    </header>
+
+    <section class="p-head">
+      <h1 id="p-title">Agents forget.</h1>
+      <p id="p-sub"></p>
+    </section>
+
+    <section id="p-thread" class="p-thread"></section>
+
+    <section class="p-tiles">
+      <div id="p-actor" class="p-tile"></div>
+      <div id="p-checks" class="p-tile"></div>
+      <div id="p-now" class="p-tile wide"></div>
+    </section>
+
+    <footer id="p-hint" class="p-foot"></footer>
+  </div>
+
+  <!-- ============ details console (press D) -->
+  <div class="app">
+    <header class="top">
+      <a class="logo" href="index.html" aria-label="Back to the story">
+        <svg viewBox="0 0 30 14" aria-hidden="true">
+          <line x1="0" y1="7" x2="30" y2="7" stroke="var(--ember)" stroke-width="1.5"/>
+          <rect x="5" y="4" width="6" height="6" fill="var(--gold)"/>
+          <rect x="19" y="4" width="6" height="6" fill="none" stroke="var(--ink-2)" stroke-width="1.2"/>
+        </svg>
+        Continuity <small>engine</small>
+      </a>
+      <div class="goal">
+        <span id="alias" class="tag">PO-4817</span>
+        <span id="goal">connecting…</span>
+      </div>
+      <div id="badges" class="badges"></div>
+    </header>
+
+    <!-- left rail: the story beats, controls, processes -->
+    <aside class="rail">
+      <div class="sec-h"><span>The story</span><span id="mode-tag" class="tag">…</span></div>
+      <ol id="beats" class="beats"></ol>
+      <div class="ctl">
+        <button id="next" class="btn ember run" disabled><span id="next-l">Run next beat</span> <span class="kbd">→</span></button>
+        <button id="reset" class="btn reset" title="Reset the engine and start the story over">Reset</button>
+      </div>
+      <div class="sec-h"><span>Processes</span><span id="proc-count" class="mono"></span></div>
+      <div id="procs" class="procs"></div>
+    </aside>
+
+    <!-- center: thread, pipeline, tabbed streams -->
+    <main class="center">
+      <section class="panel thread-panel">
+        <div class="sec-h"><span>The thread</span><span id="thread-meta" class="mono"></span></div>
+        <div id="thread"></div>
+      </section>
+
+      <section class="panel pipe-panel">
+        <div id="pipe" class="pipe"></div>
+      </section>
+
+      <section class="panel stream-panel">
+        <div class="sec-h">
+          <div class="tabs" role="tablist">
+            <button class="on" data-t="evidence" role="tab">Evidence &amp; transitions</button>
+            <button data-t="handoff" role="tab">Agent handoff <span id="handoff-dot"></span></button>
+            <button data-t="briefing" role="tab">Live briefing</button>
+          </div>
+          <span id="stream-meta" class="mono"></span>
+        </div>
+        <div id="v-evidence" class="stream"></div>
+        <div id="v-handoff" class="stream" hidden></div>
+        <div id="v-briefing" class="stream" hidden><pre id="briefing" class="briefing"></pre></div>
+      </section>
+    </main>
+
+    <!-- right: the state board -->
+    <aside class="right">
+      <div id="board" class="board"></div>
+    </aside>
+
+    <!-- bottom: process output -->
+    <footer class="term">
+      <div class="sec-h"><span>Process output</span><span id="term-meta" class="mono">stdout · stderr</span></div>
+      <pre id="term"></pre>
+    </footer>
+  </div>
+
+  <!-- ============ full-screen moments -->
+  <div id="flashover" class="flashover" aria-live="assertive">
+    <canvas id="flash-cv"></canvas>
+    <div class="fo-in">
+      <div id="fo-k" class="fo-k"></div>
+      <div id="fo-t" class="fo-t"></div>
+      <div id="fo-s" class="fo-s"></div>
+    </div>
+  </div>
+
+  <script type="module" src="assets/live.js"></script>
+</body>
+</html>

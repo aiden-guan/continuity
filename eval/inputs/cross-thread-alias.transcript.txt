@@ -1,0 +1,11 @@
+Task PO-4817 goal: Buy 500 AX-200 control boards for PO-4817. All 500 must arrive by Friday Oct 23; unit price must not exceed $11.50.
+You are procurement@tiny-koi.primitive.email. Parties: supplier <supplier@tiny-koi.primitive.email>; finance <finance@tiny-koi.primitive.email>
+
+<full_history>
+From: finance@tiny-koi.primitive.email
+To: procurement@tiny-koi.primitive.email
+Date: 2026-10-19T12:00:00.000Z
+Subject: Budget for PO-4817
+
+Approved up to $11.50 per unit.
+</full_history>

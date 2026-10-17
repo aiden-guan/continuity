@@ -1,0 +1,12 @@
+# dependencies and build output
+node_modules
+dist
+.env
+.DS_Store
+
+# rendered videos (media imported into src/ stays tracked)
+out
+
+# produced by `npm run record` and `npm run narrate`: large, and reproducible
+public/recording/
+public/voice/

@@ -1,0 +1,393 @@
+/*
+ * The scroll story (index.html). One idea per screen:
+ * hero → problem → idea → replayed demo → proof → end.
+ */
+
+/* ============================================================ nav */
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px var(--gutter);
+  transition: background 0.5s, backdrop-filter 0.5s;
+}
+.nav.solid {
+  background: rgba(9, 8, 7, 0.7);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+.nav-cta { --h: 38px; padding: 0 16px; font-size: 13.5px; }
+
+/* ============================================================ scroll reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  filter: blur(6px);
+  transition:
+    opacity 1s var(--ease),
+    transform 1.1s var(--ease),
+    filter 1s var(--ease);
+  transition-delay: var(--d, 0s);
+}
+.reveal.in { opacity: 1; transform: none; filter: none; }
+
+.c-gold { color: var(--gold); }
+
+/* ============================================================ 1 · hero */
+.hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100svh;
+}
+.hero .wrap { max-width: 1680px; }
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+.hero-fade {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(110% 70% at 25% 35%, rgba(9, 8, 7, 0.75), transparent 65%),
+    linear-gradient(180deg, rgba(9, 8, 7, 0.5), transparent 30%, transparent 78%, var(--bg));
+}
+.hero-in { padding-bottom: 200px; }
+
+.hero-h {
+  margin: 0 0 28px;
+  font-size: clamp(58px, 10vw, 168px);
+  font-weight: 500;
+  line-height: 0.9;
+  letter-spacing: -0.055em;
+}
+.hero-h em { color: var(--gold); letter-spacing: -0.035em; }
+
+.hero-sub {
+  max-width: 30ch;
+  margin: 0;
+  font-size: clamp(18px, 1.7vw, 24px);
+  color: var(--ink-2);
+}
+
+.hero-thread { position: absolute; left: 0; right: 0; bottom: 18px; height: 190px; }
+.hero-thread canvas { display: block; width: 100%; height: 100%; }
+
+/* ============================================================ slides */
+.slide {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100svh;
+  padding: 120px 0;
+}
+.big {
+  margin: 0;
+  font-size: clamp(44px, 7vw, 112px);
+  font-weight: 500;
+  line-height: 0.96;
+  letter-spacing: -0.05em;
+  text-wrap: balance;
+}
+.big em { color: var(--gold); }
+
+/* 2 · problem */
+.trio {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 44px;
+  margin-top: clamp(48px, 7vw, 90px);
+}
+.trio p {
+  margin: 0;
+  padding-left: 18px;
+  border-left: 2px solid var(--ember);
+  font-size: clamp(20px, 2.2vw, 30px);
+  letter-spacing: -0.02em;
+  color: var(--ink-2);
+}
+.quiet {
+  margin: 36px 0 0;
+  font-family: var(--serif);
+  font-size: clamp(22px, 2.4vw, 32px);
+  font-style: italic;
+  color: var(--muted);
+}
+
+/* 3 · idea: email in → state out */
+.pair {
+  display: grid;
+  grid-template-columns: 1fr 90px 1fr;
+  align-items: center;
+  margin-top: clamp(48px, 7vw, 90px);
+}
+.pair > div:not(.pair-arrow) {
+  padding: 28px 30px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(255, 240, 220, 0.025);
+}
+.pair-k {
+  font: 500 11px/1 var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.pair p {
+  margin: 14px 0 0;
+  font-size: clamp(19px, 1.9vw, 26px);
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+}
+.pair-in p {
+  font-family: var(--mono);
+  font-size: clamp(16px, 1.5vw, 20px);
+  letter-spacing: 0;
+  color: var(--ink-2);
+}
+.pair s { color: var(--muted); text-decoration-color: var(--red); }
+.pair .bad { color: var(--red); }
+.pair-out {
+  border-color: rgba(255, 106, 43, 0.4) !important;
+  box-shadow: 0 0 60px -20px rgba(255, 106, 43, 0.5);
+}
+.pair-arrow {
+  position: relative;
+  height: 2px;
+  margin: 0 14px;
+  background: linear-gradient(90deg, transparent, var(--ember));
+}
+.pair-arrow i {
+  position: absolute;
+  top: -3px;
+  width: 8px;
+  height: 8px;
+  background: var(--gold);
+  box-shadow: 0 0 12px var(--ember);
+  animation: travel 2.2s var(--ease-in-out) infinite;
+}
+@keyframes travel {
+  from { left: 0; opacity: 0; }
+  20%  { opacity: 1; }
+  to   { left: calc(100% - 8px); opacity: 1; }
+}
+@media (max-width: 760px) {
+  .pair { grid-template-columns: 1fr; gap: 14px; }
+  .pair-arrow {
+    width: 2px;
+    height: 40px;
+    margin: 0 auto;
+    background: linear-gradient(180deg, transparent, var(--ember));
+  }
+  .pair-arrow i { display: none; }
+}
+
+/* ============================================================ 4 · story (sticky stage + scrolling steps) */
+.story-sec { justify-content: flex-start; padding-bottom: 0; }
+.story {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+  gap: clamp(28px, 5vw, 80px);
+  align-items: start;
+  margin-top: 8vh;
+}
+.story-stage { position: sticky; top: 20vh; display: grid; gap: 22px; }
+
+/* the thread svg, as drawn by board.js */
+.thread-svg { display: block; width: 100%; height: 150px; overflow: visible; }
+.thr-t { font: 500 13px var(--mono); fill: var(--ink-2); }
+.thr-t.small { font-size: 11px; }
+.thr-t.sub { fill: var(--muted); }
+.thr-t.muted,
+.thr-t .muted { fill: var(--faint); }
+.thr-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: thrpulse 1.4s var(--ease-in-out) infinite;
+}
+@keyframes thrpulse { 50% { opacity: 0.35; transform: scale(1.6); } }
+.thr-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ring 1.6s var(--ease) infinite;
+}
+@keyframes ring {
+  0%   { opacity: 1; transform: scale(0.4); }
+  100% { opacity: 0; transform: scale(1.4); }
+}
+
+/* tiny state readout under the thread */
+.mini {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 18px 40px;
+  align-items: center;
+  padding: 26px 28px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: rgba(255, 240, 220, 0.02);
+  transition: border-color 0.6s, box-shadow 0.6s;
+}
+.mini.bad {
+  border-color: rgba(255, 91, 79, 0.45);
+  box-shadow: 0 0 60px -20px rgba(255, 91, 79, 0.5);
+}
+.mini-k {
+  margin-bottom: 10px;
+  font: 500 11px/1 var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.mini .actor { font-size: 56px; }
+
+.lights { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 22px; }
+.light { display: flex; align-items: center; gap: 10px; font-size: 15px; color: var(--ink-2); }
+.light i {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--faint);
+  transition: background 0.5s, box-shadow 0.5s;
+}
+.light.pass i { background: var(--mint); box-shadow: 0 0 12px rgba(143, 230, 180, 0.6); }
+.light.fail { color: #ffc9c3; }
+.light.fail i {
+  background: var(--red);
+  box-shadow: 0 0 14px rgba(255, 91, 79, 0.8);
+  animation: blink 1.1s steps(2) infinite;
+}
+
+/* scroll steps: one sentence per beat */
+.step {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 80vh;
+  opacity: 0.18;
+  transition: opacity 0.6s var(--ease);
+}
+.step.on { opacity: 1; }
+.step:last-child { min-height: 90vh; }
+.step-n { font: 500 12px var(--mono); letter-spacing: 0.1em; color: var(--ember); }
+.step h3 {
+  margin: 14px 0 12px;
+  font-size: clamp(30px, 3.2vw, 48px);
+  font-weight: 500;
+  line-height: 1.04;
+  letter-spacing: -0.04em;
+}
+.step p { margin: 0; font-size: 18px; line-height: 1.5; color: var(--ink-2); }
+.step .said {
+  margin-top: 18px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  font: 14px/1.6 var(--mono);
+}
+.step .said.them {
+  border-left: 2px solid var(--ember);
+  border-radius: 0 14px 14px 0;
+  background: rgba(255, 106, 43, 0.06);
+  color: var(--ink);
+}
+.step .said.agent {
+  border: 1px solid rgba(156, 194, 255, 0.3);
+  background: rgba(156, 194, 255, 0.05);
+  color: var(--ink);
+}
+.step .said.agent small { display: block; margin-bottom: 8px; font-size: 11px; color: var(--sky); }
+.step .kicker {
+  margin-top: 22px;
+  font-family: var(--serif);
+  font-size: clamp(26px, 2.6vw, 36px);
+  font-style: italic;
+  line-height: 1.15;
+  color: var(--gold);
+}
+
+@media (max-width: 960px) {
+  .story { grid-template-columns: 1fr; gap: 0; }
+  .story-stage {
+    top: 56px;
+    z-index: 5;
+    gap: 10px;
+    padding: 10px 0;
+    background: var(--bg);
+    box-shadow: 0 20px 30px -10px var(--bg);
+  }
+  .thread-svg { height: 110px; }
+  .mini { gap: 10px 20px; padding: 14px 16px; }
+  .mini .actor { font-size: 34px; }
+  .light { font-size: 12.5px; }
+  .step { min-height: 70vh; }
+}
+
+/* ============================================================ 5 · proof */
+.proof {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px 80px;
+  margin-top: clamp(48px, 7vw, 90px);
+}
+.proof b {
+  display: block;
+  font-size: clamp(64px, 8vw, 120px);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  color: var(--ink);
+}
+.proof span {
+  display: block;
+  margin-top: 12px;
+  font-size: 17px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+/* ============================================================ 6 · end */
+.end { position: relative; overflow: hidden; padding-top: 22vh; }
+.end-in { display: flex; flex-direction: column; align-items: flex-start; gap: 34px; }
+.end-line {
+  margin: 0;
+  font-size: clamp(48px, 7vw, 112px);
+  font-weight: 500;
+  line-height: 0.95;
+  letter-spacing: -0.05em;
+}
+.end-line em { color: var(--gold); }
+
+.wordmark {
+  display: block;
+  width: 100%;
+  height: clamp(150px, 27vw, 420px);
+  margin-top: 14vh;
+  image-rendering: pixelated;
+}
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 20px;
+  padding-bottom: 28px;
+  border-top: 1px solid var(--line);
+  font: 11.5px var(--mono);
+  color: var(--faint);
+}

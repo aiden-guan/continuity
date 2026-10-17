@@ -1,0 +1,41 @@
+{
+  "name": "continuity",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Communication-state engine for Primitive agents: every conversation gets a state.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/server.ts",
+    "worker": "node --env-file-if-exists=.env src/worker.ts",
+    "test": "node --test test/*.test.ts",
+    "test:supabase": "node scripts/test-supabase.ts",
+    "typecheck": "tsc --noEmit",
+    "demo": "node --env-file-if-exists=.env scripts/demo.ts",
+    "demo:supabase": "node --env-file-if-exists=.env scripts/demo.ts --store postgres",
+    "demo:live": "node --env-file-if-exists=.env scripts/demo-live.ts",
+    "stage": "node --env-file-if-exists=.env scripts/stage.ts",
+    "eval": "node --env-file-if-exists=.env eval/run.ts",
+    "agent": "node --env-file-if-exists=.env src/agent/run.ts",
+    "receive": "node --env-file-if-exists=.env scripts/primitive-receive.ts",
+    "live:task": "node --env-file-if-exists=.env scripts/create-task.ts",
+    "live:counterparty": "node --env-file-if-exists=.env scripts/live-counterparty.ts",
+    "keys": "bash scripts/set-keys.sh",
+    "check:keys": "node --env-file-if-exists=.env scripts/check-keys.ts",
+    "token": "node --env-file-if-exists=.env scripts/token.ts",
+    "import:sqlite": "node --env-file-if-exists=.env scripts/import-sqlite.ts",
+    "db:migrate:local": "supabase migration up --local",
+    "site:snapshot": "node scripts/site-snapshot.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0",
+    "@primitivedotdev/sdk": "^2.4.0",
+    "postgres": "^3.4.9"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "typescript": "^7.0.2"
+  }
+}
