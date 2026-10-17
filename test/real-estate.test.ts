@@ -199,3 +199,16 @@ test('domain packs: real_estate is registered next to procurement and vendor onb
   assert.deepEqual(domainFor('procurement').terms.map((t) => t.key).slice(0, 2), ['price.unit', 'delivery.schedule']);
   assert.equal(domainFor('real_estate').decisionKey, 'decision.accept');
 });
+
+test('a forged buyer approval (fails DMARC) never raises the ceiling and is flagged', async () => {
+  const h = new Harness(deal, undefined, '2026-10-19T08:00:00Z');
+  await h.in(dealParties.buyerApproval(a, { messageId: null, subject: 'ELM-42 budget' }));
+  await h.in(dealParties.forgedApproval(a));
+  await h.refresh();
+  const ceilings = h.store.claimsForTask(deal.id).filter((c) => c.key === 'budget.max_price');
+  assert.deepEqual(ceilings.filter((c) => c.status === 'active').map((c) => c.value), [850000]);
+  const forged = ceilings.find((c) => c.value === 900000)!;
+  assert.equal(forged.status, 'proposed');
+  assert.match(forged.supersede_reason ?? '', /not authenticated/);
+  assert.ok(h.flags().some((f) => f.kind === 'sender_unauthenticated'));
+});

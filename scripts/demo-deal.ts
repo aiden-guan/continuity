@@ -9,8 +9,8 @@
 // buyer approves a ceiling, the inspector books, the lender's appraisal comes in short and the listing agent
 // moves the closing date. Signal raises what matters unprompted, the guard refuses a premature acceptance,
 // a fresh Agent B negotiates from compiled state alone, and a fresh Agent C accepts once every requirement
-// passes. Ported from samrocksnature's b615ab7 (the forged-sender, human-approval and wire-fraud beats
-// of the original belong to the sender-authentication and approvals work and are not part of this demo).
+// passes, a human approves the acceptance, and forged wiring instructions are held and rejected.
+// Ported from samrocksnature's b615ab7 and 4b22c86.
 import { spawn, type ChildProcess } from 'node:child_process';
 import { rmSync } from 'node:fs';
 import { createInterface } from 'node:readline';
@@ -107,6 +107,18 @@ async function lastTo(address: string) {
 }
 const arrived = (who: string, d: Delivered, what: string) => say(`${C.blue}${who}${C.reset} → ${what}  ${C.dim}(${d.result.event_id}, linked by ${d.result.link_reason})${C.reset}`);
 
+type Card = { id: string; kind: string; text: string };
+/** The human approver: reads each open card of one kind and decides (with auth off, the local user may approve). */
+async function humanDecides(kind: string, option: string, by: string, note?: string, show = true) {
+  const cards = (await api<Card[]>('GET', `/tasks/${T}/approvals`)).filter((x) => x.kind === kind);
+  for (const card of cards) {
+    if (show) console.log(card.text.split('\n').map((l) => `   ${C.dim}│${C.reset} ${l}`).join('\n'));
+    const r = await api<{ status: string }>('POST', `/tasks/${T}/approvals/${card.id}/decide`, { option, by, ...(note ? { note } : {}) });
+    say(`${by} chose "${option}" on ${card.id} → ${C.green}${r.status}${C.reset}`);
+  }
+  if (!cards.length) say(`${C.dim}(nothing waiting on a human)${C.reset}`);
+}
+
 type Alert = { severity: string; summary: string };
 async function signal(label: string) {
   const r = await api<{ new: Alert[]; reopened: Alert[]; open: Alert[]; resolved: string[] }>('POST', '/signals/run');
@@ -162,7 +174,7 @@ async function main() {
   await exitOf(agentA);
   say(`agent-a pid ${agentA.pid} killed. From here on NO agent is running.`);
 
-  await banner('4. While no agent runs: four parties write, in four threads');
+  await banner('4. While no agent runs: four parties write (and one forger), in five threads');
   await setClock('2026-10-20T18:30:00Z');
   arrived('buyer', await deliver(P.buyerApproval(a, (await lastTo(a.buyer))!)), 'approves going up to $850,000');
   await setClock('2026-10-21T08:00:00Z');
@@ -172,12 +184,18 @@ async function main() {
   await setClock('2026-10-23T09:15:00Z');
   arrived('listing agent', await deliver(P.listingCorrection(a, (await lastTo(a.listing))!)), '"correction": closing moves to Fri Dec 4; revised counter promised');
 
+  await setClock('2026-10-24T07:40:00Z');
+  arrived(`${C.red}"buyer"${C.reset}`, await deliver(P.forgedApproval(a)), 'approves up to $900,000 — but the message fails DMARC (forged)');
+
   await banner('5. Monday Oct 27. Nobody has asked anything. Signal runs.', C.yellow);
   await setClock('2026-10-27T08:00:00Z');
   await signal('(scan of every deal)');
 
   await banner('6. Trust: what the system refused to believe or do', C.red);
-  const st = await api<{ flags: { kind: string; detail: string }[] }>('GET', `/tasks/${T}/state`);
+  const st = await api<{ claims: { key: string; display: string; status: string; supersede_reason: string | null }[]; flags: { kind: string; detail: string }[] }>('GET', `/tasks/${T}/state`);
+  for (const c of st.claims.filter((x) => x.key === 'budget.max_price')) {
+    say(`buyer ceiling ${c.display}: ${c.status === 'active' ? `${C.green}applied${C.reset}` : `${C.red}not applied${C.reset} — ${c.supersede_reason}`}`);
+  }
   const injected = st.flags.find((f) => f.kind === 'prompt_injection_suspected');
   if (injected) say(`the counter PDF said: "${injected.detail.slice(0, 92)}…" → ${C.red}quarantined${C.reset} (data, not an instruction)`);
   try {
@@ -206,13 +224,27 @@ async function main() {
   arrived('inspector', await deliver(P.inspectorReport(a, toInspector ?? { messageId: null, subject: 'Inspection booked: 42 Elm St (ELM-42)' })), 'inspection report (+ PDF)');
   await signal('(after the replies)');
 
-  await banner('9. Agent C (another fresh process) accepts — every requirement now passes', C.mag);
+  await banner('9. Agent C (another fresh process) drafts the acceptance — every requirement now passes', C.mag);
   await setClock('2026-10-28T14:00:00Z');
   if ((await exitOf(startAgent('agent-c', '--once', C.mag))) !== 0) throw new Error('agent-c failed');
+
+  await banner('10. Agents propose, a human decides: the approval card', C.yellow);
+  say('the acceptance was held: on this deal a human approves every commitment. The buyer sees:');
+  await humanDecides('send', 'approve', 'Alex Morgan (buyer)');
   const accepted = (await lastTo(a.listing))!;
   console.log(accepted.body.split('\n').map((l) => `   ${C.dim}│${C.reset} ${l}`).join('\n'));
 
-  await banner('10. One timeline per deal: every typed event, with its source email', C.cyan);
+  await banner('11. Wire fraud: "updated wiring instructions" from the title company', C.red);
+  await setClock('2026-10-28T15:30:00Z');
+  arrived('title company', await deliver(P.wireChange(a)), 'new bank, routing and account number — and it passes DMARC (a compromised mailbox)');
+  say('payment details are never applied from email: the system holds them and asks a human to verify by phone:');
+  await humanDecides('verify_change', 'hold_verify', 'Alex Morgan (buyer)', 'calling Summit Title at the number on the closing documents');
+  say(`${C.dim}…Summit Title, reached at the number on file: "we have not changed our bank details."${C.reset}`);
+  await humanDecides('verify_change', 'reject', 'Alex Morgan (buyer)', 'confirmed fraudulent by phone', false);
+  const wire = (await api<{ claims: { key: string; status: string; supersede_reason: string | null }[] }>('GET', `/tasks/${T}/state`)).claims.find((c) => c.key === 'payment.wire_instructions');
+  say(`the fraudulent wire instructions: ${C.red}${wire?.status}${C.reset} (${wire?.supersede_reason}) — no agent ever acted on them`);
+
+  await banner('12. One timeline per deal: every typed event, with its source email', C.cyan);
   type Ev = { at: string; type: string; party: string | null; display?: string; replaces?: string; applied: boolean; source_event: string | null };
   const history = await api<{ events: Ev[] }>('GET', `/tasks/${T}/history`);
   const quiet = new Set(['message_received', 'message_sent', 'question_answered', 'request_answered', 'request_made', 'question_asked']);

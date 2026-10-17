@@ -17,13 +17,16 @@ import { closeAll, PG_URL, pg, uniqueOrg } from './backends.ts';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { dealAddresses, dealParties, elmStreetDeal } from '../src/sim/real-estate.ts';
+import { runSignal } from '../src/signal.ts';
+import { query } from '../src/portfolio.ts';
 
 delete process.env.PRIMITIVE_API_KEY;
 delete process.env.ANTHROPIC_API_KEY;
 const a = defaultAddresses();
 const ORG = 'org_approvals';
 type Tokens = { admin: string; agent: string; viewer: string; approver: string };
-type App = { url: string; transport: LocalSimTransport; tokens: Tokens; close: () => void };
+type App = { url: string; backend: Backend; transport: LocalSimTransport; tokens: Tokens; close: () => void };
 
 const freePort = () => new Promise<number>((resolve) => {
   const s = createServer().listen(0, '127.0.0.1', () => {
@@ -45,7 +48,7 @@ async function start(): Promise<App> {
     viewer: await mint({ org: ORG, kind: 'operator', scopes: ['context:read', 'evidence:read'] }),
     approver: await mint({ org: ORG, kind: 'operator', scopes: APPROVER_SCOPES, label: 'Sam (ops lead)' }),
   };
-  return { url: `http://127.0.0.1:${port}`, transport, tokens, close: () => built.server.close() };
+  return { url: `http://127.0.0.1:${port}`, backend, transport, tokens, close: () => built.server.close() };
 }
 
 async function call(app: App, method: string, path: string, token: string, body?: unknown) {
@@ -330,6 +333,37 @@ test('"auto_when_clear": a clean commitment may go out on its own; any gray area
     assert.match(r.body.reasons.join(' '), /commitment with gray areas: .*instructions were hidden/);
     // a task can only choose one of the two modes
     assert.equal((await call(app, 'POST', '/tasks', app.tokens.admin, { ...procurementTask(a), id: 'task_x', alias: 'PO-9', approval: { commitments: 'never' } })).status, 400);
+  } finally {
+    app.close();
+  }
+});
+
+test('wire fraud: new wiring instructions are never applied from email; Signal, history and portfolio show the card', async () => {
+  const app = await start();
+  try {
+    const d = dealAddresses();
+    await call(app, 'POST', '/sim/clock', app.tokens.admin, { now: '2026-10-28T15:00:00Z' });
+    assert.equal((await call(app, 'POST', '/tasks', app.tokens.admin, elmStreetDeal(d))).status, 200);
+    await deliver(app, dealParties.wireChange(d)); // passes DMARC: a compromised but genuine mailbox
+    const state = async () => (await call(app, 'GET', '/tasks/ELM-42/state', app.tokens.viewer)).body.claims as { key: string; status: string; id: string; display: string }[];
+    const wire = (await state()).find((c) => c.key === 'payment.wire_instructions')!;
+    assert.equal(wire.status, 'proposed');
+    assert.match(wire.display, /121000358/);
+    const cards = (await call(app, 'GET', '/tasks/ELM-42/approvals', app.tokens.viewer)).body as any[];
+    const ap = cards.find((x) => x.kind === 'verify_change');
+    assert.ok(ap, 'a verification card was raised automatically');
+
+    // Signal raises it as a high-severity alert; the portfolio lists it
+    const sig = await runSignal(app.backend, ORG, { now: '2026-10-28T16:00:00Z' });
+    assert.ok(sig.new.some((s) => s.rule === 'awaiting_approval' && s.severity === 'high'));
+    const rows = await query(app.backend, { org: ORG, taskIds: null }, "select id, kind, status from approvals where task_id = 'deal_42elm'");
+    assert.deepEqual(rows.rows, [[ap.id, 'verify_change', 'pending']]);
+
+    assert.equal((await call(app, 'POST', `/tasks/ELM-42/approvals/${ap.id}/decide`, app.tokens.approver, { option: 'reject', by: 'Alex' })).body.status, 'rejected');
+    assert.equal((await state()).find((c) => c.id === wire.id)!.status, 'retracted');
+    const history = (await call(app, 'GET', '/tasks/ELM-42/history', app.tokens.viewer)).body.events as { type: string }[];
+    const types = history.map((e) => e.type);
+    assert.ok(types.includes('held_for_verification') && types.includes('detail_rejected'), types.join(', '));
   } finally {
     app.close();
   }

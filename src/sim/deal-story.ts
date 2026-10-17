@@ -1,7 +1,7 @@
 // The 42 Elm St story, in-process (tests and the portfolio generator). Our agent's emails are written
 // by the offline policy agent from compiled state, exactly as in the demo. Ported from samrocksnature's
-// b615ab7. (The forged-sender and wire-fraud beats of the original depend on sender authentication and
-// human approvals, which are separate pieces of work; they are not part of this story yet.)
+// b615ab7. (The forged-sender and wire-fraud beats are in scripts/demo-deal.ts and the tests; the story
+// stays clean because the portfolio generator replays it many times.)
 import type { Harness } from './harness.ts';
 import { policyDecide, type Decision } from '../agent/policy.ts';
 import { setSimTime } from '../clock.ts';

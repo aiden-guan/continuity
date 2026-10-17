@@ -328,10 +328,12 @@ export async function buildApp(opts: AppOptions = {}) {
     }],
 
     // ---- local simulation only (refused once a real Primitive key is configured)
-    ['POST', /^\/sim\/clock$/, 'tasks:write', (_m, _q, body) => {
+    ['POST', /^\/sim\/clock$/, 'tasks:write', async (_m, _q, body, _r, p) => {
       assertSim();
       setSimTime(json(body).now);
-      return { now: nowIso() };
+      // deadlines that the new time makes due fire before the call returns, so a simulated story never races the worker's poll
+      const jobs = await engine.drain({ org: p.org });
+      return { now: nowIso(), jobs_run: jobs };
     }],
     ['POST', /^\/sim\/deliver$/, 'tasks:write', async (_m, _q, body, _r, p) => {
       assertSim();

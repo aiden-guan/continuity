@@ -6,6 +6,7 @@
 import type { Backend, SignalRow } from './store/backend.ts';
 import type { MemoryStore } from './store/state.ts';
 import type { TaskSpec } from './types.ts';
+import { openApprovals } from './engine/approval-log.ts';
 import { domainFor, outcomeOf, termOf } from './domain/index.ts';
 import { isOpen, labelOf } from './engine/resolver.ts';
 import { prettyDate } from './extract/dates.ts';
@@ -32,7 +33,6 @@ const byRank = (x: SignalRow, y: SignalRow) => RANK[x.severity] - RANK[y.severit
 
 /**
  * The alerts one task warrants right now, from its working set. Pure over the state.
- * Extension point: decisions waiting on a human (approvals) belong here as an `awaiting_approval` rule.
  */
 export function alertsFor(store: MemoryStore, task: TaskSpec, now: string): Alert[] {
   const pack = domainFor(task);
@@ -108,6 +108,20 @@ export function alertsFor(store: MemoryStore, task: TaskSpec, now: string): Aler
         });
       }
     }
+  }
+  // decisions waiting on a human: always surfaced; urgent once old, about to expire, or a payment detail to verify
+  for (const ap of openApprovals(store, task.id, now)) {
+    const ageH = (Date.parse(now) - Date.parse(ap.created_at)) / 3_600_000;
+    const leftH = (Date.parse(ap.expires_at) - Date.parse(now)) / 3_600_000;
+    let severity: Alert['severity'] = 'low';
+    if (leftH < 12 || ap.kind === 'verify_change') severity = 'high';
+    else if (ageH > 24) severity = 'medium';
+    const evidence = ap.claim_id ? [sourceOf(ap.claim_id)] : [];
+    out.push({
+      key: `${task.id}:approval:${ap.id}`, task_id: task.id, rule: 'awaiting_approval', severity,
+      summary: `${tag}: waiting on a human for ${Math.max(0, Math.round(ageH))} h — ${ap.title} (${ap.id}${ap.status === 'held' ? ', held to verify' : ''}; expires in ${Math.round(leftH)} h)`,
+      detail: { evidence, approval: ap.id },
+    });
   }
   for (const f of store.flagsForTask(task.id).filter((x) => x.kind in SECURITY_FLAGS)) {
     out.push({

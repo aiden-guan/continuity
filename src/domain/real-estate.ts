@@ -19,6 +19,7 @@ const TERMS: TermDef[] = [
   { key: 'appraisal.value', type: 'money', description: "Appraised value from the lender's appraisal (whole USD)", topics: ['appraisal', 'appraised', 'valuation'], events: { default: 'appraisal_received' } },
   { key: 'budget.max_price', type: 'money', description: "The buyer's approved maximum purchase price (the buyer's decision)", topics: ['approve', 'approval', 'comfortable', 'go up to', 'ceiling', 'max'], events: { default: 'price_ceiling_approved' } },
   { key: 'decision.accept', type: 'text', description: 'A party accepting the current offer or counter', topics: ['accept', 'agree to'], events: { self: 'offer_accepted', default: 'accepted' } },
+  { key: 'payment.wire_instructions', type: 'text', description: 'Where to wire money (earnest deposit, closing funds): bank, routing and account details', topics: ['wire', 'wiring', 'bank', 'routing', 'account number'], events: { default: 'wire_instructions_received' }, sensitive: 'always' },
   { key: 'deal.fell_through', type: 'text', lifecycle: true, description: 'The deal ended without closing (withdrawn, terminated, another offer accepted): the reason', topics: ['withdraw', 'walk away', 'terminate', 'another offer', 'off the market'], events: { self: 'deal_withdrawn', default: 'fell_through' } },
 ];
 
@@ -130,6 +131,7 @@ const CLOSING = /\b(clos(?:e|ing)|close of escrow|settlement)\b/i;
 const MOVE = /\b(move[sd]?|moving|push(?:ed)?|now|instead|new|slip\w*|delay\w*|extend\w*)\b/i;
 const NEGATED = /\b(cannot|can't|can no longer|won't|will not|unable to|not able to|no longer)\b/i;
 const ENDED = /\b(?:withdraw(?:ing|n)?|walk(?:ing)? away|terminat\w*|cancel(?:l?ing|l?ed)?|accepted another offer|off the market)\b/i;
+const WIRE = /\b(wir(?:e|ing) instructions|wire (?:the|your) (?:funds|deposit|earnest)|bank (?:account|details)|routing (?:number|no)|account (?:number|no))\b/i;
 const OUR_OFFER = /\b(?:offer(?:ing)?|propos\w*|counter(?:ing)?(?: at)?|bring the price (?:down )?to|come down to)\s+(?:of\s+)?(\$\s?(?:\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(?:k|m|million)?)/i;
 
 function amountOf(m: RegExpMatchArray): number {
@@ -139,10 +141,12 @@ function amountOf(m: RegExpMatchArray): number {
 }
 const plusDays = (iso: string, days: number) => isoDate(new Date(Date.parse(iso) + days * 86_400_000));
 
-function sentence(x: HeuristicSentence): void {
+function sentence(x: HeuristicSentence, wire: string[]): void {
   const s = x.text;
   const { hedged } = x;
   if (x.isQuestion) return; // facts never come from questions
+  // wire / bank instructions: collected here, recorded once per message (wireClaim)
+  if (x.senderRole !== 'self' && WIRE.test(s)) wire.push(s.replace(/\s+/g, ' '));
 
   // amounts: an appraisal, the buyer's ceiling, or a price (offer / counter / agreement). One claim per
   // sentence: the amount it moves TO ("from $845,000 to $830,000"), else the last one.
@@ -199,6 +203,17 @@ function sentence(x: HeuristicSentence): void {
   if (!x.fromAttachment && /\b(?:seller|my client|our client|we)\s+(?:hereby\s+)?(?:accepts?|agrees? to)\b/i.test(s) && !NEGATED.test(s)) {
     x.claim({ key: 'decision.accept', value: 'accepted', kind: 'decision', evidence: s, hedged });
   }
+}
+
+/**
+ * One wire-instructions claim per message: the sentences carrying the actual numbers, else all of them.
+ * The term is sensitive ("always"), so the resolver holds it for a human to verify by phone.
+ */
+function wireClaim(wire: string[], emit: HeuristicSentence['claim']): void {
+  if (!wire.length) return;
+  const withNumbers = wire.filter((x) => /\d{4,}/.test(x));
+  const value = (withNumbers.length ? withNumbers : wire).join(' ').slice(0, 300);
+  emit({ key: 'payment.wire_instructions', value, kind: 'info', evidence: wire.join(' '), hedged: false });
 }
 
 // ==================================================================== the offline agent's wording
@@ -335,7 +350,7 @@ export const realEstate: DomainPack = {
     return actions;
   },
 
-  heuristic: { begin: () => null, sentence: (s) => sentence(s), end: () => undefined },
+  heuristic: { begin: () => [] as string[], sentence: (s, wire) => sentence(s, wire as string[]), end: (wire, emit) => wireClaim(wire as string[], emit) },
 
   dueOf(text, ref) {
     if (!/\b(send|deliver|share|get you|provide)\b/i.test(text)) return null;

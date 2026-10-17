@@ -10,7 +10,7 @@
 //
 // Every call takes a scope: the org, and the task ids the caller may see (null = all). A task-restricted
 // principal gets a snapshot of its own tasks only, so other tasks cannot leak through SQL.
-// Ported from samrocksnature's b615ab7 (the approvals table is left to the approvals work).
+// Ported from samrocksnature's b615ab7 and 4b22c86.
 import { DatabaseSync, constants as K } from 'node:sqlite';
 import type { Backend } from './store/backend.ts';
 import type { MemoryStore } from './store/state.ts';
@@ -18,6 +18,7 @@ import type { TaskSpec } from './types.ts';
 import { compileContext } from './compiler/compile.ts';
 import { domainFor, outcomeOf } from './domain/index.ts';
 import { deriveTimeline, type TimelineEvent } from './engine/timeline.ts';
+import { approvalsForTask } from './engine/approval-log.ts';
 import { labelOf } from './engine/resolver.ts';
 import { nowIso } from './clock.ts';
 
@@ -38,6 +39,7 @@ CREATE TABLE deal_terms (task_id TEXT, party TEXT, term TEXT, value_json TEXT, v
 CREATE TABLE deal_checks (task_id TEXT, check_id TEXT, label TEXT, status TEXT, detail TEXT, party TEXT);
 CREATE TABLE deal_obligations (task_id TEXT, id TEXT, kind TEXT, owed_by TEXT, owed_to TEXT, what TEXT, status TEXT, due TEXT, overdue INTEGER, source_event TEXT);
 CREATE TABLE signals (task_id TEXT, rule TEXT, severity TEXT, summary TEXT, first_seen TEXT, resolved_at TEXT, evidence_json TEXT);
+CREATE TABLE approvals (task_id TEXT, id TEXT, kind TEXT, status TEXT, title TEXT, reasons_json TEXT, created_at TEXT, expires_at TEXT, decided_at TEXT, decided_by TEXT, option TEXT);
 `;
 
 /** Table and column guide for agents writing queries (also served at GET /query/schema). */
@@ -48,6 +50,7 @@ export const SCHEMA_GUIDE = {
   deal_checks: 'requirement checks per deal: task_id, check_id, label, status (pass | fail | unknown), detail, party',
   deal_obligations: 'who owes what: task_id, id, kind (question | request | commitment), owed_by, owed_to, what, status (open | partially_fulfilled | answered | fulfilled | …), due (ISO date), overdue (1/0), source_event',
   signals: 'alerts raised by Signal: task_id, rule, severity (high | medium | low), summary, first_seen, resolved_at (NULL = open), evidence_json',
+  approvals: 'decisions held for a human: task_id, id, kind (send | verify_change), status (pending | held | approved | edited | rejected | replied | verified | taken_over | expired | stale), title, reasons_json, created_at, expires_at, decided_at, decided_by, option',
 };
 
 export interface Deal { task: TaskSpec; store: MemoryStore; version: number; timeline: TimelineEvent[] }
@@ -119,6 +122,7 @@ export async function snapshot(backend: Backend, scope: PortfolioScope): Promise
   const insert = (table: string, n: number) => db.prepare(`INSERT INTO ${table} VALUES (${Array(n).fill('?').join(',')})`);
   const dealIns = insert('deals', 13), evIns = insert('deal_events', 12), termIns = insert('deal_terms', 9);
   const checkIns = insert('deal_checks', 6), obIns = insert('deal_obligations', 10), sigIns = insert('signals', 7);
+  const apIns = insert('approvals', 11);
   const today = nowIso().slice(0, 10);
   const json = (v: unknown) => (v === undefined ? null : JSON.stringify(v));
   const inScope = new Set(built.deals.map((d) => d.task.id));
@@ -139,6 +143,9 @@ export async function snapshot(backend: Backend, scope: PortfolioScope): Promise
     for (const o of d.store.obligationsForTask(id)) {
       const overdue = (o.status === 'open' || o.status === 'partially_fulfilled') && !!o.due_at && o.due_at < today;
       obIns.run(id, o.id, o.kind, label(o.debtor), label(o.creditor), o.text, o.status, o.due_at ?? null, overdue ? 1 : 0, o.source_event_id);
+    }
+    for (const a of approvalsForTask(d.store, id)) {
+      apIns.run(id, a.id, a.kind, a.status, a.title, json(a.reasons), a.created_at, a.expires_at, a.decided_at, a.decided_by, a.decision?.option ?? null);
     }
   }
   for (const s of await backend.listSignals(scope.org, { includeResolved: true })) {

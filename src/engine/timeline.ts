@@ -9,6 +9,7 @@
 // Ported from samrocksnature's b615ab7.
 import type { MemoryStore } from '../store/state.ts';
 import type { Claim, TaskSpec, Transition } from '../types.ts';
+import { approvalId } from './approval-log.ts';
 import { domainFor, termOf } from '../domain/index.ts';
 import type { DomainPack } from '../domain/pack.ts';
 import { labelOf, partyOf } from './resolver.ts';
@@ -34,14 +35,15 @@ export interface TimelineEvent {
 
 /**
  * Generic event types, in id order. Append only: ids are positions, so existing ones never move.
- * Extension point: human-approval events (approval_requested, approval_granted, ...) belong at the end
- * once approvals record transitions.
  */
 const GENERIC = [
   'message_received', 'message_sent', 'term_withdrawn', 'statement_not_applied', 'stale_evidence', 'question_asked', 'request_made',
   'commitment_made', 'question_answered', 'request_answered', 'commitment_fulfilled', 'obligation_declined', 'obligation_cancelled',
   'document_received', 'document_superseded', 'conflict_detected', 'conflict_resolved', 'injection_quarantined', 'send_blocked', 'terms_contested',
   'commitment_partially_fulfilled', 'commitment_overdue', 'offer_reinstated', 'interpretation_failed', 'send_failed',
+  // human approval
+  'held_for_verification', 'detail_verified', 'detail_rejected', 'approval_requested', 'approval_granted', 'approval_rejected', 'approval_held',
+  'approval_expired', 'human_took_over',
 ];
 
 /** Stable ids: generic types 1..99 in GENERIC order, the pack's own types from 100 in vocabulary order. */
@@ -104,6 +106,32 @@ export function deriveTimeline(store: MemoryStore, taskId: string): TimelineEven
         break;
       case 'claim_tentative':
         if (claim) push(t, 'statement_not_applied', { party: label(claim.speaker), term: claim.key, value: claim.value, display: claim.display, applied: false, ref: claim.id });
+        break;
+      case 'claim_held_for_verification':
+        if (claim) push(t, 'held_for_verification', { party: label(claim.speaker), term: claim.key, value: claim.value, display: claim.display, applied: false, ref: claim.id, ...(typeof d.previous === 'string' ? { replaces: d.previous } : {}) });
+        break;
+      case 'claim_verified':
+        if (!claim) break;
+        push(t, 'detail_verified', { party: String(d.by ?? 'a human'), term: claim.key, display: claim.display, applied: true, ref: claim.id });
+        termEvent(t, claim);
+        break;
+      case 'claim_rejected':
+        if (claim) push(t, 'detail_rejected', { party: String(d.by ?? 'a human'), term: claim.key, display: claim.display, applied: true, ref: claim.id });
+        break;
+      case 'approval_requested':
+        push(t, 'approval_requested', { party: null, display: String(d.title ?? t.summary).slice(0, 160), applied: true, ref: approvalId(t.seq) });
+        break;
+      case 'approval_decided': {
+        const status = String(d.status ?? '');
+        let type = 'approval_granted';
+        if (status === 'held') type = 'approval_held';
+        else if (status === 'taken_over') type = 'human_took_over';
+        else if (status === 'rejected' || status === 'replied') type = 'approval_rejected';
+        push(t, type, { party: String(d.by ?? 'a human'), display: String(d.option ?? ''), applied: true, ref: t.subject_id });
+        break;
+      }
+      case 'approval_expired':
+        push(t, 'approval_expired', { party: null, applied: true, ref: t.subject_id });
         break;
       case 'stale_evidence':
         if (claim) push(t, 'stale_evidence', { party: label(claim.speaker), term: claim.key, value: claim.value, display: claim.display, applied: false, ref: claim.id });
