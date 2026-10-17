@@ -14,13 +14,13 @@ strong, fair versions of what people actually ship. They are not straw men.
 | Vertical | Setting | Why it is here | Continuity pack |
 |---|---|---|---|
 | **Procurement** | Buyer agent ↔ supplier, freight forwarder, internal finance | The reference domain: quotes, delivery lots, budgets, corrections | ✅ `procurement` |
-| **Freight brokerage** | Booking agent ↔ carrier dispatch, driver, consignee, ops | Rate confirmations, pickup/delivery windows, multi-carrier quotes, remit-to fraud | ❌ not yet. The condition reports "unsupported" until a `freight` pack exists |
-| **Hotel group sales** | Meeting planner ↔ hotel sales, revenue manager, finance | Contract redlines, nightly room blocks, attrition/cutoff, deposit wire fraud | ❌ not yet (`hotel`) |
-| **Finance (AP/AR)** | AP agent ↔ vendor billing, account manager, controller, requester | Invoices and credit memos, installment plans, disputes, 3-way match, business-email-compromise bank changes | ❌ not yet (`finance`) |
-| **Legal (contracts)** | Legal-ops agent ↔ vendor counsel, vendor sales lead, General Counsel | Clause-level redlines, fallback positions, sign-off authority, signature pages, spoofed "execution versions" | ❌ not yet (`legal`) |
+| **Freight brokerage** | Booking agent ↔ carrier dispatch, driver, consignee, ops | Rate confirmations, pickup/delivery windows, multi-carrier quotes, remit-to fraud | ✅ `freight` |
+| **Hotel group sales** | Meeting planner ↔ hotel sales, revenue manager, finance | Contract redlines, nightly room blocks, attrition/cutoff, deposit wire fraud | ✅ `hotel` |
+| **Finance (AP/AR)** | AP agent ↔ vendor billing, account manager, controller, requester | Invoices and credit memos, installment plans, disputes, 3-way match, business-email-compromise bank changes | ✅ `finance` |
+| **Legal (contracts)** | Legal-ops agent ↔ vendor counsel, vendor sales lead, General Counsel | Clause-level redlines, fallback positions, sign-off authority, signature pages, spoofed "execution versions" | ✅ `legal` |
 
-The freight, hotel, finance and legal scenario sets exist so the next domain packs are judged on cases written *before* the packs
-were. They are not fitted to them afterwards.
+The freight, hotel, finance and legal scenarios were written *before* their packs (`src/domain/<vertical>.ts`), and the packs
+were developed against the dev split (variants 1–10) only; the eval split was never read while building them.
 
 ## Scenario archetypes (13 per vertical)
 
@@ -145,9 +145,8 @@ membership, so they never see unrelated mail. Continuity replays the whole inbox
    **frozen eval split**, with paired CIs that exclude 0.
 2. It stays within 5 pp of `full-history`, and wins on the backlog curve and on cost.
 3. It has **zero** safety violations.
-4. That holds in more than one vertical. Today only procurement has a domain pack, so freight, hotel, finance and legal
-   report Continuity as *unsupported* until their packs exist. Those cases were written first, so the packs cannot be
-   fitted to them.
+4. That holds in more than one vertical. Every vertical has a domain pack; the freight, hotel, finance and legal cases
+   were written before their packs, which were tuned on the dev split only.
 5. The `oracle` row shows that remaining failures are the actor's, not the memory's.
 
 ## Running
@@ -164,6 +163,9 @@ npm run bench -- run --split golden --verticals procurement  # smallest real run
 npm run bench -- run --split dev --backlog 0,40,160 --trials 3
 npm run bench -- report bench/results/<name>
 ```
+
+Cached extractions are keyed by the extractor's name (`heuristic-v2`, `llm:<model>`), not its code: after changing the
+rule extractor, bump its name (or pass `--refresh`) so stale proposals are not reused.
 
 Results go to `bench/results/<name>/`: `rows.jsonl` holds every cell (agent output, all scores, usage, diagnostics),
 alongside `report.md` and `summary.json`. Runs resume: cells already in `rows.jsonl` are skipped, and cached responses
