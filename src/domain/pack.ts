@@ -3,9 +3,11 @@
 //  - vocabulary: the typed terms that can be claimed, and how their values are validated and shown
 //  - checks: pure functions from active claims to pass / fail / unknown results
 //  - action prerequisites: which outbound phrases are binding, and what state must hold before them
-//  - optionally, sentence patterns for the offline extractor (the LLM extractor reads the vocabulary)
+//  - optionally, sentence patterns for the offline extractor (the LLM extractor reads the vocabulary),
+//    document kinds, typed-timeline event names, and the offline policy agent's wording
 import type { CheckResult, Claim, Participant, TaskSpec } from '../types.ts';
 import type { ProposedClaim, ProposedFulfillment } from '../extract/types.ts';
+import type { CompiledContext } from '../compiler/compile.ts';
 
 export type TermType = 'money' | 'number' | 'schedule' | 'date' | 'text' | 'enum';
 
@@ -19,6 +21,30 @@ export interface TermDef {
   values?: string[];
   /** The value means "the counterparty's offer is withdrawn / unavailable" (offer lifecycle). */
   lifecycle?: boolean;
+  /**
+   * Typed-timeline event names for a change to this term, by the speaker's role (a price from us is
+   * `offer_made`, from the seller's side `counter_offer`). Without one the event is `<key>_stated`.
+   */
+  events?: Partial<Record<'self' | 'counterparty' | 'internal' | 'default', string>>;
+  /** A date term the deal must act by: Signal warns as it approaches. */
+  deadline?: boolean;
+}
+
+/** A document kind of the domain: `match` classifies an attachment (filename + text), `promise` spots a promise to send one. */
+export interface DocumentKind { kind: string; match: RegExp; promise: RegExp }
+
+type PolicyParty = CompiledContext['task']['parties'][number];
+
+/** Wording for the offline policy agent (src/agent/policy.ts). A hook returning null keeps the default wording. */
+export interface PolicyWriter {
+  raiseConflict?(a: SuggestedAction, ctx: CompiledContext): string[] | null;
+  askForTerms?(asks: SuggestedAction[], party: PolicyParty, ctx: CompiledContext): { subject?: string; lines: string[] } | null;
+  requestApproval?(a: SuggestedAction, party: PolicyParty, ctx: CompiledContext): { subject?: string; lines: string[] } | null;
+  accept?(party: PolicyParty, ctx: CompiledContext): string[] | null;
+  /** Appended to "we're still expecting the <x>" when a conflict is raised in the same email. */
+  reminderSuffix?: string;
+  /** The sign-off name. */
+  signature?: string;
 }
 
 /** One sentence of message or document text, as the offline extractor sees it. */
@@ -87,6 +113,10 @@ export interface DomainPack {
   quantityOf?(text: string): number | null;
   /** When a commitment is due, by domain rules (e.g. its delivery date). */
   dueOf?(text: string, refIso: string): string | null;
+  /** Domain document kinds, checked before the generic ones (quote, invoice, po, ...). */
+  documentKinds?: DocumentKind[];
+  /** The offline policy agent's wording for this domain; without it the procurement wording is used. */
+  writer?: PolicyWriter;
 }
 
 const registry = new Map<string, DomainPack>();
@@ -124,4 +154,34 @@ export function topicKeysFor(pack: DomainPack, text: string): string[] {
 
 export function sameValue(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/**
+ * Where a task stands: accepted (our decision is on record), fell_through (we withdrew, or every
+ * counterparty withdrew its offer) or open. Shared by Signal and the portfolio.
+ */
+export function outcomeOf(pack: DomainPack, task: TaskSpec, active: Claim[]): 'accepted' | 'fell_through' | 'open' {
+  const self = task.self_address.toLowerCase();
+  const lifecycle = new Set(pack.terms.filter((t) => t.lifecycle).map((t) => t.key));
+  const ended = new Set(active.filter((c) => lifecycle.has(c.key)).map((c) => c.speaker));
+  const counterparties = task.participants.filter((p) => p.role === 'counterparty').map((p) => p.address.toLowerCase());
+  if (ended.has(self) || (counterparties.length > 0 && counterparties.every((a) => ended.has(a)))) return 'fell_through';
+  if (pack.decisionKey && active.some((c) => c.key === pack.decisionKey && c.speaker === self)) return 'accepted';
+  return 'open';
+}
+
+/** The pack's document kind for an attachment, or null (the extractor then falls back to the generic kinds). */
+export function documentKindOf(pack: DomainPack | undefined, filename: string, text: string): string | null {
+  const hay = `${filename}\n${text.slice(0, 2000)}`;
+  return pack?.documentKinds?.find((d) => d.match.test(hay))?.kind ?? null;
+}
+
+/** The pack's document kind a promise or request is about (the one named first), or null. */
+export function promisedDocumentOf(pack: DomainPack | undefined, text: string): string | null {
+  let best: { kind: string; at: number } | null = null;
+  for (const d of pack?.documentKinds ?? []) {
+    const m = text.match(d.promise);
+    if (m && (best === null || m.index! < best.at)) best = { kind: d.kind, at: m.index! };
+  }
+  return best?.kind ?? null;
 }

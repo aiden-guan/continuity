@@ -8,11 +8,11 @@ import { normalizeTyped, displayTyped } from './procurement.ts';
 import { registerDomain, termOf, type DomainPack, type HeuristicSentence, type TermDef } from './pack.ts';
 
 const TERMS: TermDef[] = [
-  { key: 'insurance.expires', type: 'date', description: 'Expiry date of the vendor\'s liability insurance policy', topics: ['insurance', 'coi', 'certificate', 'policy', 'expire', 'expiry', 'valid'] },
-  { key: 'insurance.coverage', type: 'money', description: 'Per-occurrence liability coverage in USD', topics: ['coverage', 'insurance', 'liability', 'limit'] },
-  { key: 'tax_form.status', type: 'enum', values: ['submitted'], description: 'The vendor submitted its tax form (W-9)', topics: ['w-9', 'w9', 'tax form', 'tax id', 'tin'] },
-  { key: 'vendor.status', type: 'enum', values: ['withdrawn'], lifecycle: true, description: 'The vendor withdrew from onboarding', topics: ['withdraw', 'no longer', 'cancel'] },
-  { key: 'decision.vendor', type: 'text', description: 'Our decision to approve/activate the vendor', topics: ['approve', 'activate', 'onboard'] },
+  { key: 'insurance.expires', type: 'date', description: 'Expiry date of the vendor\'s liability insurance policy', topics: ['insurance', 'coi', 'certificate', 'policy', 'expire', 'expiry', 'valid'], events: { default: 'insurance_expiry_stated' }, deadline: true },
+  { key: 'insurance.coverage', type: 'money', description: 'Per-occurrence liability coverage in USD', topics: ['coverage', 'insurance', 'liability', 'limit'], events: { default: 'coverage_stated' } },
+  { key: 'tax_form.status', type: 'enum', values: ['submitted'], description: 'The vendor submitted its tax form (W-9)', topics: ['w-9', 'w9', 'tax form', 'tax id', 'tin'], events: { default: 'tax_form_submitted' } },
+  { key: 'vendor.status', type: 'enum', values: ['withdrawn'], lifecycle: true, description: 'The vendor withdrew from onboarding', topics: ['withdraw', 'no longer', 'cancel'], events: { default: 'vendor_withdrew' } },
+  { key: 'decision.vendor', type: 'text', description: 'Our decision to approve/activate the vendor', topics: ['approve', 'activate', 'onboard'], events: { self: 'vendor_approved', default: 'vendor_decision' } },
 ];
 
 const termDef = (key: string) => TERMS.find((t) => t.key === key);
