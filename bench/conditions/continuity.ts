@@ -141,10 +141,10 @@ const CHECK_TERMS: Record<string, Record<string, { kind: ConflictKind; term: str
     offer_available: { kind: 'offer_unavailable', term: 'offer.status' },
   },
   finance: {
-    three_way_match: { kind: 'requirement_violation', term: 'invoice.amount' },
+    three_way_match: { kind: 'requirement_violation', term: 'invoice.quantity' },
+    po_amount: { kind: 'requirement_violation', term: 'invoice.amount' },
     max_amount: { kind: 'requirement_violation', term: 'invoice.amount' },
     payment_run: { kind: 'requirement_violation', term: 'discount.deadline' },
-    pay_by_due_date: { kind: 'requirement_violation', term: 'invoice.due_date' },
     verified_remit_to: { kind: 'unverified_change', term: 'payment.remit_to' },
     offer_available: { kind: 'offer_unavailable', term: 'offer.status' },
   },

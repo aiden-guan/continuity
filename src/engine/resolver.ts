@@ -533,7 +533,8 @@ export function refreshDerived(store: StateStore, task: TaskSpec, eventId: strin
     const outdated = backing.filter((c) => (c.status === 'superseded' && !currentAgain(c)) || c.status === 'retracted');
     let status: Artifact['status'];
     if (a.superseded_by) status = 'superseded';
-    else if (withdrawn.has(a.owner.toLowerCase())) status = 'withdrawn';
+    // withdrawn: its owner withdrew and nothing it states is still live (an invoice outlives a withdrawn discount offer)
+    else if (withdrawn.has(a.owner.toLowerCase()) && !backing.some((c) => c.kind === 'offer' && (c.status === 'active' || c.status === 'contested'))) status = 'withdrawn';
     else if (outdated.length) status = 'partially_stale';
     else status = 'current';
     if (status === a.status) continue;

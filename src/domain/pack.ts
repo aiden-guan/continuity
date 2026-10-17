@@ -76,7 +76,7 @@ export interface ActionContext {
   /** Claims recorded but not applied (unauthorised or unauthenticated speakers, hedges). */
   tentative?: Claim[];
   contested: Claim[];
-  openDebtors: { debtor: string; creditor: string; topic_keys: string[] }[];
+  openDebtors: { debtor: string; creditor: string; topic_keys: string[]; kind?: string; expects_artifact?: string | null }[];
   label: (address: string) => string;
 }
 

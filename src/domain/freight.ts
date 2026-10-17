@@ -343,6 +343,7 @@ export const freight: DomainPack = {
   extraActions: (ctx) => standardActions(ctx, {
     approvalPrefix: 'budget.', approvalKey: 'budget.max_all_in', decisionKey: 'decision.tender', approvalAsk: 'approval of the carrier budget',
     commit: (who) => `${who}'s quote meets every requirement — book the load in writing, restating rate, pickup window, delivery and equipment`,
+    waitForDocuments: false,
   }),
   heuristic: {
     begin: (): FreightState => ({ withdraw: null, offered: false, loads: { lots: [], evidence: [], hedged: false } }),

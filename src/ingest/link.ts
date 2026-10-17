@@ -32,11 +32,28 @@ export async function resolveTask(store: LinkLookup, e: EventInput): Promise<Lin
     if (earlier?.task_id) return { task_id: earlier.task_id, reason: `In-Reply-To/References ${id}` };
   }
 
-  // 5. the task alias written out in the subject or body
+  // 5. the task alias written out in the subject or body, as people actually write it
   const haystack = `${e.subject}\n${e.body_text}`;
   for (const task of await store.tasks()) {
-    const mention = new RegExp(`(^|[^A-Za-z0-9])${literal(task.alias)}([^A-Za-z0-9]|$)`, 'i');
-    if (mention.test(haystack)) return { task_id: task.id, reason: `explicit task reference "${task.alias}"` };
+    if (aliasPattern(task.alias).test(haystack)) return { task_id: task.id, reason: `explicit task reference "${task.alias}"` };
   }
   return null;
+}
+
+/** NOUNS people put before a bare reference number ("load 40209", "invoice #20417", "matter 4417"). */
+const REFERENCE_NOUN = String.raw`(?:load|invoice|inv|matter|order|po|ref(?:erence)?|file|case|booking|group code|contract|agreement)`;
+
+/**
+ * An alias like "INV-20417" also matches "INV 20417", "INV20417", "invoice #20417" and "load 20417": the
+ * digits must be exact (a look-alike with two digits swapped is another task), and a bare number counts
+ * only right after a reference noun.
+ */
+export function aliasPattern(alias: string): RegExp {
+  const exact = `(?:^|[^A-Za-z0-9])${literal(alias)}(?:[^A-Za-z0-9]|$)`;
+  const parts = alias.match(/^([A-Za-z]{2,6})-(\d{4,})$/);
+  if (!parts) return new RegExp(exact, 'i');
+  const [, prefix, digits] = parts;
+  const spaced = `(?:^|[^A-Za-z0-9])${literal(prefix)}[\\s#-]*${digits}(?![0-9])`;
+  const noun = `\\b${REFERENCE_NOUN}\\s*(?:#|no\\.?|number)?\\s*${digits}(?![0-9])`;
+  return new RegExp(`${exact}|${spaced}|${noun}`, 'i');
 }

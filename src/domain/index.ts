@@ -3,5 +3,6 @@ import './procurement.ts';
 import './vendor-onboarding.ts';
 import './freight.ts';
 import './hotel.ts';
+import './finance.ts';
 
 export { domainFor, registeredDomains } from './pack.ts';

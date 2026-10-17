@@ -49,7 +49,11 @@ export function expectedFrom(terms: TermDef[], notChased: Set<string>) {
  * The standard next actions: replace a withdrawn offer; ask the internal approver when no approval is on
  * record (and not already asked); commit in writing when every check passes and nothing is contested.
  */
-export function standardActions(ctx: ActionContext, o: { approvalPrefix: string; approvalKey: string; decisionKey: string; approvalAsk: string; commit: (party: string) => string }): SuggestedAction[] {
+export function standardActions(ctx: ActionContext, o: {
+  approvalPrefix: string; approvalKey: string; decisionKey: string; approvalAsk: string; commit: (party: string) => string;
+  /** Commit only once a promised document has arrived (a revised invoice or contract); a broker books on email. */
+  waitForDocuments?: boolean;
+}): SuggestedAction[] {
   const { task, checks, live, contested, openDebtors } = ctx;
   const actions: SuggestedAction[] = [];
   const self = task.self_address.toLowerCase();
@@ -97,7 +101,9 @@ export function standardActions(ctx: ActionContext, o: { approvalPrefix: string;
   // our own decision, or the counterparty confirming the deal is done (a fully executed contract)
   const committed = live.some((c) => c.key === o.decisionKey && (c.speaker === self || /execut|countersign|booked/i.test(String(c.value))));
   const failingParties = new Set(checks.filter((c) => c.status !== 'pass').map((c) => c.party));
-  const ready = task.participants.filter((p) => p.role === 'counterparty' && checks.some((c) => c.party === p.address) && !failingParties.has(p.address));
+  // a party that still owes a promised document (the revised invoice, the corrected rate con) is waited for, not committed to
+  const owesDocument = (address: string) => o.waitForDocuments !== false && openDebtors.some((d) => d.debtor === address && d.kind === 'commitment' && !!d.expects_artifact);
+  const ready = task.participants.filter((p) => p.role === 'counterparty' && checks.some((c) => c.party === p.address) && !failingParties.has(p.address) && !owesDocument(p.address));
   // an approval still being asked for holds the commitment; one never asked for does not (the hard requirement already caps it)
   const awaitingApproval = !!approver && !approved && openDebtors.some((d) => d.debtor === approver.address);
   if (!committed && ready.length && !contested.length && !awaitingApproval && !checks.some((c) => c.party === null && c.status === 'fail')) {

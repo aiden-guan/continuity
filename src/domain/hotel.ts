@@ -7,7 +7,7 @@ import type { CheckResult, Claim, TaskSpec } from '../types.ts';
 import { findDates, prettyDate, type DateMention } from '../extract/dates.ts';
 import { registerDomain, type DomainPack, type HeuristicSentence, type TermDef } from './pack.ts';
 import { displayTyped, mergeNights, normalizeTyped, type Lot } from './values.ts';
-import { amounts, fieldValue, labelAmount } from './text.ts';
+import { amounts, bankAccount, fieldValue, labelAmount } from './text.ts';
 import { claimCheck, expectedFrom, ownClaim, partiesFor, requirementOf, standardActions, withdrawalCheck } from './common.ts';
 
 export const TERMS: TermDef[] = [
@@ -118,7 +118,6 @@ const WITHDRAW = /\b(?:(?:have|need|had) to release (?:the|your|our) (?:space|ho
 const NOT_WITHDRAWN = /\b(?:not|never|haven't|hasn't)\s+(?:been\s+)?(?:releas|withdraw)/i;
 const CONDITIONAL = /\b(if|unless|in case|would you|should we)\b/i;
 const SIGNED = /\b(?:(?:we|i) (?:hereby )?accept (?:the|your|this) (?:proposal|offer|contract|agreement|terms|block)|(?:here is|attached is|attaching|enclosed is|please find) (?:the|our) (?:signed|countersigned|executed)|(?:we|i)(?:'ve| have) (?:signed|countersigned|executed)|we (?:hereby )?confirm the (?:room )?(?:block|booking|contract)|go ahead and (?:book|contract|confirm))\b/i;
-const WIRE = /\b([A-Z][A-Za-z&.]*(?:\s+[A-Z][A-Za-z&.]*){0,4}\s+(?:Bank|Trust|Credit Union|Savings)(?:\s+[A-Z][A-Za-z&.]*){0,2}),?\s+(?:account|acct\.?)\s+(?:ending(?: in)?|no\.?\s*\S*?|#\s*\S*?)\s*(\d{4})\b/;
 const WORD_NUM: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
 
 /** Nights named with a range ("(nights of Mar 8-Mar 10)", "for 3 nights (Mar 8-Mar 10)"). */
@@ -266,10 +265,10 @@ function hotelSentence(x: HeuristicSentence, st: HotelState): void {
   if (hold) claim('offer.hold_until', hold.iso);
 
   // wire instructions, cancellation clause, comp ratio
-  const wire = s.match(WIRE);
+  const wire = bankAccount(s);
   if (wire && !NEGATED.test(s.slice(0, wire.index))) {
-    const lead = s.slice(Math.max(0, wire.index! - 16), wire.index!);
-    if (!/\b(?:not|old|previous|instead of|from)\s*(?:the\s+)?$/i.test(lead)) claim('payment.wire_instructions', `${wire[1].replace(/\s+/g, ' ')} account ending ${wire[2]}`);
+    const lead = s.slice(Math.max(0, wire.index - 16), wire.index);
+    if (!/\b(?:not|old|previous|instead of|from)\s*(?:the\s+)?$/i.test(lead)) claim('payment.wire_instructions', wire.value);
   }
   const cancel = fieldValue(s, /\d*\.?\s*cancellation(?: terms| policy)?/i);
   if (cancel) claim('cancellation.terms', cancel.replace(/\.$/, ''));

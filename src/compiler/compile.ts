@@ -524,7 +524,7 @@ function suggestActions(store: StateStore, task: TaskSpec, s: SuggestInput) {
     live: s.live,
     tentative: s.tentative,
     contested: s.contested,
-    openDebtors: s.openObs.map((o) => ({ debtor: o.debtor, creditor: o.creditor, topic_keys: o.topic_keys })),
+    openDebtors: s.openObs.map((o) => ({ debtor: o.debtor, creditor: o.creditor, topic_keys: o.topic_keys, kind: o.kind, expects_artifact: o.expects_artifact })),
     label,
   });
   actions.push(...(domainActions ?? []));

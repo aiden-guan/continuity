@@ -150,3 +150,13 @@ export function fieldValue(s: string, label: RegExp): string | null {
   const m = s.match(new RegExp(`^\\s*(?:${label.source})\\s*[:#]\\s*(.+?)\\s*$`, label.flags.replace('g', '')));
   return m ? m[1].trim() : null;
 }
+
+const BANK_ACCOUNT = /\b([A-Z][A-Za-z&.]*(?:\s+[A-Z][A-Za-z&.]*){0,4}\s+(?:Bank|Trust|Credit Union|Savings|Bancorp|Financial)(?:\s+[A-Z][A-Za-z&.]*){0,2}),?\s+(?:account|acct\.?)\s+(?:ending(?: in)?|no\.?\s*\S*?|#\s*\S*?)\s*(\d{4})\b/;
+
+/** A bank account as people write it ("First Harbor Bank account ending 4471"), normalised to that form. */
+export function bankAccount(s: string): { value: string; index: number } | null {
+  const m = s.match(BANK_ACCOUNT);
+  if (!m) return null;
+  const name = m[1].replace(/\s+/g, ' ').replace(/^(?:Pay|Wire|Remit|Send|To|Use|At|Via|Our|The|New)\s+/, '');
+  return { value: `${name} account ending ${m[2]}`, index: m.index! };
+}
