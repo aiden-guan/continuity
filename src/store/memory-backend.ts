@@ -3,7 +3,7 @@
 import { randomUUID } from 'node:crypto';
 import { MemoryStore, applyDelta, COMMIT_COUNTERS } from './state.ts';
 import type {
-  ActionRow, Backend, BlobIn, BlobRef, CommitOptions, CommitResult, JobInput, JobOutcome, JobRow, LinkLookup, Principal, ReceiveResult, TaskSnapshot,
+  ActionRow, Backend, BlobIn, BlobRef, CommitOptions, CommitResult, JobInput, JobOutcome, JobRow, LinkLookup, Principal, ReceiveResult, SignalRow, TaskSnapshot,
 } from './backend.ts';
 import type { EventInput, StoredEvent, TaskSpec } from '../types.ts';
 import { stripAttachmentBytes } from './rows.ts';
@@ -22,6 +22,8 @@ export class MemoryBackend implements Backend {
   runs = new Map<string, Record<string, unknown>>();
   blobs = new Map<string, Buffer>();
   principals = new Map<string, Principal>();
+  /** remembered Signal alerts: org → key → row */
+  signals = new Map<string, Map<string, SignalRow>>();
   #jobSeq = 0;
 
   async init() {}
@@ -260,6 +262,20 @@ export class MemoryBackend implements Backend {
       .filter(([k, r]) => k.startsWith(key(org, '')) && r.task_id === taskId)
       .map(([, r]) => structuredClone(r))
       .sort((a, b) => String(a.started_at).localeCompare(String(b.started_at)));
+  }
+
+  // ------------------------------------------------------------------ remembered Signal alerts
+
+  async listSignals(org: string, opts: { includeResolved?: boolean } = {}) {
+    return [...(this.signals.get(org)?.values() ?? [])]
+      .filter((s) => opts.includeResolved || !s.resolved_at)
+      .sort((a, b) => a.first_seen.localeCompare(b.first_seen) || a.key.localeCompare(b.key))
+      .map((s) => structuredClone(s));
+  }
+  async saveSignals(org: string, rows: SignalRow[]) {
+    let byKey = this.signals.get(org);
+    if (!byKey) this.signals.set(org, (byKey = new Map()));
+    for (const r of rows) byKey.set(r.key, structuredClone(r));
   }
 
   // ------------------------------------------------------------------ blobs and principals

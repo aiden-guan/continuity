@@ -69,6 +69,41 @@ const TOOLS = [
     },
   },
   {
+    name: 'continuity_history',
+    description: "A task's typed timeline: offers, counters, appraisals, date changes, commitments, conflicts — each with its source email id.",
+    inputSchema: { type: 'object', properties: { task: { type: 'string' }, types: { type: 'string', description: 'optional comma-separated event types to keep, e.g. counter_offer,closing_set' } }, required: ['task'] },
+  },
+  {
+    name: 'continuity_state_at',
+    description: "A task's terms as they stood at a moment (an ISO time, or a timeline seq).",
+    inputSchema: { type: 'object', properties: { task: { type: 'string' }, at: { type: 'string' } }, required: ['task', 'at'] },
+  },
+  {
+    name: 'continuity_signals',
+    description: 'Open alerts across all tasks you can see (failing requirements, contradictions, overdue promises, approaching deadlines, quarantined injections, stalled tasks), with evidence ids.',
+    inputSchema: { type: 'object', properties: { task: { type: 'string', description: 'optional: one task only' } } },
+  },
+  {
+    name: 'continuity_list_deals',
+    description: 'Every task at once: outcome (accepted | fell_through | open), who acts next and why, failing checks, open alerts.',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'continuity_query',
+    description: 'One read-only SQL SELECT across all tasks (tables: deals, deal_events, deal_terms, deal_checks, deal_obligations, signals; columns via GET /query/schema or SELECT name, sql FROM sqlite_master). Max 500 rows.',
+    inputSchema: { type: 'object', properties: { sql: { type: 'string' } }, required: ['sql'] },
+  },
+  {
+    name: 'continuity_find_similar',
+    description: 'Tasks whose history began like this one, and how they ended (fell-through rate over the closest cohort).',
+    inputSchema: { type: 'object', properties: { task: { type: 'string' } }, required: ['task'] },
+  },
+  {
+    name: 'continuity_ask',
+    description: 'A plain-language question about the whole portfolio, answered with citations to tasks and source emails (needs ANTHROPIC_API_KEY on the server).',
+    inputSchema: { type: 'object', properties: { question: { type: 'string' } }, required: ['question'] },
+  },
+  {
     name: 'continuity_mark_seen',
     description: 'Advance your cursor to the current state version (do this after acting).',
     inputSchema: { type: 'object', properties: { task: { type: 'string' }, agent_id: { type: 'string' } }, required: ['task', 'agent_id'] },
@@ -124,6 +159,20 @@ async function callTool(name: string, args: Record<string, any>): Promise<string
         agent_id: args.agent_id, to: args.to, body: args.body, subject: args.subject,
         based_on_version: args.based_on_version ?? lastVersion.get(versionKey) ?? null,
       });
+    case 'continuity_history':
+      return (await apiGet(`/tasks/${task}/history${args.types ? `?type=${encodeURIComponent(args.types)}` : ''}`)).text;
+    case 'continuity_state_at':
+      return (await apiGet(`/tasks/${task}/state-at?at=${encodeURIComponent(args.at ?? '')}`)).text;
+    case 'continuity_signals':
+      return (await apiGet(`/signals${args.task ? `?task=${task}` : ''}`)).text;
+    case 'continuity_list_deals':
+      return (await apiGet('/deals')).text;
+    case 'continuity_query':
+      return apiPost('/query', { sql: args.sql });
+    case 'continuity_find_similar':
+      return (await apiGet(`/tasks/${task}/similar`)).text;
+    case 'continuity_ask':
+      return apiPost('/ask', { question: args.question });
     case 'continuity_mark_seen': {
       // asking for changes after a huge seq returns nothing but still reports the current version
       const current = JSON.parse((await apiGet(`/tasks/${task}/changes?since=999999999`)).text).state_version;

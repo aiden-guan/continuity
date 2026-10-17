@@ -7,7 +7,7 @@ import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { MemoryStore, COMMIT_COUNTERS, type Delta } from './state.ts';
 import type {
-  ActionRow, Backend, BlobIn, BlobRef, CommitOptions, CommitResult, JobInput, JobOutcome, JobRow, LinkLookup, Principal, ReceiveResult, TaskSnapshot,
+  ActionRow, Backend, BlobIn, BlobRef, CommitOptions, CommitResult, JobInput, JobOutcome, JobRow, LinkLookup, Principal, ReceiveResult, SignalRow, TaskSnapshot,
 } from './backend.ts';
 import type { Artifact, Claim, EventInput, Obligation, StoredEvent, TaskSpec } from '../types.ts';
 import { stripAttachmentBytes } from './rows.ts';
@@ -73,6 +73,10 @@ CREATE TABLE IF NOT EXISTS attachment_blobs (
   primitive_email_id TEXT, bytes BLOB NOT NULL, PRIMARY KEY (event_id, part_index)
 );
 CREATE TABLE IF NOT EXISTS principals (token_hash TEXT PRIMARY KEY, json TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS signals (
+  key TEXT PRIMARY KEY, task_id TEXT NOT NULL, rule TEXT NOT NULL, severity TEXT NOT NULL, summary TEXT NOT NULL,
+  detail_json TEXT NOT NULL, first_seen TEXT NOT NULL, last_seen TEXT NOT NULL, resolved_at TEXT
+);
 `;
 
 /** Columns added since the first version; each is tried and skipped when already present. */
@@ -598,6 +602,26 @@ export class SqliteBackend implements Backend {
     return (this.#q('SELECT * FROM agent_runs WHERE task_id = ? ORDER BY started_at, rowid').all(taskId) as Row[]).map((r) => {
       const { context_json, decision_json, ext_json, ...columns } = r;
       return { ...columns, ...fromJson<Row>(ext_json, {}), context: fromJson(context_json, null), decision: fromJson(decision_json, null) };
+    });
+  }
+
+  // ------------------------------------------------------------------ remembered Signal alerts
+
+  async listSignals(org: string, opts: { includeResolved?: boolean } = {}) {
+    this.#checkOrg(org);
+    const where = opts.includeResolved ? '' : 'WHERE resolved_at IS NULL';
+    return (this.#q(`SELECT * FROM signals ${where} ORDER BY first_seen, key`).all() as Row[]).map((r) => {
+      const { detail_json, ...columns } = r;
+      return { ...(columns as unknown as SignalRow), detail: fromJson(detail_json, { evidence: [] }) };
+    });
+  }
+  async saveSignals(org: string, rows: SignalRow[]) {
+    this.#checkOrg(org);
+    this.#tx(() => {
+      for (const s of rows) {
+        this.#q(`INSERT OR REPLACE INTO signals(key, task_id, rule, severity, summary, detail_json, first_seen, last_seen, resolved_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(s.key, s.task_id, s.rule, s.severity, s.summary, toJson(s.detail), s.first_seen, s.last_seen, s.resolved_at);
+      }
     });
   }
 

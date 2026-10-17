@@ -14,6 +14,10 @@ import type { Backend, Principal } from './store/backend.ts';
 import { openBackend, redactUrl, storageConfig, type StorageConfig } from './store/index.ts';
 import { canTask, hashToken, hasScope, localPrincipal, type Scope } from './auth.ts';
 import { Engine } from './engine/engine.ts';
+import { deriveTimeline, stateAt } from './engine/timeline.ts';
+import { notifyWebhook, runSignal, scheduleSignal } from './signal.ts';
+import { findSimilar, listDeals, query, QueryError, SCHEMA_GUIDE, type PortfolioScope } from './portfolio.ts';
+import { ask } from './ask.ts';
 
 export interface AppOptions {
   backend?: Backend;
@@ -76,6 +80,9 @@ export async function buildApp(opts: AppOptions = {}) {
   const port = opts.port ?? Number(process.env.PORT || 4100);
   const workerOn = opts.worker ?? process.env.CONTINUITY_WORKER !== 'off';
   if (workerOn) engine.start();
+  // Signal on a schedule (CONTINUITY_SIGNAL_INTERVAL_S); new alerts go to CONTINUITY_SIGNAL_WEBHOOK when set
+  const signalEvery = Number(process.env.CONTINUITY_SIGNAL_INTERVAL_S || 0);
+  const stopSignal = signalEvery > 0 ? scheduleSignal(backend, org, signalEvery, process.env.CONTINUITY_SIGNAL_WEBHOOK) : () => undefined;
 
   function attachmentStorage(): string {
     if (!hosted) return backend.mode;
@@ -115,6 +122,12 @@ export async function buildApp(opts: AppOptions = {}) {
   const numberParam = (q: URLSearchParams, name: string) => (q.get(name) ? Number(q.get(name)) : undefined);
   /** Item and event lookups: task-bound items need task access; unlinked ones need an unrestricted principal. */
   const itemAccess = (p: Principal) => (t: string) => (t ? canTask(p, t) : !p.task_ids);
+  /** Portfolio reads see the caller's org and, for a task-restricted principal, only its tasks. */
+  const scopeOf = (p: Principal): PortfolioScope => ({ org: p.org, taskIds: p.task_ids });
+  const portfolioError = (err: unknown): never => {
+    if (err instanceof QueryError) throw new HttpError(400, err.message);
+    throw err;
+  };
 
   const routes: Route[] = [
     ['GET', /^\/api\/health$/, null, health],
@@ -186,6 +199,47 @@ export async function buildApp(opts: AppOptions = {}) {
       const run = JSON.parse(body);
       assertAgent(p, run.agent_id);
       return { id: await backend.saveAgentRun(p.org, { ...run, task_id: m[1], principal_id: p.id }) };
+    }],
+
+    // ---- typed timeline (the raw per-email view stays at /timeline): ?type=counter_offer,appraisal_received  ?since=<seq>
+    ['GET', /^\/tasks\/([^/]+)\/history$/, 'context:read', async (m, q, _b, _r, p) => {
+      const { snap } = await app.snapshot(p.org, m[1]);
+      const types = q.get('type')?.split(',').filter(Boolean);
+      const since = Number(q.get('since') ?? 0);
+      return { task_id: m[1], state_version: snap.version, events: deriveTimeline(snap.store, m[1]).filter((e) => e.seq > since && (!types || types.includes(e.type))) };
+    }],
+    // the task's terms at a moment: ?at=<ISO time> or ?at=<timeline seq>
+    ['GET', /^\/tasks\/([^/]+)\/state-at$/, 'context:read', async (m, q, _b, _r, p) => {
+      const raw = q.get('at');
+      if (!raw) throw new HttpError(400, 'at=<ISO time | seq> is required');
+      const at = /^\d+$/.test(raw) ? Number(raw) : raw;
+      if (typeof at === 'string' && Number.isNaN(Date.parse(at))) throw new HttpError(400, 'at must be an ISO time or a seq number');
+      const { snap } = await app.snapshot(p.org, m[1]);
+      return stateAt(snap.store, m[1], typeof at === 'string' ? new Date(at).toISOString() : at);
+    }],
+    ['GET', /^\/tasks\/([^/]+)\/similar$/, 'context:read', (m, q, _b, _r, p) =>
+      findSimilar(backend, scopeOf(p), m[1], Math.min(Number(q.get('k') ?? 5), 20)).catch(portfolioError)],
+
+    // ---- portfolio: every task the caller may see, at once
+    ['GET', /^\/deals$/, 'context:read', (_m, _q, _b, _r, p) => listDeals(backend, scopeOf(p))],
+    ['GET', /^\/query\/schema$/, 'context:read', () => SCHEMA_GUIDE],
+    ['POST', /^\/query$/, 'context:read', (_m, _q, body, _r, p) => query(backend, scopeOf(p), JSON.parse(body || '{}').sql).catch(portfolioError)],
+    // a plain-language question across the portfolio, answered by Claude with the read-only tools above
+    ['POST', /^\/ask$/, 'context:read', (_m, _q, body, _r, p) => {
+      if (!process.env.ANTHROPIC_API_KEY) throw new HttpError(503, 'Ask needs ANTHROPIC_API_KEY (the SQL, history, similarity and Signal endpoints work without it)');
+      const question = String(JSON.parse(body || '{}').question ?? '').trim();
+      if (!question || question.length > 2000) throw new HttpError(400, 'body must be {"question": "..."} (at most 2,000 characters)');
+      return ask(backend, scopeOf(p), question);
+    }],
+    // ---- Signal: remembered alerts (?task=<id|alias>, ?all=1 includes resolved ones); POST runs a scan now
+    ['GET', /^\/signals$/, 'context:read', async (_m, q, _b, _r, p) => {
+      const only = q.get('task') ? (await app.task(p.org, q.get('task')!)).id : null;
+      if (only && !canTask(p, only)) throw new HttpError(404, `unknown task ${q.get('task')}`);
+      return (await backend.listSignals(p.org, { includeResolved: q.get('all') === '1' })).filter((s) => canTask(p, s.task_id) && (!only || s.task_id === only));
+    }],
+    ['POST', /^\/signals\/run$/, 'tasks:write', async (_m, _q, _b, _r, p) => {
+      const run = await runSignal(backend, p.org, { taskIds: p.task_ids ?? undefined });
+      return { ...run, notified: await notifyWebhook(process.env.CONTINUITY_SIGNAL_WEBHOOK, run) };
     }],
 
     ['GET', /^\/items\/([^/]+)\/provenance$/, 'evidence:read', (m, _q, _b, _r, p) => app.provenance(p.org, m[1], itemAccess(p))],
@@ -295,9 +349,10 @@ export async function buildApp(opts: AppOptions = {}) {
       res.end(JSON.stringify({ error: (err as Error).message, detail: err instanceof HttpError ? err.detail : undefined }));
     }
   });
-  server.on('close', () => { engine.stop(); });
+  server.on('close', () => { engine.stop(); stopSignal(); });
   const shutdown = async () => {
     engine.stop();
+    stopSignal();
     await backend.close();
   };
   return { server, app, backend, engine, transport, extractor, port, authMode, shutdown };
