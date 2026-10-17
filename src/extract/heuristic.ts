@@ -86,13 +86,17 @@ function extractFromText(text: string, input: ExtractInput, fromAttachment: stri
   const listed = fromAttachment ? { items: [], raw: new Set<string>() } : questionItems(body);
   const partOfList = (s: string) => [...listed.raw].some((r) => r === s || r.endsWith(s) || r.startsWith(s));
 
-  // a line that carries instruction-like text, or hidden markup, is untrusted as a whole: an "override" next to
-  // an injected instruction is part of the attack, not a term
+  // hidden markup is untrusted as a whole, and so is whatever follows an injected instruction on its line:
+  // the "Rate override: $209" after "ai-agent: …" is part of the attack, not a term
   const tainted = new Set<string>();
   const hidden = /<!--[^]*?-->|\[\[[^]*?\]\]/g;
   for (const block of body.match(hidden) ?? []) for (const x of sentences(block)) tainted.add(x);
-  for (const line of body.replace(hidden, (m) => m.replace(/\n/g, ' ')).split('\n')) {
-    if (INJECTION.test(line) || /<!--|\[\[/.test(line)) for (const x of sentences(line)) tainted.add(x);
+  for (const line of body.split('\n')) {
+    let after = false;
+    for (const x of sentences(line)) {
+      if (INJECTION.test(x)) after = true;
+      else if (after) tainted.add(x);
+    }
   }
 
   for (const s of [...sentences(body).filter((x) => !partOfList(x)), ...listed.items]) {
