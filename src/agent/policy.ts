@@ -3,6 +3,8 @@
 // the wording comes from templates, but the content is entirely state: which conflict is open,
 // which terms are current, what is still owed, what has already been answered.
 import type { CompiledContext } from '../compiler/compile.ts';
+import { domainFor } from '../domain/index.ts';
+import { prettyDate } from '../extract/dates.ts';
 
 /** `intent` is declared to the send guard: "commit" for anything that accepts, confirms, orders or approves payment. */
 export interface OutMessage { to: string; subject?: string; body: string; intent?: 'inform' | 'ask' | 'negotiate' | 'commit' }
@@ -31,6 +33,8 @@ export function policyDecide(ctx: CompiledContext): Decision {
   // a person has the next move (a held commitment, a detail to verify): wait for them
   if (ctx.next_actor === 'human') return { action: 'wait', messages: [], rationale: ctx.next_actor_reason, relied_on: ctx.pending_approvals.map((p) => p.id) };
 
+  // the domain pack may word things its own way; procurement wording is the default
+  const writer = domainFor(ctx.meta.domain).writer ?? {};
   // anything addressable at priority 1 or 2, grouped by recipient in first-seen order
   const actionable = ctx.suggested_actions.filter((a) => a.to_address && a.priority <= 2);
   const perRecipient = new Map<string, Action[]>();
@@ -62,13 +66,16 @@ export function policyDecide(ctx: CompiledContext): Decision {
 
     // acknowledge a change they made since we last wrote
     const theyChanged = ctx.changes_since_last_action.some((c) => c.type === 'claim_superseded' && c.summary.startsWith(party.label));
-    if (theyChanged) lines.push('Thanks for letting us know about the change.');
+    if (theyChanged && !accepting.length) lines.push('Thanks for letting us know about the change.');
 
     for (const a of conflictsRaised) {
       const checkId = a.check_id!;
       relied.push(checkId);
       const late = a.why.split(' — ')[0];
-      if (checkId.startsWith('delivery_deadline')) {
+      const own = writer.raiseConflict?.(a, ctx);
+      if (own) {
+        lines.push(...own);
+      } else if (checkId.startsWith('delivery_deadline')) {
         lines.push(`Unfortunately, the updated schedule (${late}) doesn't work for us: all ${qty} need to arrive by ${deadline} — that is a hard requirement for ${alias}.`);
         lines.push(`Can you get the remaining units to us by ${deadline}, for example by expediting the late lot or shipping it separately? If that isn't possible, please tell us the earliest date all ${qty} could arrive so we can decide how to proceed.`);
       } else if (checkId.startsWith('price_budget')) {
@@ -87,7 +94,12 @@ export function policyDecide(ctx: CompiledContext): Decision {
     }
 
     const asks = ofKind('ask_for_terms');
-    if (asks.length) {
+    const ownAsk = asks.length ? writer.askForTerms?.(asks, party, ctx) : null;
+    if (ownAsk) {
+      relied.push(...asks.map((a) => a.check_id!));
+      subject = ownAsk.subject ?? subject;
+      lines.push(...ownAsk.lines);
+    } else if (asks.length) {
       relied.push(...asks.map((a) => a.check_id!));
       const bareQty = String(qty).replace(/\s*units?$/, '');
       if (!party.last_message) subject = `RFQ: ${ctx.task.item ? `${bareQty} x ${ctx.task.item}` : qty} — ${alias}`;
@@ -101,8 +113,14 @@ export function policyDecide(ctx: CompiledContext): Decision {
       if (questions.length) lines.push(`Could you confirm ${questions.join(', and ')}? Please send a formal quote.`);
     }
 
-    for (const _a of ofKind('request_approval')) {
-      relied.push('budget_approval');
+    for (const a of ofKind('request_approval')) {
+      relied.push(a.check_id ?? 'budget_approval');
+      const own = writer.requestApproval?.(a, party, ctx);
+      if (own) {
+        subject = own.subject ?? subject;
+        lines.push(...own.lines);
+        continue;
+      }
       if (!party.last_message) subject = `Budget approval request — ${alias}`;
       const total = typeof qty === 'string' && typeof maxPrice === 'string'
         ? ` (${qty} at up to ${maxPrice}, max $${(parseFloat(qty) * parseFloat(String(maxPrice).replace('$', ''))).toFixed(2)})`
@@ -114,6 +132,11 @@ export function policyDecide(ctx: CompiledContext): Decision {
       const terms = activeTermsOf(ctx, party.label);
       const valueOf = (k: string) => terms.find((x) => x.term === k)?.value;
       relied.push(...terms.map((x) => x.claim_id));
+      const own = writer.accept?.(party, ctx);
+      if (own) {
+        lines.push(...own);
+        continue;
+      }
       const summary = [
         valueOf('delivery.schedule') && `delivery ${valueOf('delivery.schedule')}`,
         valueOf('price.unit') && `${valueOf('price.unit')} per unit`,
@@ -141,11 +164,20 @@ export function policyDecide(ctx: CompiledContext): Decision {
     for (const a of ofKind('remind_commitment')) {
       const promised = quotedPart(a.action) ?? '';
       relied.push(a.obligation_id!);
-      const planNote = conflictsRaised.length ? ', reflecting any changes to the delivery plan' : '';
-      lines.push(`Also, we're still expecting the ${promisedThing(promised) || 'item'} you mentioned — please send it when ready${planNote}.`);
+      const thing = promisedThing(promised) || 'item';
+      // a reminder that is the whole email gets its own opening rather than an "Also"
+      if (lines.length <= 2) {
+        const overdue = /OVERDUE \(due (\d{4}-\d{2}-\d{2})\)/.exec(a.action)?.[1];
+        lines.push(overdue
+          ? `Just checking in: we were expecting the ${thing} by ${prettyDate(overdue)} and haven't received it yet. Please send it as soon as you can.`
+          : `Just checking in on the ${thing} you mentioned — please send it when ready.`);
+        continue;
+      }
+      const planNote = conflictsRaised.length ? writer.reminderSuffix ?? ', reflecting any changes to the delivery plan' : '';
+      lines.push(`Also, we're still expecting the ${thing} you mentioned — please send it when ready${planNote}.`);
     }
 
-    lines.push('', 'Thanks,', 'Acme Procurement Agent', `(${alias})`);
+    lines.push('', 'Thanks,', writer.signature ?? 'Acme Procurement Agent', `(${alias})`);
     let intent: OutMessage['intent'] = 'inform';
     if (accepting.length) intent = 'commit';
     else if (conflictsRaised.length) intent = 'negotiate';

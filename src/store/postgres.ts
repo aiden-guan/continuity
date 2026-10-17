@@ -13,7 +13,7 @@ import postgres from 'postgres';
 import { randomUUID } from 'node:crypto';
 import { MemoryStore, COMMIT_COUNTERS, type Delta } from './state.ts';
 import type {
-  ActionRow, Backend, BlobIn, BlobRef, CommitOptions, CommitResult, JobInput, JobOutcome, JobRow, LinkLookup, Principal, ReceiveResult, TaskSnapshot,
+  ActionRow, Backend, BlobIn, BlobRef, CommitOptions, CommitResult, JobInput, JobOutcome, JobRow, LinkLookup, Principal, ReceiveResult, SignalRow, TaskSnapshot,
 } from './backend.ts';
 import type { Artifact, Claim, EventInput, Obligation, StoredEvent, TaskSpec } from '../types.ts';
 import { stripAttachmentBytes } from './rows.ts';
@@ -34,7 +34,7 @@ const day = (v: unknown): string | null => {
 const numOrNull = (v: unknown): number | null => (v == null ? null : Number(v));
 const httpError = (message: string, status: number) => Object.assign(new Error(message), { status });
 
-const SCHEMA_VERSION = '20261017210000_event_time_flags';
+const SCHEMA_VERSION = '20261017220000_continuity_signals';
 const EPOCH = new Date(0).toISOString();
 const ITEM_TABLES: Record<string, string> = { ev: 'events', cl: 'claims', ob: 'obligations', ar: 'artifacts' };
 
@@ -535,6 +535,31 @@ export class PostgresBackend implements Backend {
   async agentRuns(org: string, taskId: string) {
     const rows = await this.sql`select * from continuity.agent_runs where org_id = ${org} and task_id = ${taskId} order by started_at, id`;
     return rows.map((r) => ({ ...r, org_id: undefined, started_at: ts(r.started_at), state_version: numOrNull(r.state_version) }));
+  }
+
+  // ------------------------------------------------------------------ remembered Signal alerts
+  // (continuity.signals, added by supabase/migrations/20261017220000_continuity_signals.sql)
+
+  async listSignals(org: string, opts: { includeResolved?: boolean } = {}) {
+    const rows = await this.sql`select * from continuity.signals where org_id = ${org} ${opts.includeResolved ? this.sql`` : this.sql`and resolved_at is null`}
+      order by first_seen, key`;
+    return rows.map((r) => ({
+      key: r.key as string, task_id: r.task_id as string, rule: r.rule as string, severity: r.severity as SignalRow['severity'], summary: r.summary as string,
+      detail: (r.detail ?? { evidence: [] }) as SignalRow['detail'], first_seen: ts(r.first_seen), last_seen: ts(r.last_seen), resolved_at: tsOrNull(r.resolved_at),
+    }));
+  }
+
+  async saveSignals(org: string, rows: SignalRow[]) {
+    if (!rows.length) return;
+    await this.sql.begin(async (tx) => {
+      for (const s of rows) {
+        await tx`insert into continuity.signals ${tx({
+          org_id: org, key: s.key, task_id: s.task_id, rule: s.rule, severity: s.severity, summary: s.summary, detail: tx.json(s.detail as never),
+          first_seen: s.first_seen, last_seen: s.last_seen, resolved_at: s.resolved_at,
+        })} on conflict (org_id, key) do update set task_id = excluded.task_id, rule = excluded.rule, severity = excluded.severity,
+          summary = excluded.summary, detail = excluded.detail, first_seen = excluded.first_seen, last_seen = excluded.last_seen, resolved_at = excluded.resolved_at`;
+      }
+    });
   }
 
   // ------------------------------------------------------------------ attachments

@@ -3,7 +3,7 @@
 // quoted reply history. Term patterns come from the task's domain pack. Speech acts (questions, requests,
 // commitments), hedges, corrections and quarantining instruction-like text are generic. The LLM extractor
 // (llm.ts) returns the same Proposal shape.
-import { domainFor, topicKeysFor, type DomainPack, type HeuristicSentence } from '../domain/pack.ts';
+import { documentKindOf, domainFor, promisedDocumentOf, topicKeysFor, type DomainPack, type HeuristicSentence } from '../domain/pack.ts';
 import '../domain/index.ts';
 import type { ExtractInput, Extractor, Proposal, ProposedClaim, ProposedObligation } from './types.ts';
 import { emptyProposal } from './types.ts';
@@ -103,11 +103,11 @@ function extractFromText(text: string, input: ExtractInput, fromAttachment: stri
     const promise = s.match(COMMITMENT);
     if (promise && !hedged) {
       const action = promise[1].replace(/\s+/g, ' ').trim();
-      addObligation(p, { kind: 'commitment', debtor: 'sender', text: action, topic_keys: topics, expects_artifact: expectsArtifact(action), evidence: s, confidence: 0.8 });
+      addObligation(p, { kind: 'commitment', debtor: 'sender', text: action, topic_keys: topics, expects_artifact: expectsArtifact(action, pack), evidence: s, confidence: 0.8 });
       continue;
     }
     if (REQUEST.test(s) && topics.length) {
-      const expects = /\b(send|share|attach|forward)\b/i.test(s) ? expectsArtifact(s) : null;
+      const expects = /\b(send|share|attach|forward)\b/i.test(s) ? expectsArtifact(s, pack) : null;
       addObligation(p, { kind: 'request', debtor: 'recipient', text: s, topic_keys: topics, expects_artifact: expects, evidence: s, confidence: 0.7 });
     }
   }
@@ -117,8 +117,12 @@ function extractFromText(text: string, input: ExtractInput, fromAttachment: stri
 const DOCUMENT_WORD = /\b(quote|quotation|invoice|contract|spec(?:ification)?|document|po|purchase order|certificate of insurance|coi|w-9|w9|tax form)\b/i;
 const SENDING_WORD = /\b(send|share|attach|forward|provide|get you|email|issue|upload)\b/i;
 
-/** The kind of document a promise or request is about, when it is about sending one. */
-export function expectsArtifact(text: string): string | null {
+/** The kind of document a promise or request is about, when it is about sending one (the pack's kinds first). */
+export function expectsArtifact(text: string, pack?: DomainPack): string | null {
+  if (pack?.documentKinds && SENDING_WORD.test(text)) {
+    const own = promisedDocumentOf(pack, text);
+    if (own) return own;
+  }
   const m = text.match(DOCUMENT_WORD);
   if (!m || !SENDING_WORD.test(text)) return null;
   const word = m[1].toLowerCase();
@@ -130,10 +134,12 @@ export function expectsArtifact(text: string): string | null {
   return word;
 }
 
-export function classifyArtifact(filename: string, text: string): { kind: string; version_label: string | null } {
+export function classifyArtifact(filename: string, text: string, pack?: DomainPack): { kind: string; version_label: string | null } {
   const hay = `${filename}\n${text.slice(0, 2000)}`;
   let kind = 'document';
-  if (/quot/i.test(hay)) kind = 'quote';
+  const own = documentKindOf(pack, filename, text);
+  if (own) kind = own;
+  else if (/quot/i.test(hay)) kind = 'quote';
   else if (/invoice/i.test(hay)) kind = 'invoice';
   else if (/purchase order|\bPO\b/.test(hay)) kind = 'po';
   else if (/certificate of (?:liability )?insurance|\bCOI\b/i.test(hay)) kind = 'insurance_certificate';
@@ -148,7 +154,7 @@ export const heuristicExtractor: Extractor = {
     const pack = domainFor(input.task);
     const p = emptyProposal();
     for (const a of input.attachments) {
-      p.artifacts.push({ filename: a.filename, ...classifyArtifact(a.filename, a.text) });
+      p.artifacts.push({ filename: a.filename, ...classifyArtifact(a.filename, a.text, pack) });
       extractFromText(a.text, input, a.filename, p, pack);
     }
     extractFromText(input.event.body_text, input, null, p, pack);
