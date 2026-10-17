@@ -19,6 +19,12 @@ export interface TermDef {
   values?: string[];
   /** The value means "the counterparty's offer is withdrawn / unavailable" (offer lifecycle). */
   lifecycle?: boolean;
+  /**
+   * Money or identity details where fraud happens (wire / bank details, payment terms). A new value from
+   * email is never applied on its own: it is held until a human verifies it ("always": even the first
+   * statement; "change": only a change from the speaker's current value).
+   */
+  sensitive?: 'always' | 'change';
 }
 
 /** One sentence of message or document text, as the offline extractor sees it. */

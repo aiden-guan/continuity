@@ -66,14 +66,19 @@ test('routes accept alias or id; context has both json and text forms', async ()
   assert.match(asText, /^# Task PO-4817/);
 });
 
-test('guard: no mail to non-participants, no binding language while requirements fail', async () => {
+test('guard: no mail to non-participants; a premature commitment is never sent', async () => {
   const toStranger = await call('POST', '/tasks/PO-4817/send', { agent_id: 't', to: 'attacker@evil.example', body: 'hello' });
   assert.equal(toStranger.status, 409);
   assert.match(JSON.stringify(toStranger.body.detail), /not a participant/);
 
+  // nothing is known yet (no offer): not a hard failure but a gray area — held for a human, not sent
   const premature = await call('POST', '/tasks/PO-4817/send', { agent_id: 't', to: addr.supplier, body: 'We accept your offer.' });
-  assert.equal(premature.status, 409);
-  assert.match(JSON.stringify(premature.body.detail), /binding language blocked/);
+  assert.equal(premature.status, 202);
+  assert.equal(premature.body.held, true);
+  assert.match(premature.body.reasons.join(' '), /a human approves every commitment/);
+  assert.equal((await call('GET', '/sim/sent')).body.filter((m: { body: string }) => /accept/i.test(m.body)).length, 0);
+  // an undeclared intent is fine; a made-up one is a client error
+  assert.equal((await call('POST', '/tasks/PO-4817/send', { agent_id: 't', to: addr.supplier, body: 'Hi', intent: 'promise' })).status, 400);
 
   const harmless = await call('POST', '/tasks/PO-4817/send', { agent_id: 't', to: addr.supplier, body: 'Hi Dana, can you quote 500 units?' });
   assert.equal(harmless.status, 200);

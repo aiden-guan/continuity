@@ -14,6 +14,7 @@ import type { Backend, Principal } from './store/backend.ts';
 import { openBackend, redactUrl, storageConfig, type StorageConfig } from './store/index.ts';
 import { canTask, hashToken, hasScope, localPrincipal, type Scope } from './auth.ts';
 import { Engine } from './engine/engine.ts';
+import { sendClassifierFromEnv } from './engine/send-check.ts';
 
 export interface AppOptions {
   backend?: Backend;
@@ -71,7 +72,9 @@ export async function buildApp(opts: AppOptions = {}) {
   }
 
   const engine = new Engine(backend, extractor, (ev, i) => transport.fetchAttachment(ev, i));
-  const app = new Continuity({ backend, extractor, transport, webhookSecret, requireStateVersion: hosted, ingestOrg: org, engine });
+  // Claude's second opinion on outgoing wording (CONTINUITY_SEND_CHECK=off to disable)
+  const sendClassifier = sendClassifierFromEnv();
+  const app = new Continuity({ backend, extractor, transport, webhookSecret, requireStateVersion: hosted, ingestOrg: org, engine, sendClassifier });
   const ui = fileURLToPath(new URL('../ui/index.html', import.meta.url));
   const port = opts.port ?? Number(process.env.PORT || 4100);
   const workerOn = opts.worker ?? process.env.CONTINUITY_WORKER !== 'off';
@@ -99,6 +102,7 @@ export async function buildApp(opts: AppOptions = {}) {
       worker: workerOn ? 'embedded' : 'external',
       jobs: await backend.jobCounts().catch(() => null),
       agent_llm: !!process.env.ANTHROPIC_API_KEY,
+      send_check: sendClassifier ? sendClassifier.model : null,
       primitive_api_key: !!process.env.PRIMITIVE_API_KEY,
     };
   };
@@ -181,6 +185,12 @@ export async function buildApp(opts: AppOptions = {}) {
       await transport.memory?.set(`continuity:cursor:${m[1]}:${agent_id}`, { seq, at: nowIso() }).catch(() => undefined);
       return { agent_id, seq };
     }],
+    // ---- human approval: held commitments, money details, gray areas, payment-detail changes
+    ['GET', /^\/approvals$/, 'context:read', (_m, q, _b, _r, p) => app.approvals(p.org, { all: q.get('all') === '1', allowTask: (t) => canTask(p, t) })],
+    ['GET', /^\/tasks\/([^/]+)\/approvals$/, 'context:read', (m, q, _b, _r, p) => app.approvals(p.org, { taskId: m[1], all: q.get('all') === '1' })],
+    ['GET', /^\/tasks\/([^/]+)\/approvals\/(ap_\d+)$/, 'context:read', (m, _q, _b, _r, p) => app.approval(p.org, m[1], m[2])],
+    // a separate human credential: agents never hold `approve`, and the operator wildcard does not imply it
+    ['POST', /^\/tasks\/([^/]+)\/approvals\/(ap_\d+)\/decide$/, 'approve', (m, _q, body, _r, p) => app.decide(p.org, m[1], m[2], JSON.parse(body), p)],
     ['GET', /^\/tasks\/([^/]+)\/agent-runs$/, 'context:read', (m, _q, _b, _r, p) => backend.agentRuns(p.org, m[1])],
     ['POST', /^\/tasks\/([^/]+)\/agent-runs$/, 'agent:write', async (m, _q, body, _r, p) => {
       const run = JSON.parse(body);
@@ -263,7 +273,13 @@ export async function buildApp(opts: AppOptions = {}) {
       res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', ...(text.__headers ?? {}) });
       return res.end(text.__text);
     }
-    res.writeHead(200, { 'content-type': 'application/json' });
+    // a handler may set the status (202 = held for a human); the marker never reaches the client
+    let status = 200;
+    if (isObject(out) && '__status' in out) {
+      status = Number(out.__status);
+      delete out.__status;
+    }
+    res.writeHead(status, { 'content-type': 'application/json' });
     return res.end(JSON.stringify(out, null, 1));
   }
 

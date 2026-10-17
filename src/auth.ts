@@ -5,8 +5,13 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import type { Backend, Principal, PrincipalKind } from './store/backend.ts';
 
-export const SCOPES = ['context:read', 'evidence:read', 'send', 'agent:write', 'tasks:write', 'ingest'] as const;
+// `approve` decides held commitments and verifications. It is a HUMAN credential: agents are never given
+// it, and the operator wildcard '*' does not imply it — it has to be granted by name.
+export const SCOPES = ['context:read', 'evidence:read', 'send', 'agent:write', 'tasks:write', 'ingest', 'approve'] as const;
 export type Scope = (typeof SCOPES)[number] | '*';
+
+/** Scopes '*' does not cover. */
+const EXPLICIT_ONLY: Scope[] = ['approve'];
 
 /** What each kind of principal gets when no explicit scopes are requested. */
 export const DEFAULT_SCOPES: Record<PrincipalKind, Scope[]> = {
@@ -14,6 +19,9 @@ export const DEFAULT_SCOPES: Record<PrincipalKind, Scope[]> = {
   operator: ['*'],
   ingest: ['ingest'],
 };
+
+/** A human approver: reads state and evidence, decides approvals, and nothing else (cannot send as an agent). */
+export const APPROVER_SCOPES: Scope[] = ['approve', 'context:read', 'evidence:read'];
 
 export const hashToken = (token: string) => createHash('sha256').update(token).digest('hex');
 
@@ -39,6 +47,7 @@ export async function mintToken(
 }
 
 export function hasScope(p: Principal, s: Scope) {
+  if (EXPLICIT_ONLY.includes(s)) return p.scopes.includes(s);
   return p.scopes.includes('*') || p.scopes.includes(s);
 }
 
@@ -47,13 +56,14 @@ export function canTask(p: Principal, taskId: string) {
   return !p.task_ids || p.task_ids.includes(taskId);
 }
 
-/** With auth switched off (offline/local only) every request runs as this local operator. */
+/** With auth switched off (offline/local only) every request runs as this local operator, who is also the
+ *  person at the console — so it may approve. */
 export const localPrincipal = (org: string): Principal => ({
   id: 'local',
   org,
   kind: 'operator',
   agent_id: null,
-  scopes: ['*'],
+  scopes: ['*', 'approve'],
   task_ids: null,
   label: 'local (auth off)',
 });

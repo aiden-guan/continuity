@@ -36,6 +36,12 @@ export interface TaskSpec {
   requirements: Requirement[];
   /** Domain pack id. */
   domain: string;
+  /**
+   * Who may commit us. "human" (the default, and the safest): every commitment the agent drafts is held
+   * for a human approver. "auto_when_clear": a commitment goes out on its own only when every check passes
+   * and nothing is in a gray area; otherwise it is held too. Hard limits are never overridable either way.
+   */
+  approval?: { commitments: 'human' | 'auto_when_clear' };
 }
 
 export interface AttachmentMeta {
