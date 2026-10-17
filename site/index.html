@@ -1,119 +1,190 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Continuity — Agents forget. The thread doesn't.</title>
+  <title>Continuity — Agents forget. The thread doesn’t.</title>
   <meta name="description" content="Continuity gives every conversation your AI agents have a living state, so any new agent picks up exactly where the last one left off. Built on Primitive.">
-  <meta name="theme-color" content="#090807">
+  <meta name="theme-color" content="#f3f2ee">
+  <script>try { if (localStorage.getItem('theme') === 'dark') document.documentElement.dataset.theme = 'dark'; } catch {}</script>
 
-  <!-- type: Geist, Geist Mono, Instrument Serif -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..600&family=Geist+Mono:wght@400;500&display=swap">
 
   <!-- favicon: the thread with one live agent -->
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23090807'/%3E%3Cpath d='M4 16h24' stroke='%23ff6a2b' stroke-width='2'/%3E%3Crect x='9' y='13' width='6' height='6' fill='%23ffd9a0'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23161513'/%3E%3Cpath d='M5 16h22' stroke='%23f3f2ee' stroke-width='1.6'/%3E%3Crect x='9' y='13' width='6' height='6' fill='%23e2501d'/%3E%3C/svg%3E">
 
   <link rel="stylesheet" href="assets/site.css">
   <link rel="stylesheet" href="assets/landing.css">
 </head>
 <body>
+  <a class="skip" href="#problem">Skip to content</a>
 
   <nav id="nav" class="nav">
-    <a class="logo" href="#top" aria-label="Continuity">
-      <svg viewBox="0 0 30 14" aria-hidden="true">
-        <line x1="0" y1="7" x2="30" y2="7" stroke="var(--ember)" stroke-width="1.5"/>
-        <rect x="5" y="4" width="6" height="6" fill="var(--gold)"/>
-        <rect x="19" y="4" width="6" height="6" fill="none" stroke="var(--ink-2)" stroke-width="1.2"/>
-      </svg>
-      Continuity
-    </a>
-    <a class="btn primary nav-cta" href="live.html">See it live <span class="arrow">→</span></a>
+    <div class="nav-in">
+      <a class="logo" href="#top" aria-label="Continuity, back to top">
+        <svg viewBox="0 0 26 12" aria-hidden="true">
+          <line class="l-line" x1="0" y1="6" x2="26" y2="6" stroke-width="1.25"/>
+          <rect class="l-live" x="4" y="3" width="6" height="6"/>
+          <rect class="l-next" x="16.5" y="3.5" width="5" height="5" stroke-width="1.1"/>
+        </svg>
+        Continuity
+      </a>
+      <div class="nav-links">
+        <a href="#problem">Problem</a>
+        <a href="#idea">Mechanism</a>
+        <a href="#story">Demo</a>
+        <a href="#proof">Results</a>
+      </div>
+      <div class="nav-end">
+        <button class="theme-btn" type="button" data-theme-toggle>Dark</button>
+        <a class="btn primary nav-cta" href="live.html">See it live <span class="arrow">→</span></a>
+      </div>
+    </div>
   </nav>
 
-  <!-- ============ hero: the line -->
-  <header id="top" class="hero">
-    <canvas id="hero-bg" class="hero-bg" aria-hidden="true"></canvas>
-    <div class="hero-fade" aria-hidden="true"></div>
-    <div class="wrap hero-in">
-      <h1 class="hero-h reveal">Agents forget.<br>The thread <em>doesn’t.</em></h1>
-      <p class="hero-sub reveal" style="--d:.15s">Living state for every conversation your agents have.</p>
-    </div>
-    <div class="hero-thread reveal" style="--d:.35s">
-      <canvas id="hero-thread" aria-label="Agents live and die on one continuous conversation thread"></canvas>
-    </div>
-  </header>
+  <main class="sheet">
 
-  <!-- ============ the problem -->
-  <section id="problem" class="slide">
-    <div class="wrap">
-      <h2 class="big reveal">When an agent dies,<br>the next one starts from <em>zero.</em></h2>
-      <div class="trio">
-        <p class="reveal">The date changed.</p>
-        <p class="reveal" style="--d:.1s">Someone owes us a quote.</p>
-        <p class="reveal" style="--d:.2s">That was already answered.</p>
-      </div>
-      <p class="quiet reveal">It knows none of this.</p>
-    </div>
-  </section>
-
-  <!-- ============ the idea -->
-  <section id="idea" class="slide">
-    <div class="wrap">
-      <h2 class="big reveal">Continuity remembers<br>where things <em>stand.</em></h2>
-      <div class="pair reveal">
-        <div class="pair-in">
-          <span class="pair-k">An email arrives</span>
-          <p>“Only 300 can arrive Friday. The other 200, next Wednesday.”</p>
+    <!-- ============ hero -->
+    <header id="top" class="hero">
+      <div class="wrap">
+        <div class="meta-row reveal">
+          <span>Continuity</span>
+          <span>Communication-state engine for agents</span>
+          <span>Built on Primitive</span>
         </div>
-        <div class="pair-arrow" aria-hidden="true"><i></i></div>
-        <div class="pair-out">
-          <span class="pair-k">State changes</span>
-          <p><s>500 by Friday</s> → 300 Fri + 200 Wed</p>
-          <p class="bad">✕ Deadline missed. We must act.</p>
+        <div class="hero-grid">
+          <h1 class="hero-h reveal">Agents forget.<br><span class="dim">The thread doesn’t.</span></h1>
+          <div class="hero-side reveal" style="--d:.08s">
+            <p class="lede">Continuity keeps a living state for every conversation your agents have. When one dies, the next picks up exactly where it stopped.</p>
+            <div class="cta-row">
+              <a class="btn primary" href="live.html">See it live <span class="arrow">→</span></a>
+              <a class="btn" href="#story">Watch the replay</a>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </section>
 
-  <!-- ============ the demo, replayed from real engine output (filled by landing.js) -->
-  <section id="story" class="slide story-sec">
-    <div class="wrap">
-      <h2 class="big reveal">Watch an agent <em>die.</em></h2>
-    </div>
-    <div class="story wrap">
-      <div id="story-stage" class="story-stage">
-        <div id="story-thread"></div>
-        <div id="story-mini" class="mini"></div>
+      <figure class="fig hero-fig reveal" style="--d:.16s">
+        <div class="fig-frame">
+          <canvas id="hero-thread" aria-label="Agents live and die on one continuous conversation thread"></canvas>
+        </div>
+        <figcaption class="wrap">
+          <span class="fig-n">Fig. 1</span>
+          <span>One thread, three agents. Agent A is killed mid-deal. B and C wake with no memory and resume from state.</span>
+        </figcaption>
+      </figure>
+    </header>
+
+    <!-- ============ 01 · the problem -->
+    <section id="problem" class="sec">
+      <div class="wrap sec-grid">
+        <div class="sec-k reveal"><span class="n">01</span>The problem</div>
+        <div class="sec-body">
+          <h2 class="h2 reveal">When an agent dies, the next one starts from&nbsp;zero.</h2>
+          <p class="body-l reveal">Real conversations run for weeks. Agents don’t. A replacement agent inherits an inbox, not an understanding. It doesn’t know that:</p>
+          <ol class="ledger reveal">
+            <li><span class="n">a</span><span class="t">The delivery date changed.</span><code>delivery.schedule · superseded</code></li>
+            <li><span class="n">b</span><span class="t">The supplier still owes us a revised quote.</span><code>open loop · supplier</code></li>
+            <li><span class="n">c</span><span class="t">Finance already approved the budget.</span><code>answered · do not re-ask</code></li>
+          </ol>
+          <p class="aside reveal">Rereading the whole thread works until it doesn’t: it’s slow, expensive, and the model still misses the correction on page nine.</p>
+        </div>
       </div>
-      <div id="story-steps" class="story-steps"></div>
-    </div>
-  </section>
+    </section>
 
-  <!-- ============ proof -->
-  <section id="proof" class="slide">
-    <div class="wrap">
-      <h2 class="big reveal"><span class="c-gold">1,000×</span> less context.<br>The <em>right</em> answer.</h2>
-      <div class="proof reveal">
-        <div><b>2.4k</b><span>tokens to resume<br>vs 2.7M to reread</span></div>
-        <div><b>6/6</b><span>cold handoffs right<br>vs 3/6 for last-3-emails</span></div>
+    <!-- ============ 02 · the mechanism -->
+    <section id="idea" class="sec">
+      <div class="wrap sec-grid">
+        <div class="sec-k reveal"><span class="n">02</span>Mechanism</div>
+        <div class="sec-body">
+          <h2 class="h2 reveal">Continuity remembers where things stand.</h2>
+          <p class="body-l reveal">Every inbound email becomes evidence. A resolver turns evidence into state: current terms, open loops, checks, and who acts next. Agents read the state, not the transcript.</p>
+        </div>
       </div>
-    </div>
-  </section>
 
-  <!-- ============ end -->
-  <footer id="end" class="end">
-    <div class="wrap end-in">
-      <p class="end-line reveal">One unbroken <em>thread.</em></p>
-      <a class="btn ember reveal" href="live.html">See it live <span class="arrow">→</span></a>
-    </div>
-    <canvas id="wordmark" class="wordmark" aria-label="Continuity"></canvas>
-    <div class="wrap foot">
-      <span>Continuity · built on Primitive</span>
-      <span id="foot-src"></span>
-    </div>
-  </footer>
+      <figure class="fig reveal">
+        <div class="fig-frame">
+          <div class="wrap diff">
+            <div class="diff-in">
+              <div class="diff-h"><span>Inbound</span><span>ev_6 · supplier</span></div>
+              <p class="mail">Correction to my earlier email: only 300 units can arrive Friday. The other 200 won’t arrive until Wednesday, Oct 28. I’ll send a revised quote by tomorrow.</p>
+            </div>
+            <div class="diff-arrow" aria-hidden="true"><i></i></div>
+            <div class="diff-out">
+              <div class="diff-h"><span>State</span><span>PO-4817</span></div>
+              <div class="dl del"><b>−</b><code>delivery</code><span>500 units Fri Oct 23</span></div>
+              <div class="dl add"><b>+</b><code>delivery</code><span>300 Fri Oct 23 · 200 Wed Oct 28</span></div>
+              <div class="dl add"><b>+</b><code>owed</code><span>supplier → revised quote</span></div>
+              <div class="dl warn"><b>✕</b><code>check</code><span>All units by Fri Oct 23</span></div>
+              <div class="dl"><b>→</b><code>next</code><span><em>Us.</em> Raise it with the supplier.</span></div>
+            </div>
+          </div>
+        </div>
+        <figcaption class="wrap">
+          <span class="fig-n">Fig. 2</span>
+          <span>One email in, one state transition out. Every term keeps the event it came from, and the old value is kept, struck through.</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- ============ 03 · the demo, replayed from real engine output (filled by landing.js) -->
+    <section id="story" class="sec story-sec">
+      <div class="wrap sec-grid">
+        <div class="sec-k reveal"><span class="n">03</span>Replay</div>
+        <div class="sec-body">
+          <h2 class="h2 reveal">Watch an agent die. <span class="dim">Then watch the work continue.</span></h2>
+        </div>
+      </div>
+      <div class="story wrap">
+        <div id="story-stage" class="story-stage">
+          <div class="stage-h"><span>PO-4817 · 500 AX-200 boards</span><span id="stage-v"></span></div>
+          <div id="story-thread"></div>
+          <div id="story-mini" class="mini"></div>
+        </div>
+        <div id="story-steps" class="story-steps"></div>
+      </div>
+    </section>
+
+    <!-- ============ 04 · proof -->
+    <section id="proof" class="sec">
+      <div class="wrap sec-grid">
+        <div class="sec-k reveal"><span class="n">04</span>Results</div>
+        <div class="sec-body">
+          <h2 class="h2 reveal">1,000× less context. <span class="dim">The right answer.</span></h2>
+
+          <div class="proof">
+            <div class="metric reveal">
+              <div class="metric-h"><span>Tokens to resume after 267 messages</span><span>lower is better</span></div>
+              <div class="bar-row me"><span class="who">Continuity</span><div class="bar"><i class="me" style="--w:.0009"></i></div><b>2.4k</b></div>
+              <div class="bar-row"><span class="who">Reread transcript</span><div class="bar"><i style="--w:1"></i></div><b>2.7M</b></div>
+            </div>
+            <div class="metric reveal" style="--d:.08s">
+              <div class="metric-h"><span>Cold handoffs answered correctly</span><span>higher is better</span></div>
+              <div class="bar-row me"><span class="who">Continuity</span><div class="cells" data-n="6" data-of="6"></div><b>6/6</b></div>
+              <div class="bar-row"><span class="who">Full transcript</span><div class="cells" data-n="5" data-of="6"></div><b>5/6</b></div>
+              <div class="bar-row"><span class="who">Last 3 emails</span><div class="cells" data-n="3" data-of="6"></div><b>3/6</b></div>
+            </div>
+          </div>
+          <p class="source reveal">Six cold-handoff scenarios with a Claude agent, graded by rubric on the first email it sends. Token counts from <code>eval/results/scale.json</code>.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ end -->
+    <footer id="end" class="end">
+      <div class="wrap end-in">
+        <p class="end-line reveal">One unbroken thread.</p>
+        <a class="btn primary reveal" href="live.html">See it live <span class="arrow">→</span></a>
+      </div>
+      <canvas id="wordmark" class="wordmark" aria-label="Continuity"></canvas>
+      <div class="wrap foot">
+        <span>Continuity · built on Primitive</span>
+        <span id="foot-src"></span>
+      </div>
+    </footer>
+  </main>
 
   <script type="module" src="assets/landing.js"></script>
 </body>

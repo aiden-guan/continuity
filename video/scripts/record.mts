@@ -1,7 +1,7 @@
 // Captures the real Continuity demo for the video — no mock-ups. It boots the stage server (engine plus
 // genuine agent processes), drives the site in Chrome by pressing → once per beat, and grabs every
 // repaint from the Chrome DevTools screencast. Writes to public/recording/:
-//   hero.mp4       landing-page hero (the dithered sunrise and thread animation)
+//   hero.mp4       landing-page hero (headline and the thread animation)
 //   live.mp4       presenter view, every beat through to the closing card
 //   timeline.json  start/finish of each beat, in seconds from the first frame of live.mp4
 //

@@ -1,24 +1,26 @@
-// The scroll story. Five pieces:
-//   1. nav that turns solid after the fold, and reveal-on-scroll
-//   2. hero background: a dithered sunrise that sinks as you scroll
-//   3. hero thread: a looping canvas animation of agents living and dying on one line
-//   4. the replayed demo: sticky thread + state readout driven by real engine output (snapshot.json)
-//   5. footer wordmark, dithered
+// The story page. Five pieces:
+//   1. nav that turns solid after the fold, active section links, reveal-on-scroll
+//   2. hero thread: a looping canvas drawing of agents living and dying on one line
+//   3. the replayed demo: sticky thread + state readout driven by real engine output (snapshot.json)
+//   4. results: the cell meters
+//   5. footer wordmark, dithered — the page's one dithered moment, kept quiet
 import { dither } from './dither.js';
 import { threadSVG, eventLabel, esc } from './board.js';
+import { setupTheme, token } from './theme.js';
 
 const one = (sel, root = document) => root.querySelector(sel);
 const all = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 const stillMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-const MONO_11 = '500 11px "Geist Mono", ui-monospace, monospace';
-const MONO_12_5 = '500 12.5px "Geist Mono", ui-monospace, monospace';
-const SANS_12_5 = '500 12.5px "Geist", ui-sans-serif, sans-serif';
+const MONO_11 = '400 11px "Geist Mono", ui-monospace, monospace';
+const MONO_12 = '500 12px "Geist Mono", ui-monospace, monospace';
 
 // ============================================================ 1 · nav + reveals
 function setupChrome() {
   const nav = one('#nav');
-  addEventListener('scroll', () => nav.classList.toggle('solid', scrollY > 40), { passive: true });
+  const onScroll = () => nav.classList.toggle('solid', scrollY > 24);
+  addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
 
   const watcher = new IntersectionObserver((entries) => {
     for (const entry of entries) {
@@ -28,15 +30,21 @@ function setupChrome() {
     }
   }, { rootMargin: '0px 0px -8% 0px' });
   all('.reveal').forEach((el) => watcher.observe(el));
+
+  // the nav link for the section under the reading line
+  const links = all('.nav-links a');
+  const sections = links.map((a) => one(a.getAttribute('href')));
+  const mark = () => {
+    const line = innerHeight * 0.4;
+    let current = -1;
+    sections.forEach((sec, i) => { if (sec && sec.getBoundingClientRect().top < line) current = i; });
+    links.forEach((a, i) => a.classList.toggle('on', i === current));
+  };
+  addEventListener('scroll', () => requestAnimationFrame(mark), { passive: true });
+  mark();
 }
 
-// ============================================================ 2 · hero background
-function setupSunrise() {
-  const sky = dither(one('#hero-bg'), { scene: 'horizon', pixel: 3, palette: ['#090807', '#4a1708', '#ff6a2b', '#ffd9a0'] });
-  addEventListener('scroll', () => sky.set('prog', Math.min(1, scrollY / innerHeight)), { passive: true });
-}
-
-// ============================================================ 3 · hero thread (canvas loop)
+// ============================================================ 2 · hero thread (canvas loop)
 // positions are fractions of the line's length
 const HERO_EVENTS = [
   { at: 0.06, id: 'ev_1', text: 'RFQ sent', outbound: true },
@@ -56,14 +64,24 @@ const HERO_AGENTS = [
 const HERO_GAP = { start: 0.33, end: 0.645 };
 const HERO_LOOP_MS = 17000;
 
+// colours are read from the theme tokens, and re-read when the theme changes
+function readInk() {
+  return {
+    ink: token('--ink'), ink2: token('--ink-2'), muted: token('--muted'), faint: token('--faint'),
+    bg: token('--bg'), signal: token('--signal'), signalInk: token('--signal-ink'),
+  };
+}
+
 function setupHeroThread(canvas) {
   const ctx = canvas.getContext('2d');
   const view = { w: 0, h: 0, dpr: 1 };
+  let ink = readInk();
   let sparks = [];
   let lastHead = 0;
   let frameId = 0;
   let inView = true;
   const epoch = performance.now();
+  const kick = () => { if (!frameId) frameId = requestAnimationFrame(frame); };
 
   function measure() {
     const box = canvas.getBoundingClientRect();
@@ -72,31 +90,26 @@ function setupHeroThread(canvas) {
     view.h = box.height;
     canvas.width = view.w * view.dpr;
     canvas.height = view.h * view.dpr;
+    if (stillMotion) kick();
   }
   new ResizeObserver(measure).observe(canvas);
   measure();
+  addEventListener('themechange', () => { ink = readInk(); kick(); });
 
   new IntersectionObserver(([entry]) => {
     inView = entry.isIntersecting;
-    if (inView && !frameId) frameId = requestAnimationFrame(frame);
+    if (inView) kick();
   }).observe(canvas);
 
-  // particles: an outward explosion, or (implode) a swarm drawn into a point
+  // particles: a small outward burst, or (implode) a swarm drawn into a point
   function spray(x, y, count, colour, implode) {
     for (let k = 0; k < count; k++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = 0.4 + Math.random() * 2.6;
-      const p = {
-        x, y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 0.6,
-        life: 1,
-        size: Math.random() < 0.3 ? 3 : 2,
-        colour,
-      };
+      const speed = 0.3 + Math.random() * 1.8;
+      const p = { x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 0.4, life: 1, colour };
       if (implode) {
-        p.x = x + Math.cos(angle) * 46 * Math.random();
-        p.y = y + Math.sin(angle) * 28 * Math.random();
+        p.x = x + Math.cos(angle) * 36 * Math.random();
+        p.y = y + Math.sin(angle) * 22 * Math.random();
         p.tx = x;
         p.ty = y;
       }
@@ -112,164 +125,154 @@ function setupHeroThread(canvas) {
     const alpha = phase > 0.95 ? 1 - (phase - 0.95) / 0.05 : phase < 0.02 ? phase / 0.02 : 1;
     if (head < lastHead) sparks = []; // the loop restarted
 
-    const margin = Math.max(18, W * 0.04);
-    const baseY = Math.round(H * 0.58);
-    const laneY = baseY - 40;
+    const small = W < 720;
+    const margin = Math.max(20, Math.min(W * 0.05, 64));
+    const baseY = Math.round(H * 0.6);
+    const laneY = baseY - 44;
     const xOf = (f) => margin + f * (W - margin * 2);
     const headX = xOf(head);
-    const small = W < 720;
 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
     ctx.globalAlpha = alpha;
 
-    // future: a dotted line
-    ctx.fillStyle = 'rgba(255,236,214,.16)';
-    for (let x = headX; x < W - margin; x += 6) ctx.fillRect(Math.round(x), baseY, 2, 1);
+    // future: dotted; past: a solid ink rule
+    ctx.fillStyle = ink.faint;
+    for (let x = headX + 4; x < W - margin; x += 5) ctx.fillRect(Math.round(x), baseY, 1, 1);
+    ctx.fillStyle = ink.ink;
+    ctx.fillRect(margin, baseY - 0.75, headX - margin, 1.5);
+    ctx.fillRect(Math.round(headX) - 1, baseY - 6, 2, 12);
 
-    // past: a glowing gradient line
-    const grad = ctx.createLinearGradient(margin, 0, headX, 0);
-    grad.addColorStop(0, 'rgba(255,106,43,.15)');
-    grad.addColorStop(0.7, '#ff6a2b');
-    grad.addColorStop(1, '#ffd9a0');
-    ctx.save();
-    ctx.shadowColor = '#ff6a2b';
-    ctx.shadowBlur = 14;
-    ctx.fillStyle = grad;
-    ctx.fillRect(margin, baseY - 1, headX - margin, 2);
-    ctx.restore();
-
-    // the head
-    ctx.save();
-    ctx.shadowColor = '#ffd9a0';
-    ctx.shadowBlur = 22;
-    ctx.fillStyle = '#fff3df';
-    ctx.fillRect(Math.round(headX) - 3, baseY - 3, 6, 6);
-    ctx.restore();
-
-    // events
-    ctx.textAlign = 'center';
+    // events: inbound diamonds, outbound squares
     for (const ev of HERO_EVENTS) {
       const x = Math.round(xOf(ev.at));
       const reached = head >= ev.at;
       const fresh = reached ? Math.min(1, (head - ev.at) * 14) : 0;
+      const alarm = ev.alarm && reached;
 
       ctx.save();
       ctx.translate(x, baseY);
       if (!ev.outbound) ctx.rotate(Math.PI / 4);
-      ctx.fillStyle = !reached ? 'rgba(255,236,214,.22)' : ev.outbound ? '#9cc2ff' : ev.alarm ? '#ff5b4f' : '#ff6a2b';
-      const half = 4 + (reached ? 1 - fresh : 0) * 3;
+      const half = 3.5 + (reached ? 1 - fresh : 0) * 2;
+      ctx.fillStyle = !reached || ev.outbound ? ink.bg : alarm ? ink.signal : ink.ink;
+      ctx.strokeStyle = !reached ? ink.faint : alarm ? ink.signal : ink.ink;
+      ctx.lineWidth = ev.outbound && reached ? 1.5 : 1;
       ctx.fillRect(-half, -half, half * 2, half * 2);
+      ctx.strokeRect(-half, -half, half * 2, half * 2);
       ctx.restore();
 
-      if (ev.alarm && reached && fresh < 1) {
-        ctx.strokeStyle = `rgba(255,91,79,${1 - fresh})`;
+      if (alarm && fresh < 1) {
+        ctx.strokeStyle = ink.signal;
+        ctx.globalAlpha = alpha * (1 - fresh);
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.arc(x, baseY, 8 + fresh * 26, 0, 7);
+        ctx.arc(x, baseY, 8 + fresh * 22, 0, 7);
         ctx.stroke();
+        ctx.globalAlpha = alpha;
       }
 
       if (small && ev.minor) continue;
-      ctx.globalAlpha = alpha * (reached ? 0.35 + fresh * 0.65 : 0.25);
+      ctx.textAlign = 'center';
+      ctx.globalAlpha = alpha * (reached ? 1 : 0.55);
       ctx.font = MONO_11;
-      ctx.fillStyle = '#847c71';
+      ctx.fillStyle = reached ? ink.muted : ink.faint;
       ctx.fillText(ev.id, x, baseY + 24);
-      ctx.font = SANS_12_5;
       if (!small || ev.alarm) {
-        ctx.fillStyle = ev.alarm && reached ? '#ffb3ab' : '#c4bcb0';
-        ctx.fillText(ev.text, x, baseY + 41);
+        ctx.fillStyle = alarm ? ink.signalInk : reached ? ink.ink2 : ink.faint;
+        ctx.fillText(ev.text, x, baseY + 40);
       }
       ctx.globalAlpha = alpha;
     }
 
     // the gap: nobody running, the line keeps going
     if (head > HERO_GAP.start) {
-      const a = xOf(HERO_GAP.start) + 10;
-      const b = xOf(Math.min(head, HERO_GAP.end));
-      ctx.fillStyle = 'rgba(255,236,214,.22)';
-      for (let x = a; x < b - 4; x += 5) ctx.fillRect(Math.round(x), laneY, 1, 1);
-      if (b - a > 150) {
+      const a = xOf(HERO_GAP.start) + 12;
+      const b = xOf(Math.min(head, HERO_GAP.end)) - 4;
+      const text = small ? 'no agent running' : 'no agent running · state still updating';
+      ctx.font = MONO_11;
+      const tw = ctx.measureText(text).width;
+      const showText = b - a > tw + 40;
+      const mid = (a + b) / 2;
+      ctx.fillStyle = ink.faint;
+      for (let x = a; x < b; x += 4) {
+        if (showText && Math.abs(x - mid) < tw / 2 + 10) continue;
+        ctx.fillRect(Math.round(x), laneY, 1, 1);
+      }
+      if (showText) {
         ctx.textAlign = 'center';
-        ctx.font = MONO_11;
-        ctx.fillStyle = '#847c71';
-        ctx.fillText(small ? 'no agent running' : 'no agent running · state still updating', (a + b) / 2, laneY - 9);
+        ctx.fillStyle = ink.muted;
+        ctx.fillText(text, mid, laneY + 4);
       }
     }
 
-    // agents
+    // agents: a lifeline above the thread, with a stem down to where it joined
     ctx.textAlign = 'left';
     for (const ag of HERO_AGENTS) {
       if (head < ag.start) continue;
       const living = head < ag.end;
-      const a = xOf(ag.start);
-      const b = xOf(Math.min(head, ag.end));
-      const colour = ag.dies && !living ? '#ff5b4f' : '#9cc2ff';
+      const killed = ag.dies && !living;
+      const a = Math.round(xOf(ag.start));
+      const b = Math.round(xOf(Math.min(head, ag.end)));
+      const colour = killed ? ink.signal : living ? ink.ink : ink.muted;
 
       ctx.fillStyle = colour;
-      ctx.globalAlpha = alpha * (living ? 0.95 : 0.5);
-      ctx.fillRect(Math.round(a), laneY - 3, Math.max(4, Math.round(b - a)), 6);
-      ctx.fillRect(Math.round(a), laneY + 3, 1, baseY - laneY - 8);
-      if (living) {
-        ctx.save();
-        ctx.shadowColor = colour;
-        ctx.shadowBlur = 16;
-        ctx.fillRect(Math.round(b) - 4, laneY - 4, 8, 8);
-        ctx.restore();
-        ctx.fillRect(Math.round(b), laneY + 3, 1, baseY - laneY - 6);
-      }
+      ctx.globalAlpha = alpha * (killed ? 0.6 : 1);
+      ctx.fillRect(a, laneY - 2, Math.max(4, b - a), 4);
+      ctx.globalAlpha = alpha * 0.35;
+      ctx.fillRect(a, laneY + 2, 1, baseY - laneY - 7);
       ctx.globalAlpha = alpha;
+      if (living) ctx.fillRect(b - 1, laneY - 6, 2, 12);
 
-      ctx.font = MONO_12_5;
-      ctx.fillStyle = colour;
-      ctx.fillText(ag.name, Math.round(a), laneY - 11);
+      ctx.font = MONO_12;
+      ctx.fillStyle = killed ? ink.signalInk : ink.ink;
+      ctx.fillText(ag.name, a, laneY - 13);
       if (ag.note && !small) {
         const offset = ctx.measureText(ag.name + '  ').width;
-        ctx.fillStyle = '#847c71';
         ctx.font = MONO_11;
-        ctx.fillText(ag.note, Math.round(a + offset), laneY - 11);
+        ctx.fillStyle = ink.muted;
+        ctx.fillText(ag.note, a + offset, laneY - 13);
       }
 
-      if (ag.dies && !living) {
+      if (killed) {
         const kx = Math.round(xOf(ag.end));
-        ctx.strokeStyle = '#ff5b4f';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = ink.signal;
+        ctx.lineWidth = 1.75;
         ctx.beginPath();
         ctx.moveTo(kx - 5, laneY - 5); ctx.lineTo(kx + 5, laneY + 5);
         ctx.moveTo(kx + 5, laneY - 5); ctx.lineTo(kx - 5, laneY + 5);
         ctx.stroke();
         const sinceDeath = head - ag.end;
-        if (sinceDeath < 0.12) {
-          ctx.globalAlpha = alpha * (1 - sinceDeath / 0.12);
-          ctx.font = '600 12px "Geist Mono", ui-monospace, monospace';
-          ctx.fillStyle = '#ff5b4f';
-          ctx.fillText('SIGKILL', kx + 10, laneY + 4);
+        if (sinceDeath < 0.14) {
+          ctx.globalAlpha = alpha * (1 - sinceDeath / 0.14);
+          ctx.font = MONO_12;
+          ctx.fillStyle = ink.signalInk;
+          ctx.fillText('SIGKILL', kx + 12, laneY + 4);
           ctx.globalAlpha = alpha;
         }
       }
 
-      // birth and death bursts, fired once as the head crosses
-      if (!stillMotion && lastHead < ag.start && head >= ag.start) spray(xOf(ag.start), laneY, 34, '#9cc2ff', true);
-      if (!stillMotion && ag.dies && lastHead < ag.end && head >= ag.end) spray(xOf(ag.end), laneY, 70, Math.random() < 0.5 ? '#ff5b4f' : '#ff6a2b');
+      // birth and death, fired once as the head crosses
+      if (!stillMotion && lastHead < ag.start && head >= ag.start) spray(xOf(ag.start), laneY, 18, ink.ink, true);
+      if (!stillMotion && ag.dies && lastHead < ag.end && head >= ag.end) spray(xOf(ag.end), laneY, 36, ink.signal);
     }
 
-    // particles: blocky, with a little flicker
+    // particles: 2px squares
     sparks = sparks.filter((p) => p.life > 0);
     for (const p of sparks) {
       if (p.tx != null) {
         p.x += (p.tx - p.x) * 0.14;
         p.y += (p.ty - p.y) * 0.14;
-        p.life -= 0.03;
+        p.life -= 0.035;
       } else {
         p.x += p.vx;
         p.y += p.vy;
-        p.vy += 0.05;
-        p.vx *= 0.985;
-        p.life -= 0.016;
+        p.vy += 0.04;
+        p.vx *= 0.98;
+        p.life -= 0.02;
       }
-      ctx.globalAlpha = alpha * Math.max(0, p.life) * (Math.random() < 0.12 ? 0.3 : 1);
+      ctx.globalAlpha = alpha * Math.max(0, p.life);
       ctx.fillStyle = p.colour;
-      ctx.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size);
+      ctx.fillRect(Math.round(p.x), Math.round(p.y), 2, 2);
     }
 
     ctx.globalAlpha = 1;
@@ -277,11 +280,11 @@ function setupHeroThread(canvas) {
     if (inView && !stillMotion) frameId = requestAnimationFrame(frame);
   }
 
-  document.fonts?.ready.then(() => { if (!frameId) frameId = requestAnimationFrame(frame); });
-  frameId = requestAnimationFrame(frame);
+  document.fonts?.ready.then(kick);
+  kick();
 }
 
-// ============================================================ 4 · the replayed demo
+// ============================================================ 3 · the replayed demo
 const lightLabel = (label) => label
   .replace('All units by ', 'All by ')
   .replace('Unit price within budget', 'Price ≤ budget')
@@ -375,6 +378,7 @@ async function setupStory() {
     threadBox.innerHTML = threadSVG(model, { width: Math.max(320, threadBox.clientWidth), height: 150, labels: innerWidth > 520 });
     mini.className = `mini ${(c?.checks ?? []).some((x) => x.status === 'fail') ? 'bad' : ''}`;
     mini.innerHTML = miniMarkup(c);
+    one('#stage-v').textContent = `${beat.at} · state v${c?.meta?.state_version ?? '—'}`;
     steps.forEach((s) => s.classList.toggle('on', Number(s.dataset.i) === i));
   }
 
@@ -397,7 +401,19 @@ async function setupStory() {
   one('#foot-src').textContent = `story: real engine output, ${snap.captured_at.slice(0, 10)}`;
 }
 
+// ============================================================ 4 · results
+function setupCells() {
+  all('.cells').forEach((row) => {
+    const n = Number(row.dataset.n);
+    const of = Number(row.dataset.of);
+    row.innerHTML = Array.from({ length: of }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
+  });
+}
+
 // ============================================================ 5 · wordmark
+// paper-on-paper: the dither only reaches full ink where the slow sweep or the pointer lights it
+const wordmarkPalette = () => [token('--bg'), token('--bg-2'), token('--faint'), token('--muted')];
+
 function setupWordmark() {
   const canvas = one('#wordmark');
   const glyphs = document.createElement('canvas');
@@ -419,16 +435,20 @@ function setupWordmark() {
     g.fillText('continuity', w / 2, h * 0.78);
   }
 
-  const begin = () => dither(canvas, {
-    scene: 'source', pixel: 4, gain: 1.15,
-    palette: ['#090807', '#3d1306', '#ff6a2b', '#ffe2b0'],
-    source: glyphs, onResize: drawGlyphs,
-  });
+  const begin = () => {
+    const fx = dither(canvas, {
+      scene: 'source', pixel: 3, gain: 0.8,
+      palette: wordmarkPalette(),
+      source: glyphs, onResize: drawGlyphs,
+    });
+    addEventListener('themechange', () => fx.set('palette', wordmarkPalette()));
+  };
   (document.fonts?.ready ?? Promise.resolve()).then(begin);
 }
 
+setupTheme();
 setupChrome();
-setupSunrise();
 setupHeroThread(one('#hero-thread'));
 setupStory();
+setupCells();
 setupWordmark();

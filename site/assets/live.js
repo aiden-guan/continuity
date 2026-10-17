@@ -4,7 +4,7 @@
 //   replay — nothing reachable: steps through the recorded run in assets/snapshot.json
 // Two faces render the same state: the presenter view (default) and the details console (D).
 import { renderBoard, threadSVG, eventLabel, esc } from './board.js';
-import { dither } from './dither.js';
+import { setupTheme } from './theme.js';
 
 const el = (sel) => document.querySelector(sel);
 const pause = (ms) => new Promise((done) => setTimeout(done, ms));
@@ -540,7 +540,7 @@ function justHappened() {
     };
   }
 
-  return { cls: '', html: '<div class="p-k">Just happened</div><div style="--i:0;color:var(--muted)">Nothing yet.</div>' };
+  return { cls: '', html: '<div class="p-k">Just happened</div><div class="quiet" style="--i:0">Nothing yet.</div>' };
 }
 
 function renderPresenter() {
@@ -704,7 +704,7 @@ function handoffCard(run) {
     .map((m) => `<div class="ho-k"><span>email → ${esc(m.to)}</span><span>${d.sent?.length ? `sent ${esc(d.sent.join(', '))}` : ''}</span></div><pre>${esc(m.body)}</pre>`)
     .join('<br>');
   const actionList = actions.map((a) => `<div><b>P${a.priority}</b>${esc(a.action)}</div>`).join('') || `<div>${esc(d.rationale ?? '')}</div>`;
-  const blocked = d.blocked?.length ? '<div class="ho-k" style="color:var(--red);margin-top:10px"><span>blocked by send guard</span></div>' : '';
+  const blocked = d.blocked?.length ? '<div class="ho-k blocked"><span>blocked by send guard</span></div>' : '';
   return `<div class="handoff">
       <div class="ho-card">
         <div class="ho-k"><span>${esc(run.agent_id)} · pid ${esc(d.pid ?? '?')}</span><span>${esc(d.wake_reason ?? '')}</span></div>
@@ -752,37 +752,11 @@ function log(proc, line, cls = '') {
 }
 
 // ============================================================ full-screen moments
-const MOMENT_PALETTES = {
-  kill: ['#090807', '#2a0806', '#7a1a12', '#ff5b4f'],
-  end: ['#090807', '#3d1306', '#ff6a2b', '#ffd9a0'],
-  born: ['#090807', '#0b1422', '#1d3358', '#9cc2ff'],
-};
-let momentFx = null;
 let momentTimer = 0;
-
-// a bright ring on black: the dither turns it into a burst of light
-function paintRing(canvas, w, h) {
-  canvas.width = w;
-  canvas.height = h;
-  const g = canvas.getContext('2d');
-  const grad = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h) * 0.55);
-  grad.addColorStop(0, '#000');
-  grad.addColorStop(0.22, '#0a0a0a');
-  grad.addColorStop(0.42, '#fff');
-  grad.addColorStop(0.6, '#555');
-  grad.addColorStop(1, '#000');
-  g.fillStyle = grad;
-  g.fillRect(0, 0, w, h);
-}
 
 function moment(kind, title, kicker, sub) {
   if (noMotion) return;
   const overlay = el('#flashover');
-  if (!momentFx) {
-    const ring = document.createElement('canvas');
-    momentFx = dither(el('#flash-cv'), { scene: 'source', pixel: 4, gain: 1.2, source: ring, onResize: (w, h) => paintRing(ring, w, h) });
-  }
-  momentFx.set('palette', MOMENT_PALETTES[kind] ?? MOMENT_PALETTES.born);
   overlay.className = `flashover ${kind}`;
   el('#fo-k').textContent = kicker;
   el('#fo-t').innerHTML = kind === 'end' ? title : esc(title);
@@ -797,7 +771,7 @@ function finale() {
   const agentCount = new Set(app.runs.map((r) => r.agent_id)).size;
   const emails = app.timeline?.events?.length ?? 0;
   const threads = app.timeline?.threads?.length ?? 0;
-  moment('end', 'One unbroken <em>thread.</em>',
+  moment('end', 'One unbroken thread.',
     `${agentCount} agents · ${emails} emails · ${threads} threads`,
     `${coldStarts} cold starts with 0 messages in memory · every send checked against state`);
   clearTimeout(momentTimer);
@@ -897,6 +871,7 @@ el('#flashover').addEventListener('click', () => el('#flashover').classList.remo
 document.querySelectorAll('.tabs button').forEach((b) => { b.onclick = () => selectTab(b.dataset.t); });
 // linked evidence bodies expand on click
 el('#v-evidence').addEventListener('click', (e) => e.target.closest('.ev:not(.unlinked) > .ev-s')?.classList.toggle('open'));
+setupTheme();
 addEventListener('keydown', onKey);
 addEventListener('resize', () => renderThread());
 if (new URLSearchParams(location.search).has('details')) document.body.classList.add('details');

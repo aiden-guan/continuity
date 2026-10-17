@@ -58,7 +58,7 @@ function checksCard(ctx, before, compact) {
   const aside = failing ? 'conflict' : list.length ? 'checked against state' : '';
   let body = cells ? `<div class="checks">${cells}</div>` : '<div class="empty">no terms to check yet</div>';
   if (firstConflict && !compact) {
-    body += `<div class="clamp1" style="margin-top:9px;font:12px/1.4 var(--mono);color:#ffb3ab">✕ ${esc(firstConflict.detail)}</div>`;
+    body += `<div class="conflict-line clamp1">✕ ${esc(firstConflict.detail)}</div>`;
   }
   return card('checks', failing ? 'bad' : moved ? 'hot' : '', 'Requirements', aside, body);
 }
@@ -97,7 +97,7 @@ function loopsCard(ctx, before, compact) {
     if (fresh) moved = true;
     const label = o.kind === 'commitment' ? 'owed' : o.kind;
     const closes = o.closes_when && !compact
-      ? `<br><span style="color:var(--muted);font:11px var(--mono)">closes when ${esc(o.closes_when)}</span>`
+      ? `<br><span class="closes">closes when ${esc(o.closes_when)}</span>`
       : '';
     return `<div class="loop ${fresh ? 'row flash' : ''}" style="display:flex"><span class="tag open">${label}</span><span class="clamp"><b>${esc(o.owed_by)}</b> → ${esc(o.what)}${closes}</span></div>`;
   }).join('');
@@ -155,14 +155,10 @@ export function threadSVG(model, { width = 1000, height = 150, labels = true } =
   const head = Math.min(Math.max(model.head ?? 0, 0), slots - 1);
   const out = [];
 
+  // colours come from site.css classes, so the thread follows the theme
   out.push(`<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" class="thread-svg" role="img" aria-label="Conversation thread with agent lifelines">
-  <defs>
-    <linearGradient id="thr-g" x1="0" x2="1"><stop offset="0" stop-color="#5c1e0a"/><stop offset=".55" stop-color="#ff6a2b"/><stop offset="1" stop-color="#ffd9a0"/></linearGradient>
-    <filter id="thr-glow" x="-20%" y="-200%" width="140%" height="500%"><feGaussianBlur stdDeviation="3.2"/></filter>
-  </defs>
-  <line x1="${inset}" y1="${lineY}" x2="${width - inset}" y2="${lineY}" stroke="rgba(255,236,214,.12)" stroke-width="1" stroke-dasharray="2 5"/>
-  <line x1="${inset}" y1="${lineY}" x2="${xAt(head)}" y2="${lineY}" stroke="url(#thr-g)" stroke-width="5" opacity=".5" filter="url(#thr-glow)" class="thr-glow"/>
-  <line x1="${inset}" y1="${lineY}" x2="${xAt(head)}" y2="${lineY}" stroke="url(#thr-g)" stroke-width="1.6" class="thr-line"/>`);
+  <line x1="${inset}" y1="${lineY}" x2="${width - inset}" y2="${lineY}" class="thr-future" stroke-width="1" stroke-dasharray="2 4"/>
+  <line x1="${inset}" y1="${lineY}" x2="${xAt(head)}" y2="${lineY}" class="thr-past" stroke-width="1.5"/>`);
 
   // stretches where no agent was alive but the thread kept moving
   for (const gap of model.gaps ?? []) {
@@ -170,25 +166,27 @@ export function threadSVG(model, { width = 1000, height = 150, labels = true } =
     const b = xAt(gap.to);
     const span = b - a;
     const caption = span > 84
-      ? `<text x="${(a + b) / 2}" y="${lineY - 20}" text-anchor="middle" class="thr-t small muted">${span > 250 ? 'no agent running · state still updating' : 'no agent running'}</text>`
+      ? `<text x="${(a + b) / 2}" y="${laneY + 4}" text-anchor="middle" class="thr-t small sub">${span > 250 ? 'no agent running · state still updating' : 'no agent running'}</text>`
       : '';
-    out.push(`<g class="thr-gap"><line x1="${a}" y1="${laneY}" x2="${b}" y2="${laneY}" stroke="rgba(255,236,214,.18)" stroke-dasharray="1 4"/>
-      ${caption}</g>`);
+    const line = span > 84
+      ? `<line x1="${a + 6}" y1="${laneY}" x2="${(a + b) / 2 - (span > 250 ? 128 : 58)}" y2="${laneY}" class="thr-gapline" stroke-dasharray="1 4"/>
+      <line x1="${(a + b) / 2 + (span > 250 ? 128 : 58)}" y1="${laneY}" x2="${b - 6}" y2="${laneY}" class="thr-gapline" stroke-dasharray="1 4"/>`
+      : `<line x1="${a}" y1="${laneY}" x2="${b}" y2="${laneY}" class="thr-gapline" stroke-dasharray="1 4"/>`;
+    out.push(`<g class="thr-gap">${line}${caption}</g>`);
   }
 
   for (const agent of model.agents ?? []) {
     const a = xAt(agent.from);
     const b = Math.max(xAt(agent.to), a + 8);
-    const colour = agent.state === 'killed' ? '#ff5b4f' : '#9cc2ff';
     const note = agent.note ? ` <tspan class="muted">${esc(agent.note)}</tspan>` : '';
     const cross = agent.state === 'killed'
-      ? `<g transform="translate(${b},${laneY})"><path d="M-5-5L5 5M5-5L-5 5" stroke="#ff5b4f" stroke-width="2"/></g>`
+      ? `<path d="M${b - 5} ${laneY - 5}L${b + 5} ${laneY + 5}M${b + 5} ${laneY - 5}L${b - 5} ${laneY + 5}" class="thr-x" stroke-width="1.75"/>`
       : '';
-    const pulse = agent.state === 'alive' ? `<circle cx="${b}" cy="${laneY}" r="5" fill="${colour}" class="thr-pulse"/>` : '';
+    const pulse = agent.state === 'alive' ? `<circle cx="${b}" cy="${laneY}" r="3.5" class="thr-pulse"/>` : '';
     out.push(`<g class="thr-agent ${agent.state}">
-      <rect x="${a}" y="${lineY - 44}" width="${b - a}" height="8" rx="4" fill="${colour}" opacity="${agent.state === 'alive' ? 0.9 : 0.55}"/>
-      <line x1="${a}" y1="${lineY - 36}" x2="${a}" y2="${lineY - 4}" stroke="${colour}" stroke-width="1" opacity=".55"/>
-      <text x="${a}" y="${lineY - 52}" class="thr-t agent" fill="${colour}">${esc(agent.name)}${note}</text>
+      <rect x="${a}" y="${laneY - 2}" width="${b - a}" height="4" rx="2" class="thr-life"/>
+      <line x1="${a}" y1="${laneY + 2}" x2="${a}" y2="${lineY - 5}" class="thr-stem" stroke-width="1"/>
+      <text x="${a}" y="${laneY - 12}" class="thr-t thr-name">${esc(agent.name)}${note}</text>
       ${cross}
       ${pulse}
     </g>`);
@@ -200,16 +198,15 @@ export function threadSVG(model, { width = 1000, height = 150, labels = true } =
     const x = xAt(i);
     const lit = i <= head;
     const outbound = node.dir === 'outbound';
-    const fill = !lit ? 'rgba(255,236,214,.18)' : outbound ? '#9cc2ff' : '#ff6a2b';
     const labelY = lineY + 39 + (crowded && i % 2 ? 14 : 0);
-    const ring = node.hot ? `<circle cx="${x}" cy="${lineY}" r="13" fill="none" stroke="#ff6a2b" class="thr-ring"/>` : '';
+    const ring = node.hot ? `<circle cx="${x}" cy="${lineY}" r="13" class="thr-ring"/>` : '';
     const text = labels
       ? `<text x="${x}" y="${lineY + 24}" text-anchor="middle" class="thr-t ${lit ? '' : 'muted'}">${esc(node.id)}</text>
       <text x="${x}" y="${labelY}" text-anchor="middle" class="thr-t small ${lit ? 'sub' : 'muted'}">${esc(node.label)}</text>`
       : '';
-    out.push(`<g class="thr-node ${lit ? 'lit' : ''} ${node.hot ? 'hot' : ''}">
+    out.push(`<g class="thr-node ${lit ? 'lit' : ''} ${outbound ? 'out' : ''} ${node.hot ? 'hot' : ''}">
       ${ring}
-      <rect x="${x - 4}" y="${lineY - 4}" width="8" height="8" fill="${fill}" ${outbound ? '' : `transform="rotate(45 ${x} ${lineY})"`}/>
+      <rect x="${x - 4}" y="${lineY - 4}" width="8" height="8" class="thr-dot" ${outbound ? '' : `transform="rotate(45 ${x} ${lineY})"`}/>
       ${text}
     </g>`);
   });
