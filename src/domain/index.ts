@@ -4,5 +4,6 @@ import './vendor-onboarding.ts';
 import './freight.ts';
 import './hotel.ts';
 import './finance.ts';
+import './legal.ts';
 
 export { domainFor, registeredDomains } from './pack.ts';

@@ -35,7 +35,7 @@ const BOILERPLATE = /(let (me|us) know if you have any (other |further )?questio
 const INJECTION = /(\b(?:attention|note to|dear|hey|to|instructions? for)?\s*(?:ai|automated|llm)[ -](?:booking |processing |ap )?(?:agents?|assistants?|systems?|models?)\b(?: processing [^:]{0,40})?(?:\s*\([^)]{0,30}\))?\s*[:,]|<<\s*system\s*>>|\[\s*system\s*\]|ignore (?:the |all |any )?[\w ]{0,24}?(?:above|previous|prior)\b|instructions override|override (?:all |any )?(?:previous|prior) (?:ones|instructions)|ignore (all |any )?(previous|prior|above) (instructions|messages)|disregard (the |all )?(previous|prior|above) (instructions|messages|rules)|you are (now )?an? (ai|assistant|agent)|system prompt|as an ai (agent|model)|new instructions:|override (your|the) (rules|instructions)|reveal (your|the) (api key|instructions|prompt))/i;
 const COMMITMENT = /\b(?:i'll|i will|we'll|we will|i'm going to|we're going to|i shall|we shall)\s+(?!(?:also |still |just )?(?:need|have to|be able|try)\b)(.+?)[.!]?$/i;
 const REQUEST = /\b(please(?! (?:note|be advised|find|see (?:attached|below)))|kindly|could you|can you|would you|let (?:me|us) know|confirm)\b/i;
-const PASSIVE_PROMISE = /\b((?:the|a|an|our|my|your)\s+(?:[\w-]+\s+){0,3}?[\w-]+)\s+(?:will|should|is going to|are going to)\s+(?:go out|be (?:sent|out|over|issued|attached|ready|with you|in your inbox)|follow|come (?:over|through)|arrive)\b[^.!?]*/i;
+const PASSIVE_PROMISE = /\b((?:the|a|an|our|my|your|all(?:\s+\d+|\s+the)?)\s+(?:[\w-]+\s+){0,3}?[\w-]+)\s+(?:will|should|is going to|are going to)\s+(?:go out|be (?:sent|out|over|issued|attached|ready|with you|in your inbox)|follow|come (?:over|through)|arrive)\b[^.!?]*/i;
 const LIST_ITEM = /^\s*(?:\d+[.)]|[-*•])\s+/;
 
 /** "Can you confirm: 1. final unit price? 2. whether all 500 can arrive Friday?" becomes one question per item. */
@@ -66,6 +66,7 @@ function extractFromText(text: string, input: ExtractInput, fromAttachment: stri
   const ref = event.occurred_at;
   const from = (event.from ?? '').toLowerCase();
   const senderAuthority = input.task.participants.find((x) => x.address.toLowerCase() === from)?.authority ?? [];
+  const known = input.activeClaims.map((c) => ({ key: c.key, evidence: c.evidence }));
   const body = fromAttachment ? text : stripQuoted(text);
   const correction = !fromAttachment && CORRECTION.test(body);
   const state = pack.heuristic?.begin();
@@ -108,7 +109,7 @@ function extractFromText(text: string, input: ExtractInput, fromAttachment: stri
     const isQuestion = s.endsWith('?');
     const hedged = HEDGE.test(s);
     current = s;
-    pack.heuristic?.sentence({ text: s, isQuestion, hedged, senderRole, senderAuthority, fromAttachment, ref, claim, fulfillment, obligation }, state);
+    pack.heuristic?.sentence({ text: s, isQuestion, hedged, senderRole, senderAuthority, known, fromAttachment, ref, claim, fulfillment, obligation }, state);
 
     if (fromAttachment) continue; // obligations come from message bodies, not documents
     if (BOILERPLATE.test(s)) continue;
@@ -144,7 +145,7 @@ function extractFromText(text: string, input: ExtractInput, fromAttachment: stri
 }
 
 const DOCUMENT_WORD = /\b(quote|quotation|invoice|contract|spec(?:ification)?|document|po|purchase order|certificate of insurance|coi|w-9|w9|tax form)\b/i;
-const SENDING_WORD = /\b(send|share|attach|forward|provide|get you|email|issue|upload|return|resend|re-send)\b/i;
+const SENDING_WORD = /\b(send|share|attach|forward|provide|get you|email|issue|upload|return|resend|re-send|circulate|turn around)\b/i;
 
 /** The kind of document a promise or request is about, when it is about sending one. */
 export function expectsArtifact(text: string, pack?: DomainPack): string | null {
@@ -178,7 +179,7 @@ export function classifyArtifact(filename: string, text: string, pack?: DomainPa
 }
 
 export const heuristicExtractor: Extractor = {
-  name: 'heuristic-v1',
+  name: 'heuristic-v2',
   async extract(input: ExtractInput): Promise<Proposal> {
     const pack = domainFor(input.task);
     const p = emptyProposal();

@@ -47,6 +47,8 @@ export interface HeuristicSentence {
   senderRole: 'self' | 'counterparty' | 'internal' | 'unknown';
   /** Term-key prefixes the sender may set (empty for unknown senders). */
   senderAuthority: string[];
+  /** Live claims on record, with their evidence (to resolve references like "§12.1" to the clause they name). */
+  known: { key: string; evidence: string }[];
   fromAttachment: string | null;
   /** The message date; relative dates resolve against it. */
   ref: string;
