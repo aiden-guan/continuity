@@ -14,7 +14,7 @@ export interface GuardResult { allowed: boolean; reasons: string[] }
 /** A binding phrase preceded (within ~40 chars) by one of these is negated or conditional. */
 const NEGATION = /\b(not|cannot|can't|can not|won't|will not|unable to|don't|do not|couldn't|could not|before we|until we|if we|once we|ready to|so (?:that )?we can|in order to|able to|asking|asked|requests?|requesting|telling|told|wants? us to)\b[^.!?]{0,40}$/i;
 
-const SECRET = /\b(prim_[A-Za-z0-9_]{8,}|sk-ant-[A-Za-z0-9_-]{8,}|api[_ -]?key\s*[:=])/i;
+const SECRET = /\b(prim_[A-Za-z0-9_]{8,}|sk-ant-[A-Za-z0-9_-]{8,}|ctk_[A-Za-z0-9_-]{16,}|api[_ -]?key\s*[:=])/i;
 
 /** Make sure a pattern can be used with matchAll (which requires the global flag). */
 function globalCopy(rx: RegExp): RegExp {

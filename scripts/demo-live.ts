@@ -19,6 +19,8 @@ import { parseArgs } from 'node:util';
 import { createPrimitiveClient, type ReplyInput } from '@primitivedotdev/sdk';
 import { getEmail } from '@primitivedotdev/sdk/api';
 import { counterparty, defaultAddresses, procurementTask, quoteV1, quoteV2 } from '../src/sim/scenario.ts';
+import { openBackend } from '../src/store/index.ts';
+import { mintToken } from '../src/auth.ts';
 
 const { values: flags } = parseArgs({
   options: {
@@ -108,11 +110,26 @@ function exitOf(child: ChildProcess) {
   });
 }
 const startAgent = (name: string, mode: '--watch' | '--once', color: string) =>
-  start('src/agent/run.ts', ['--task', task.alias, '--agent', name, mode, '--mode', agentMode, '--api', API], `[${name}]`, color);
+  start('src/agent/run.ts', ['--task', task.alias, '--agent', name, mode, '--mode', agentMode, '--api', API], `[${name}]`, color, { CONTINUITY_TOKEN: tokens[name] ?? '' });
+
+// live mode refuses an unauthenticated API: this script, the receiver and each agent get their own token
+const tokens: Record<string, string> = {};
+async function mintDemoTokens() {
+  const org = process.env.CONTINUITY_ORG || 'org_local';
+  const backend = await openBackend({ mode: 'sqlite', path: DB, explicit: 'demo:live' });
+  tokens.operator = (await mintToken(backend, { org, kind: 'operator', label: 'demo:live script' })).token;
+  tokens.ingest = (await mintToken(backend, { org, kind: 'ingest', label: 'demo:live receiver' })).token;
+  for (const name of ['agent-a', 'agent-b', 'agent-c']) {
+    tokens[name] = (await mintToken(backend, { org, kind: 'agent', agent_id: name, task_ids: [task.id], label: `demo:live ${name}` })).token;
+  }
+  await backend.close();
+}
 
 // ---- Continuity API helpers ------------------------------------------------------------
 async function api<J>(method: string, path: string, body?: unknown): Promise<J> {
-  const res = await fetch(`${API}${path}`, { method, headers: { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+  const headers: Record<string, string> = { 'content-type': 'application/json' };
+  if (tokens.operator) headers.authorization = `Bearer ${tokens.operator}`;
+  const res = await fetch(`${API}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
   const payload = await res.json();
   if (!res.ok) throw new Error(`${method} ${path} → ${res.status} ${JSON.stringify(payload)}`);
   return payload as J;
@@ -183,16 +200,17 @@ async function main() {
     if ((e as Error).message.startsWith('port')) throw e;
   }
   for (const f of [DB, `${DB}-wal`, `${DB}-shm`]) rmSync(f, { force: true });
+  await mintDemoTokens();
 
   await beat('Continuity — LIVE cold-handoff demo');
   say(`agent inbox: ${C.bold}${addr.self}${C.reset}   supplier: ${addr.supplier}   finance: ${addr.finance}`);
   if (domains.size > 1) say(`${C.yellow}note:${C.reset} the three addresses are on different domains; the counterparties must be inboxes this Primitive account can read and send from.`);
   say(`agents + extraction: ${agentMode === 'llm' ? 'Claude' : 'offline rule-based (--fast or no ANTHROPIC_API_KEY)'}`);
-  start('src/server.ts', [], '[continuity]', C.dim, { CONTINUITY_DB: DB, PORT, ...(flags.fast ? { CONTINUITY_EXTRACTOR: 'heuristic' } : {}) }, true);
+  start('src/server.ts', [], '[continuity]', C.dim, { CONTINUITY_STORE: 'sqlite', CONTINUITY_DB: DB, CONTINUITY_AUTH: 'required', PORT, ...(flags.fast ? { CONTINUITY_EXTRACTOR: 'heuristic' } : {}) }, true);
   const health = await waitUntil('server', () => api<{ transport: string; extractor: string }>('GET', '/api/health'), 30_000);
   if (health.transport !== 'primitive') throw new Error(`server is not in live mode (transport=${health.transport})`);
   say(`Continuity up: transport=${health.transport} extractor=${health.extractor} — UI: ${API}/`);
-  start('scripts/primitive-receive.ts', [], '[receive]', C.dim, { CONTINUITY_URL: API, RECEIVE_SINCE: RUN_STARTED }, true);
+  start('scripts/primitive-receive.ts', [], '[receive]', C.dim, { CONTINUITY_URL: API, RECEIVE_SINCE: RUN_STARTED, CONTINUITY_TOKEN: tokens.ingest }, true);
   await api('POST', '/tasks', task);
   say(`task ${task.alias}: ${task.goal}`);
 

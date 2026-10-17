@@ -84,7 +84,7 @@ async function apiGet(path: string) {
 }
 
 async function apiPost(path: string, body: unknown) {
-  const res = await fetch(`${API}${path}`, { method: 'POST', headers: authHeaders(), body: JSON.stringify(body) });
+  const res = await fetch(`${API}${path}`, { method: 'POST', headers: { ...authHeaders(), 'content-type': 'application/json' }, body: JSON.stringify(body) });
   const text = await res.text();
   if (!res.ok) throw new Error(text);
   return text;
