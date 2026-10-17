@@ -165,6 +165,10 @@ differently. Importing the same file twice changes nothing the second time. Coll
 | `CONTINUITY_EXTRACTOR_MODEL` / `CONTINUITY_AGENT_MODEL` | `claude-opus-5-5` | Model ids. |
 | `CONTINUITY_SELF_ADDRESS` | `procurement@acme-buyer.primitive.email` | The agent's own Primitive address. |
 | `CONTINUITY_SUPPLIER_ADDRESS`, `CONTINUITY_FINANCE_ADDRESS` | made-up `.example` addresses | The scenario's counterparties. |
+| `CONTINUITY_SENDER_AUTH` | `enforce` | `enforce`: a sender's statements carry authority only if Primitive's SPF/DKIM/DMARC results authenticate the From address (SDK `isTrustedSender`); otherwise they stay tentative, cannot close obligations or replace documents, and are flagged. `flag`: apply anyway, flag only (`demo:live` uses this until verified on real mail). |
+| `CONTINUITY_DKIM_WITHOUT_DMARC` | `1` | A domain with no DMARC record still authenticates through a passing DKIM signature by exactly the From domain; `0` turns that off. |
+| `CONTINUITY_AUTH_TEMPERROR_RETRIES` | `3` | Webhook deliveries answered 503 (redeliver) while DMARC reports a temporary DNS error; after that the email is stored with an `unknown` sender and flagged. |
+| `CONTINUITY_AUTH_RETRY_DELAY_MS` | `5000` | Pause between re-fetches on the pull receiver, which has no redelivery. |
 | `SUPABASE_DB_URL` | unset | Supabase Postgres connection string; selects hosted (authoritative) mode. |
 | `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | unset | Private Storage bucket for attachment bytes (without it, bytes stay inline in Postgres). Server-side only. |
 | `CONTINUITY_STORE` | inferred | `postgres` \| `sqlite` \| `memory`. With nothing configured the server fails to start. |

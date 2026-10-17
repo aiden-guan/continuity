@@ -188,7 +188,9 @@ async function main() {
   say(`agent inbox: ${C.bold}${addr.self}${C.reset}   supplier: ${addr.supplier}   finance: ${addr.finance}`);
   if (domains.size > 1) say(`${C.yellow}note:${C.reset} the three addresses are on different domains; the counterparties must be inboxes this Primitive account can read and send from.`);
   say(`agents + extraction: ${agentMode === 'llm' ? 'Claude' : 'offline rule-based (--fast or no ANTHROPIC_API_KEY)'}`);
-  start('src/server.ts', [], '[continuity]', C.dim, { CONTINUITY_DB: DB, PORT, ...(flags.fast ? { CONTINUITY_EXTRACTOR: 'heuristic' } : {}) }, true);
+  // sender authentication is flagged, not enforced, until verified on real mail between these inboxes
+  const senderAuth = process.env.CONTINUITY_SENDER_AUTH || 'flag';
+  start('src/server.ts', [], '[continuity]', C.dim, { CONTINUITY_DB: DB, PORT, CONTINUITY_SENDER_AUTH: senderAuth, ...(flags.fast ? { CONTINUITY_EXTRACTOR: 'heuristic' } : {}) }, true);
   const health = await waitUntil('server', () => api<{ transport: string; extractor: string }>('GET', '/api/health'), 30_000);
   if (health.transport !== 'primitive') throw new Error(`server is not in live mode (transport=${health.transport})`);
   say(`Continuity up: transport=${health.transport} extractor=${health.extractor} — UI: ${API}/`);

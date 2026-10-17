@@ -84,6 +84,7 @@ const ADDED_COLUMNS = [
   'ALTER TABLE extractions ADD COLUMN version INTEGER',
   'ALTER TABLE tasks ADD COLUMN state_version INTEGER',
   'ALTER TABLE agent_runs ADD COLUMN ext_json TEXT',
+  'ALTER TABLE events ADD COLUMN time_flags_json TEXT',
 ];
 
 /** Obligation fields kept together in ext_json. */
@@ -248,12 +249,13 @@ export class SqliteBackend implements Backend {
       const e = stripAttachmentBytes(input);
       this.#q(`INSERT INTO events(id, seq, dedupe_key, task_id, link_reason, source, direction, primitive_event_id, primitive_email_id,
         reply_to_sent_email_id, thread_id, message_id, in_reply_to, references_json, from_addr, from_name, to_json, cc_json, subject,
-        body_text, occurred_at, received_at, auth_verdict, attachments_json, raw_json, processing_status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+        body_text, occurred_at, received_at, auth_verdict, attachments_json, raw_json, processing_status, time_flags_json)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
         eventId, seq, e.dedupe_key, target?.task_id ?? null, target?.reason ?? null, e.source, e.direction, e.primitive_event_id ?? null,
         e.primitive_email_id ?? null, e.reply_to_sent_email_id ?? null, e.thread_id, e.message_id, e.in_reply_to, toJson(e.references),
         e.from, e.from_name ?? null, toJson(e.to), toJson(e.cc), e.subject, e.body_text, e.occurred_at, e.received_at,
         e.auth_verdict ?? null, toJson(e.attachments), input.raw === undefined ? null : toJson(input.raw), target ? 'received' : 'unlinked',
+        e.time_flags?.length ? toJson(e.time_flags) : null,
       );
       if (target && e.thread_id) this.#mapThread(e.thread_id, target.task_id, `${eventId}: ${target.reason}`);
       for (const b of blobs) this.#putBlob({ ...b, event_id: eventId });
@@ -638,6 +640,7 @@ export function rowToEvent(r: Row): StoredEvent {
     from: String(r.from_addr), from_name: str(r.from_name), to: fromJson(r.to_json, []), cc: fromJson(r.cc_json, []),
     subject: String(r.subject), body_text: String(r.body_text), occurred_at: String(r.occurred_at), received_at: String(r.received_at),
     auth_verdict: str(r.auth_verdict), attachments: fromJson(r.attachments_json, []),
+    ...(r.time_flags_json ? { time_flags: fromJson(r.time_flags_json, []) } : {}),
   };
 }
 

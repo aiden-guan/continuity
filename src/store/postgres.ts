@@ -34,7 +34,7 @@ const day = (v: unknown): string | null => {
 const numOrNull = (v: unknown): number | null => (v == null ? null : Number(v));
 const httpError = (message: string, status: number) => Object.assign(new Error(message), { status });
 
-const SCHEMA_VERSION = '20261017200000_continuity_core';
+const SCHEMA_VERSION = '20261017210000_event_time_flags';
 const EPOCH = new Date(0).toISOString();
 const ITEM_TABLES: Record<string, string> = { ev: 'events', cl: 'claims', ob: 'obligations', ar: 'artifacts' };
 
@@ -154,7 +154,7 @@ export class PostgresBackend implements Backend {
           references: tx.json(e.references as never), from_addr: e.from, from_name: e.from_name ?? null, to_addrs: tx.json(e.to as never),
           cc_addrs: tx.json(e.cc as never), subject: e.subject, body_text: e.body_text, occurred_at: e.occurred_at, received_at: e.received_at,
           auth_verdict: e.auth_verdict ?? null, attachments: tx.json(e.attachments as never), raw: input.raw === undefined ? null : tx.json(input.raw as never),
-          processing_status: target ? 'received' : 'unlinked',
+          time_flags: tx.json((e.time_flags ?? []) as never), processing_status: target ? 'received' : 'unlinked',
         })} on conflict (org_id, dedupe_key) do nothing returning id`;
         if (!inserted.length) throw new LostRace();
         if (target && e.thread_id) await this.#mapThread(tx, org, e.thread_id, target.task_id, `${eventId}: ${target.reason}`);
@@ -623,7 +623,7 @@ export class PostgresBackend implements Backend {
           thread_id: e.thread_id, message_id: e.message_id, in_reply_to: e.in_reply_to, references: tx.json(e.references as never), from_addr: e.from,
           from_name: e.from_name ?? null, to_addrs: tx.json(e.to as never), cc_addrs: tx.json(e.cc as never), subject: e.subject, body_text: e.body_text,
           occurred_at: e.occurred_at, received_at: e.received_at, auth_verdict: e.auth_verdict ?? null, attachments: tx.json(e.attachments as never),
-          raw: raw != null ? tx.json(raw as never) : null,
+          raw: raw != null ? tx.json(raw as never) : null, time_flags: tx.json((e.time_flags ?? []) as never),
           processing_status: s.failed.has(e.id) ? 'failed' : s.isInterpreted(e.id) ? 'interpreted' : 'received',
         })}`;
       }
@@ -696,6 +696,7 @@ function rowToEvent(r: Row): StoredEvent {
     in_reply_to: r.in_reply_to ?? null, references: r.references ?? [], from: r.from_addr, from_name: r.from_name ?? null,
     to: r.to_addrs ?? [], cc: r.cc_addrs ?? [], subject: r.subject, body_text: r.body_text, occurred_at: ts(r.occurred_at),
     received_at: ts(r.received_at), auth_verdict: r.auth_verdict ?? null, attachments: r.attachments ?? [],
+    ...(r.time_flags?.length ? { time_flags: r.time_flags } : {}),
   };
 }
 

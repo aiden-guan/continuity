@@ -20,6 +20,7 @@ import { attachmentText } from '../ingest/attachments.ts';
 import { resolveTask } from '../ingest/link.ts';
 import { applyProposal, isOpen, labelOf, partyOf, refreshDerived } from './resolver.ts';
 import { nowIso } from '../clock.ts';
+import { parseSenderAuth, senderAuthMode } from '../ingest/sender-auth.ts';
 
 export type AttachmentFetcher = (event: StoredEvent, partIndex: number) => Promise<Buffer | null>;
 
@@ -385,9 +386,11 @@ export function applyInterpretation(s: MemoryStore, task: TaskSpec, event: Store
     summary: `${route}: "${event.subject}"${attachmentNote}`,
     detail: { link_reason: event.link_reason, thread_id: event.thread_id, direction: event.direction },
   });
-  if (!partyOf(task, event.from)) {
+  const party = partyOf(task, event.from);
+  if (!party) {
     s.addFlag(task.id, event.id, 'unknown_sender', `${event.from} is not a task participant; their statements are recorded as tentative`, event.received_at);
   }
+  flagEvidence(s, task, event, party?.role ?? null);
 
   const artifacts: Artifact[] = texts.map((t) => {
     const classified = proposal.artifacts.find((a) => a.filename === t.filename) ?? { ...classifyArtifact(t.filename, t.text) };
@@ -399,6 +402,25 @@ export function applyInterpretation(s: MemoryStore, task: TaskSpec, event: Store
     });
   });
   applyProposal({ store: s, task, event, proposal, extractor: extractorName, artifacts });
+}
+
+/** Flags about the evidence itself: repaired times (found at receipt) and an unproven sender identity. */
+function flagEvidence(s: MemoryStore, task: TaskSpec, event: StoredEvent, role: string | null) {
+  const flag = (kind: string, detail: string) => {
+    if (s.flagsForTask(task.id).some((f) => f.event_id === event.id && f.kind === kind)) return;
+    s.addFlag(task.id, event.id, kind, detail, event.received_at);
+  };
+  for (const f of event.time_flags ?? []) flag(f.kind, f.detail);
+  if (event.direction !== 'inbound') return;
+  const auth = parseSenderAuth(event.auth_verdict);
+  if (role && auth && auth.status !== 'pass') {
+    const effect = senderAuthMode() === 'enforce'
+      ? 'its statements are recorded as tentative and it cannot close obligations or replace documents'
+      : 'CONTINUITY_SENDER_AUTH=flag: applied anyway';
+    const how = `${auth.reason}${auth.dmarc ? `, dmarc=${auth.dmarc}` : ''}${auth.dmarc_policy ? ` p=${auth.dmarc_policy}` : ''}`;
+    flag('sender_unauthenticated', `${event.from} is not authenticated (${how}) — ${effect}. Verify with ${labelOf(task, event.from)} through a channel you trust before relying on it`);
+  }
+  if (role === 'self') flag('sender_impersonates_us', `inbound mail claims to be from our own address ${event.from}; ignored as a source of decisions`);
 }
 
 /** One deadline job per (obligation, due date), scheduled once the obligation is actually due (conditions met). */

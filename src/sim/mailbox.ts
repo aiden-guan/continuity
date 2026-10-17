@@ -6,6 +6,22 @@ import { createHash, randomBytes } from 'node:crypto';
 import { signWebhookPayload } from '@primitivedotdev/sdk';
 import type { SimEmail } from './scenario.ts';
 
+/**
+ * EmailAuth as Primitive reports it: 'pass' (DKIM-aligned DMARC pass), 'spoofed' (DMARC fail, p=reject),
+ * 'no_dmarc' (no DMARC record), 'dkim_only' (no DMARC record, DKIM by the From domain), 'dns_temperror'
+ * (DMARC lookup failed temporarily).
+ */
+export function simAuth(e: Pick<SimEmail, 'from' | 'auth'>) {
+  const d = e.from.split('@')[1];
+  const dkim = [{ domain: d, selector: 'sim', result: 'pass', aligned: true, keyBits: 2048, algo: 'rsa-sha256' }];
+  const unaligned = { dmarcFromDomain: d, dmarcSpfAligned: false, dmarcDkimAligned: false, dmarcSpfStrict: null, dmarcDkimStrict: null };
+  if (e.auth === 'spoofed') return { spf: 'fail', dmarc: 'fail', dmarcPolicy: 'reject', ...unaligned, dmarcSpfStrict: false, dmarcDkimStrict: false, dkimSignatures: [] };
+  if (e.auth === 'dns_temperror') return { spf: 'temperror', dmarc: 'temperror', dmarcPolicy: null, ...unaligned, dkimSignatures: [] };
+  if (e.auth === 'no_dmarc') return { spf: 'pass', dmarc: 'none', dmarcPolicy: null, ...unaligned, dkimSignatures: [] };
+  if (e.auth === 'dkim_only') return { spf: 'pass', dmarc: 'none', dmarcPolicy: null, ...unaligned, dkimSignatures: dkim };
+  return { spf: 'pass', dmarc: 'pass', dmarcPolicy: 'reject', dmarcFromDomain: d, dmarcSpfAligned: true, dmarcDkimAligned: true, dmarcSpfStrict: false, dmarcDkimStrict: false, dkimSignatures: dkim };
+}
+
 export interface SentRecord { messageId: string; threadId: string; subject: string; references: string[]; at: string; to: string; body: string }
 
 /** Quote a parent message the way a mail client does ("On <date>, <who> wrote:" + "> " lines). */
@@ -60,7 +76,7 @@ export class SimMailbox {
 
     const parent = e.inReplyTo ? this.bodies.get(e.inReplyTo) : undefined;
     const body = parent ? withQuotedParent(e.body, parent) : e.body;
-    const fromHeader = `${e.fromName} <${e.from}>`;
+    const fromHeader = e.fromHeader ?? `${e.fromName} <${e.from}>`;
     this.bodies.set(messageId, { from: fromHeader, at: e.at, body });
 
     const senderDomain = e.from.split('@')[1];
@@ -80,12 +96,12 @@ export class SimMailbox {
       id: webhookId,
       event: 'email.received',
       version: '2025-12-14',
-      delivery: { endpoint_id: 'ep_local_sim', attempt: 1, attempted_at: new Date().toISOString() },
+      delivery: { endpoint_id: 'ep_local_sim', attempt: e.deliveryAttempt ?? 1, attempted_at: new Date().toISOString() },
       email: {
         id: emailId,
-        received_at: e.at,
+        received_at: e.receivedAt ?? e.at,
         smtp: { helo: senderDomain, mail_from: e.from, rcpt_to: [e.to] },
-        headers: { message_id: messageId, subject: e.subject, from: fromHeader, to: e.to, date: new Date(e.at).toUTCString() },
+        headers: { message_id: messageId, subject: e.subject, from: fromHeader, to: e.to, date: e.dateHeader ?? new Date(e.at).toUTCString() },
         content: {
           raw: { included: false, reason_code: 'size_exceeded', max_inline_bytes: 262144, size_bytes: 0, sha256: '0'.repeat(64) },
           download: { url: 'https://localhost.invalid/raw', expires_at: e.at },
@@ -104,11 +120,8 @@ export class SimMailbox {
           attachments,
           attachments_download_url: null,
         },
-        analysis: { sender: { authenticated: true, basis: 'dmarc_aligned', reasons: ['simulated'] } },
-        auth: {
-          spf: 'pass', dmarc: 'pass', dmarcPolicy: 'none', dmarcFromDomain: senderDomain,
-          dmarcSpfAligned: true, dmarcDkimAligned: true, dmarcSpfStrict: false, dmarcDkimStrict: false, dkimSignatures: [],
-        },
+        analysis: {},
+        auth: simAuth(e),
         thread_id: threadId,
       },
     };

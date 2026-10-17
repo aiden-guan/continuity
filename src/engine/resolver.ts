@@ -8,7 +8,10 @@
 //    (provided the new evidence is actually newer).
 //  - When two different parties disagree on a term, both claims become "contested"; neither wins.
 //  - Hedged, low-confidence, or non-authoritative claims are kept as "proposed" and change nothing.
-//  - Evidence older than the current claim is recorded but never overwrites it.
+//  - A forwarded copy of older evidence is recorded but never overwrites the current claim; any other
+//    message wins by arrival order (its Date header is the sender's claim), with a date_skew flag.
+//  - Authority needs an authenticated sender: an unproven sender's claims stay tentative, and it
+//    cannot close obligations or replace documents. Inbound mail "from us" carries no authority.
 //  - Withdrawing an offer keeps its history but retracts its terms (so checks fail).
 //  - A compound question becomes one obligation per issue; each closes only when its debtor
 //    actually answers that issue's term.
@@ -24,8 +27,14 @@ import type { Proposal } from '../extract/types.ts';
 import { domainFor, sameValue, termKeys, termOf, type DomainPack } from '../domain/pack.ts';
 import '../domain/index.ts';
 import { findDates } from '../extract/dates.ts';
+import { parseSenderAuth, senderAuthMode } from '../ingest/sender-auth.ts';
 
 export const MIN_CONFIDENCE = 0.6;
+
+// Only a forward can legitimately carry older evidence that arrives after newer evidence.
+const FWD_SUBJECT = /^\s*(?:fwd?|fw)\s*:/i;
+const FWD_BODY = /^-{3,}\s*(?:forwarded message|original message)\s*-{3,}|^begin forwarded message:/im;
+export const isForward = (e: Pick<StoredEvent, 'subject' | 'body_text'>) => FWD_SUBJECT.test(e.subject) || FWD_BODY.test(e.body_text);
 
 /** Deadline phrases ("by tomorrow", "before Oct 22") yield a date; a bare date mention is not a deadline. */
 export function dueFromText(text: string, refIso: string): string | null {
@@ -125,6 +134,13 @@ export function applyProposal(inp: ApplyInput) {
   const who = labelOf(task, speaker);
   const whoParty = partyOf(task, speaker);
   const nameOf = (address: string) => labelOf(task, address);
+  // Authority needs proof of identity. Outbound events are our own sends, recorded by Continuity itself.
+  // Inbound mail must be authenticated, and inbound mail "from us" is never authoritative: our real
+  // sends are recorded as outbound, so an inbound copy is someone using our name (or a stray loop).
+  const auth = event.direction === 'outbound' ? null : parseSenderAuth(event.auth_verdict);
+  const verified = event.direction === 'outbound'
+    || (whoParty?.role !== 'self' && (auth?.status === 'pass' || senderAuthMode() === 'flag'));
+  const unverifiedWhy = whoParty?.role === 'self' ? 'inbound mail claiming to be from us' : `sender not authenticated (${auth?.reason ?? 'no auth data'})`;
 
   // ---- 0. instruction-like content is quarantined as data
   for (const flag of proposal.injection_flags) {
@@ -135,6 +151,7 @@ export function applyProposal(inp: ApplyInput) {
   // ---- 1. artifacts: a newer doc of the same kind from the same owner replaces the older one
   for (const incoming of inp.artifacts) {
     log('artifact_added', `${who} sent ${incoming.filename} (${incoming.kind}${incoming.version_label ? ` ${incoming.version_label}` : ''})`, incoming.id);
+    if (!verified) continue; // an unproven sender cannot retire the current document
     for (const earlier of store.artifactsForTask(task.id)) {
       if (earlier.id === incoming.id) continue;
       if (earlier.kind !== incoming.kind || earlier.owner !== incoming.owner) continue;
@@ -154,6 +171,7 @@ export function applyProposal(inp: ApplyInput) {
   const claimsInOrder = [...proposal.claims].sort((a, b) => Number(!!a.from_attachment) - Number(!!b.from_attachment));
   const lifecycleKeys = new Set(pack.terms.filter((t) => t.lifecycle).map((t) => t.key));
   let speakerMadeOffer = false;
+  let skewFlagged = false;
 
   for (const pc of claimsInOrder) {
     if (!vocabulary.has(pc.key)) continue;
@@ -186,7 +204,7 @@ export function applyProposal(inp: ApplyInput) {
     const isLifecycle = lifecycleKeys.has(pc.key);
 
     let authoritative = false;
-    if (whoParty) {
+    if (whoParty && verified) {
       if (whoParty.role === 'self') authoritative = pc.kind === 'decision';
       else if (isLifecycle) authoritative = whoParty.role === 'counterparty'; // any counterparty may withdraw its own offer
       else authoritative = whoParty.authority.some((prefix) => pc.key.startsWith(prefix));
@@ -195,7 +213,8 @@ export function applyProposal(inp: ApplyInput) {
     // 2a. tentative: hedged, low confidence, or not this speaker's term to set
     if (pc.hedged || pc.confidence < MIN_CONFIDENCE || !authoritative) {
       let reason: string;
-      if (!authoritative) reason = `${who} is not authoritative for ${pc.key}`;
+      if (!verified) reason = unverifiedWhy;
+      else if (!authoritative) reason = `${who} is not authoritative for ${pc.key}`;
       else if (pc.hedged) reason = 'hedged language';
       else reason = `low confidence (${pc.confidence})`;
       const tentative = store.insertClaim({ ...base, status: 'proposed', supersede_reason: reason });
@@ -257,11 +276,16 @@ export function applyProposal(inp: ApplyInput) {
     if (own.length) {
       const latest = own[own.length - 1];
       const latestEvent = store.getEvent(latest.source_event_id)!;
-      if (event.occurred_at < latestEvent.occurred_at) {
+      if (event.occurred_at < latestEvent.occurred_at && isForward(event)) {
         const late = store.insertClaim({ ...base, status: 'superseded', superseded_by: latest.id, supersede_reason: `older than current claim ${latest.id} (evidence arrived late)` });
         attachEvidence(late.id);
         log('stale_evidence', `Older ${pc.key} from ${who} (${display}) arrived late; current value ${latest.display} kept`, late.id);
         continue;
+      }
+      // the Date header is sender-controlled and clocks drift: a non-forward that arrived later wins by arrival order
+      if (event.occurred_at < latestEvent.occurred_at && !skewFlagged) {
+        skewFlagged = true;
+        store.addFlag(task.id, event.id, 'date_skew', `${who}'s Date header (${event.occurred_at}) precedes ${latestEvent.id} (${latestEvent.occurred_at}), but it arrived later and is not a forward; applied in arrival order`, at);
       }
       const revised = store.insertClaim({ ...base, status: 'active' });
       attachEvidence(revised.id);
@@ -392,8 +416,11 @@ export function applyProposal(inp: ApplyInput) {
   };
   const doneStatus = (o: Obligation): Obligation['status'] => (o.kind === 'commitment' ? 'fulfilled' : 'answered');
 
+  // an unproven sender can open obligations (we see what they ask) but cannot close or trigger anyone's
+  const closable = () => (verified ? openNow() : []);
+
   // 4a. conditions: "pay on invoice" becomes due once the creditor's invoice arrives
-  for (const o of openNow()) {
+  for (const o of closable()) {
     if (!o.condition || o.condition_met_at || o.condition.kind !== 'artifact') continue;
     const wantedKind = o.condition.artifact_kind;
     const trigger = inp.artifacts.find((x) => x.kind === wantedKind && x.owner.toLowerCase() === o.creditor);
@@ -403,7 +430,7 @@ export function applyProposal(inp: ApplyInput) {
   }
 
   // 4b. delivered quantities: partial or full fulfilment of quantity-bearing commitments
-  for (const f of proposal.fulfillments ?? []) {
+  for (const f of verified ? proposal.fulfillments ?? [] : []) {
     if (f.confidence < MIN_CONFIDENCE || !f.quantity || f.quantity <= 0) continue;
     const named = f.obligation_id ? store.getObligation(f.obligation_id) : null;
     const namedUsable = named && named.task_id === task.id && isOpen(named) && named.debtor === speaker && named.quantity != null ? named : null;
@@ -431,7 +458,7 @@ export function applyProposal(inp: ApplyInput) {
   }
 
   // 4c. questions/requests close on claims about their issue; document promises on a matching document
-  for (const o of openNow()) {
+  for (const o of closable()) {
     if (openedHere.has(o.id)) continue;
     if (o.debtor !== speaker) continue;
     if (o.expects_artifact) {
@@ -451,7 +478,7 @@ export function applyProposal(inp: ApplyInput) {
     }
   }
 
-  for (const r of proposal.resolutions) {
+  for (const r of verified ? proposal.resolutions : []) {
     const o = store.getObligation(r.obligation_id);
     if (!o || o.task_id !== task.id || !isOpen(o) || r.confidence < 0.7) continue;
     if (r.resolution === 'cancelled' && o.creditor === speaker) {

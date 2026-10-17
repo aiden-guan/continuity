@@ -12,6 +12,7 @@ import { compileContext, estimateTokens, artifactSummary, TOKEN_UNIT, type Conte
 import { renderWithBudget } from './compiler/render.ts';
 import { replayTask } from './engine/replay.ts';
 import { fromPrimitiveEmailDetail, fromPrimitiveWebhook } from './ingest/normalize.ts';
+import { parseSenderAuth } from './ingest/sender-auth.ts';
 import { labelOf } from './engine/resolver.ts';
 import { nowIso } from './clock.ts';
 import { PermanentSendError, type Transport, type SendOutcome } from './transport/transport.ts';
@@ -47,6 +48,8 @@ const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
 const RECONCILE_ATTEMPTS = 4;
 /** how many times a task note / flag commit is retried on a version race */
 const COMMIT_RETRIES = 3;
+/** emails whose sender authentication is waiting out a temporary DNS error, remembered at most */
+const AUTH_ATTEMPTS_KEPT = 1000;
 
 type Store = MemoryStore;
 
@@ -59,6 +62,12 @@ export class Continuity {
   requireStateVersion: boolean;
   /** org used for ingress with no principal attached (webhooks): one inbox maps to one org */
   ingestOrg: string;
+  /** deliveries (or re-fetches) tried while sender auth reports a temporary DNS error, before storing as unknown */
+  authRetries = Math.max(1, Number(process.env.CONTINUITY_AUTH_TEMPERROR_RETRIES || 3));
+  /** pause between re-fetches where there is no redelivery (the pull receiver) */
+  authRetryDelayMs = Number(process.env.CONTINUITY_AUTH_RETRY_DELAY_MS || 5000);
+  /** attempts seen per email, in case a redelivery does not carry an incremented attempt number */
+  #authAttempts = new Map<string, number>();
 
   constructor(opts: { backend: Backend; extractor: Extractor; transport: Transport; webhookSecret: string | null; requireStateVersion?: boolean; ingestOrg?: string; engine?: Engine }) {
     this.backend = opts.backend;
@@ -114,7 +123,39 @@ export class Continuity {
     // schema problems do not reject the mail; they are recorded on the task as a flag
     const validation = safeValidateEmailReceivedEvent(payload) as { success: boolean; error?: { message?: string } };
     const warning = validation.success ? null : validation.error?.message ?? 'payload failed SDK schema validation';
-    return this.#receive(opts.org ?? this.ingestOrg, fromPrimitiveWebhook(payload), opts.wait ?? false, warning);
+    const org = opts.org ?? this.ingestOrg;
+    const input = fromPrimitiveWebhook(payload);
+    // DMARC hit a temporary DNS error: ask Primitive to redeliver (it re-evaluates), up to a limit; after
+    // that, store the email with an "unknown" sender rather than retrying forever
+    const key = `${org}:${payload.email?.id ?? payload.id ?? input.dedupe_key}`;
+    const attempt = Math.max(Number(payload.delivery?.attempt) || 1, (this.#authAttempts.get(key) ?? 0) + 1);
+    if (!this.settleTransientAuth(input, key, attempt)) {
+      throw new HttpError(503, `sender authentication hit a temporary DNS error (attempt ${attempt} of ${this.authRetries}); please redeliver`);
+    }
+    return this.#receive(org, input, opts.wait ?? false, warning);
+  }
+
+  /**
+   * false: the sender check hit a transient failure and retries remain (the caller asks for redelivery or
+   * re-fetches). Otherwise true; once the retries are used up the verdict stays "unknown" (not retryable)
+   * and records how many attempts were made.
+   */
+  settleTransientAuth(input: EventInput, key: string, attempt: number): boolean {
+    const auth = parseSenderAuth(input.auth_verdict);
+    if (!auth?.retryable) {
+      this.#authAttempts.delete(key);
+      return true;
+    }
+    if (attempt < this.authRetries) {
+      this.#authAttempts.delete(key); // re-insert: the map stays ordered oldest first
+      this.#authAttempts.set(key, attempt);
+      if (this.#authAttempts.size > AUTH_ATTEMPTS_KEPT) this.#authAttempts.delete(this.#authAttempts.keys().next().value!);
+      return false;
+    }
+    this.#authAttempts.delete(key);
+    const detail = [...auth.detail, `temporary DNS error persisted after ${attempt} attempt(s); stored as unknown`];
+    input.auth_verdict = JSON.stringify({ ...auth, retryable: false, detail });
+    return true;
   }
 
   /** Live receiver path: an EmailDetail pulled from Primitive's REST API (GET /v1/emails/{id}). */

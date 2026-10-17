@@ -70,7 +70,11 @@ export interface EventInput {
   body_text: string;
   occurred_at: string; // ISO
   received_at: string; // ISO
+  /** Sender authentication verdict, a JSON SenderAuth (see ingest/sender-auth.ts). */
   auth_verdict?: string | null;
+  /** Problems found while deriving occurred_at/received_at (bad or future Date header). Stored with the
+   *  event and written as task flags when it is interpreted. */
+  time_flags?: { kind: string; detail: string }[];
   attachments: AttachmentMeta[];
   raw?: unknown;
   /** Set by the caller when the task is already known (our own sends). */
