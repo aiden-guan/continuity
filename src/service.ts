@@ -16,7 +16,8 @@ import { parseSenderAuth } from './ingest/sender-auth.ts';
 import { labelOf } from './engine/resolver.ts';
 import { nowIso } from './clock.ts';
 import { PermanentSendError, type Transport, type SendOutcome } from './transport/transport.ts';
-import type { EventInput, TaskSpec } from './types.ts';
+import { registeredDomains } from './domain/index.ts';
+import type { EventInput, Participant, Requirement, TaskSpec } from './types.ts';
 
 /** An error that carries the HTTP status (and optional JSON detail) the API should answer with. */
 export class HttpError extends Error {
@@ -57,7 +58,10 @@ export class Continuity {
   backend: Backend;
   engine: Engine;
   transport: Transport;
-  webhookSecret: string | null;
+  /** accepted webhook signing secrets (several during a rotation); empty = the webhook route is disabled */
+  webhookSecrets: string[];
+  /** the agent's own inbox (CONTINUITY_SELF_ADDRESS); when set, tasks must use it */
+  selfAddress: string;
   /** hosted mode: every send must say which state version it was decided on */
   requireStateVersion: boolean;
   /** org used for ingress with no principal attached (webhooks): one inbox maps to one org */
@@ -69,13 +73,14 @@ export class Continuity {
   /** attempts seen per email, in case a redelivery does not carry an incremented attempt number */
   #authAttempts = new Map<string, number>();
 
-  constructor(opts: { backend: Backend; extractor: Extractor; transport: Transport; webhookSecret: string | null; requireStateVersion?: boolean; ingestOrg?: string; engine?: Engine }) {
+  constructor(opts: { backend: Backend; extractor: Extractor; transport: Transport; webhookSecret: string | null; selfAddress?: string; requireStateVersion?: boolean; ingestOrg?: string; engine?: Engine }) {
     this.backend = opts.backend;
     this.transport = opts.transport;
-    this.webhookSecret = opts.webhookSecret;
+    this.webhookSecrets = (opts.webhookSecret ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+    this.selfAddress = (opts.selfAddress ?? '').toLowerCase();
     this.requireStateVersion = opts.requireStateVersion ?? false;
     this.ingestOrg = opts.ingestOrg ?? 'org_local';
-    this.engine = opts.engine ?? new Engine(this.backend, opts.extractor, (ev, i) => this.transport.fetchAttachment(ev, i));
+    this.engine = opts.engine ?? new Engine(this.backend, opts.extractor, (ev, i, signal) => this.transport.fetchAttachment(ev, i, signal));
     this.engine.handlers.set('reconcile_action', (job) => this.#reconcileJob(job));
   }
 
@@ -92,39 +97,53 @@ export class Continuity {
     return { task, snap };
   }
 
-  async createTask(org: string, spec: TaskSpec) {
+  async createTask(org: string, input: unknown) {
+    const spec = validateTaskSpec(input, this.selfAddress);
     const clash = (await this.backend.getTask(org, spec.id)) || (await this.backend.getTask(org, spec.alias));
     if (clash) throw new HttpError(409, `task ${spec.id} exists`);
-    if (!spec.domain) spec.domain = 'procurement';
-    // an unknown domain pack is a client error, not a server error
-    try {
-      const { domainFor } = await import('./domain/index.ts');
-      domainFor(spec);
-    } catch (e) {
-      throw new HttpError(400, (e as Error).message);
-    }
     await this.engine.createTask(org, spec, nowIso());
     return spec;
   }
 
-  /** Primitive webhook: check the signature with the SDK, validate the schema, normalize, then receive durably. */
+  /**
+   * Primitive webhook: check the signature with the SDK (any configured secret, for rotation), validate the
+   * schema, normalize, then receive durably. With no secret configured the route is disabled: unsigned
+   * mail is never accepted.
+   */
   async ingestWebhook(rawBody: string, headers: Record<string, string | string[] | undefined>, opts: { org?: string; wait?: boolean } = {}) {
-    const signature = headers[PRIMITIVE_SIGNATURE_HEADER.toLowerCase()] ?? headers['primitive-signature'];
-    if (this.webhookSecret) {
+    if (!this.webhookSecrets.length) throw new HttpError(503, 'webhook receiver disabled: set PRIMITIVE_WEBHOOK_SECRET (or use the long-poll receiver, `npm run receive`)');
+    const signature = String(headers[PRIMITIVE_SIGNATURE_HEADER.toLowerCase()] ?? headers['primitive-signature'] ?? '');
+    let rejection: unknown = null;
+    const verified = this.webhookSecrets.some((secret) => {
       try {
-        verifyWebhookSignature({ rawBody, signatureHeader: String(signature ?? ''), secret: this.webhookSecret });
+        verifyWebhookSignature({ rawBody, signatureHeader: signature, secret });
+        return true;
       } catch (err) {
-        throw new HttpError(401, `webhook signature rejected: ${(err as Error).message}`);
+        rejection = err;
+        return false;
       }
+    });
+    if (!verified) throw new HttpError(401, `webhook signature rejected: ${(rejection as Error | null)?.message ?? 'no signature'}`);
+    let payload: Record<string, any>;
+    try {
+      payload = JSON.parse(rawBody);
+    } catch {
+      throw new HttpError(400, 'webhook body is not JSON');
     }
-    const payload = JSON.parse(rawBody);
-    const eventType = String(headers['x-webhook-event'] ?? payload.event ?? '');
+    // the event type comes from the signed body, never from an unsigned header
+    const eventType = String(payload.event ?? '');
     if (eventType !== 'email.received') return { ignored: true, event: eventType };
     // schema problems do not reject the mail; they are recorded on the task as a flag
     const validation = safeValidateEmailReceivedEvent(payload) as { success: boolean; error?: { message?: string } };
     const warning = validation.success ? null : validation.error?.message ?? 'payload failed SDK schema validation';
     const org = opts.org ?? this.ingestOrg;
-    const input = fromPrimitiveWebhook(payload);
+    let input: EventInput;
+    try {
+      input = fromPrimitiveWebhook(payload);
+    } catch (err) {
+      // never answer a signed delivery with an error Primitive would retry forever: keep what we can
+      input = minimalWebhookEvent(payload, (err as Error).message);
+    }
     // DMARC hit a temporary DNS error: ask Primitive to redeliver (it re-evaluates), up to a limit; after
     // that, store the email with an "unknown" sender rather than retrying forever
     const key = `${org}:${payload.email?.id ?? payload.id ?? input.dedupe_key}`;
@@ -158,7 +177,32 @@ export class Continuity {
     return true;
   }
 
-  /** Live receiver path: an EmailDetail pulled from Primitive's REST API (GET /v1/emails/{id}). */
+  /**
+   * Live receiver path. The caller names a Primitive email id and nothing else: the server fetches the
+   * email itself with its own Primitive key, so a caller cannot forge the sender, the auth verdict or
+   * the thread, or poison the dedupe key of a real email id.
+   */
+  async ingestEmailById(org: string, body: unknown, opts: { wait?: boolean } = {}) {
+    const id = (body as { id?: unknown } | null)?.id;
+    if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(id)) throw new HttpError(400, 'body must be {"id": "<primitive email id>"}');
+    if (!this.transport.fetchEmailDetail) throw new HttpError(501, 'this transport cannot fetch emails');
+    let detail = await this.transport.fetchEmailDetail(id);
+    if (!detail) throw new HttpError(404, `email ${id} not found at Primitive`);
+    // no redelivery on this path: re-fetch a few times while DMARC reports a temporary DNS error
+    for (let attempt = 1; attempt < this.authRetries && parseSenderAuth(fromPrimitiveEmailDetail(detail).auth_verdict)?.retryable; attempt++) {
+      await new Promise((r) => setTimeout(r, this.authRetryDelayMs * attempt));
+      detail = (await this.transport.fetchEmailDetail(id)) ?? detail;
+    }
+    // Primitive's email API is org-wide: only mail to one of our agent inboxes is task communication
+    const to = String(detail.to_email ?? detail.recipient ?? '').toLowerCase();
+    const inboxes = new Set([this.selfAddress, ...(await this.backend.listTasks(org)).map((t) => t.spec.self_address.toLowerCase())].filter(Boolean));
+    if (!inboxes.has(to)) return { ignored: true, reason: `addressed to ${to || '(unknown)'}, not to an agent inbox` };
+    const input = fromPrimitiveEmailDetail(detail);
+    this.settleTransientAuth(input, `${org}:${id}`, this.authRetries);
+    return this.#receive(org, input, opts.wait ?? false, null);
+  }
+
+  /** An EmailDetail as Primitive's REST API returns it (GET /v1/emails/{id}), fetched by us, never by a caller. */
   async ingestEmailDetail(org: string, detail: Record<string, unknown>, opts: { wait?: boolean } = {}) {
     return this.#receive(org, fromPrimitiveEmailDetail(detail), opts.wait ?? false, null);
   }
@@ -630,4 +674,66 @@ function processingOf(store: Store, eventId: string): 'interpreted' | 'failed' |
   if (store.isInterpreted(eventId)) return 'interpreted';
   if (store.failed.has(eventId)) return 'failed';
   return 'pending';
+}
+
+const ID = /^[A-Za-z0-9._-]{1,64}$/;
+const EMAIL = /^[^\s@<>",;]+@[^\s@<>",;]+\.[^\s@<>",;]+$/;
+
+/**
+ * Server-side validation of a task definition. Participants decide whom the send guard lets us mail and
+ * whose statements carry authority, so they are checked here and never changed afterwards. With
+ * `selfAddress` set (live mode, CONTINUITY_SELF_ADDRESS) the task must use that inbox.
+ */
+export function validateTaskSpec(input: unknown, selfAddress = ''): TaskSpec {
+  const bad = (msg: string): never => {
+    throw new HttpError(400, `invalid task: ${msg}`);
+  };
+  const t = (input ?? {}) as Record<string, any>;
+  const str = (v: unknown, name: string, max = 2000) => (typeof v === 'string' && v.trim() && v.length <= max ? v : bad(`${name} must be a non-empty string (≤ ${max} chars)`));
+  if (!ID.test(String(t.id ?? ''))) bad('id must match [A-Za-z0-9._-]{1,64}');
+  if (!ID.test(String(t.alias ?? ''))) bad('alias must match [A-Za-z0-9._-]{1,64}');
+  const self = str(t.self_address, 'self_address', 254).toLowerCase();
+  if (!EMAIL.test(self)) bad('self_address is not an email address');
+  if (selfAddress && self !== selfAddress.toLowerCase()) bad(`self_address must be this agent's inbox (${selfAddress})`);
+  if (!Array.isArray(t.participants) || !t.participants.length || t.participants.length > 50) bad('participants must be a list of 1–50 parties');
+  const seen = new Set<string>();
+  const participants: Participant[] = t.participants.map((p: Record<string, any>, i: number) => {
+    const address = str(p?.address, `participants[${i}].address`, 254).toLowerCase();
+    if (!EMAIL.test(address)) bad(`participants[${i}].address is not an email address`);
+    if (seen.has(address)) bad(`duplicate participant ${address}`);
+    seen.add(address);
+    if (!['self', 'counterparty', 'internal'].includes(p.role)) bad(`participants[${i}].role must be self | counterparty | internal`);
+    if (!Array.isArray(p.authority) || !p.authority.every((a: unknown) => typeof a === 'string' && a.length <= 64)) bad(`participants[${i}].authority must be a list of term prefixes`);
+    return {
+      address, name: str(p.name, `participants[${i}].name`, 200), role: p.role, label: str(p.label, `participants[${i}].label`, 64),
+      authority: [...p.authority], ...(typeof p.group === 'string' ? { group: p.group } : {}),
+    };
+  });
+  const selves = participants.filter((p) => p.role === 'self');
+  if (selves.length !== 1 || selves[0].address !== self) bad('exactly one participant must have role "self", and it must be self_address');
+  if (!Array.isArray(t.requirements) || t.requirements.length > 50) bad('requirements must be a list (≤ 50)');
+  const requirements: Requirement[] = t.requirements.map((r: Record<string, any>, i: number) => {
+    if (typeof r?.key !== 'string' || !r.key.startsWith('requirement.')) bad(`requirements[${i}].key must start with "requirement."`);
+    return { key: r.key, value: r.value, display: str(r.display, `requirements[${i}].display`, 200), hard: r.hard === true };
+  });
+  const domain = t.domain ?? 'procurement';
+  if (!registeredDomains().includes(domain)) bad(`domain must be one of: ${registeredDomains().join(', ')}`);
+  // only known fields are stored
+  return {
+    id: t.id, alias: t.alias, goal: str(t.goal, 'goal'), ...(typeof t.item === 'string' ? { item: t.item.slice(0, 200) } : {}),
+    self_address: self, participants, requirements, domain,
+  };
+}
+
+/** A signed delivery we could not normalize: stored (unlinked, so it surfaces for manual linking) rather than lost. */
+function minimalWebhookEvent(payload: Record<string, any>, error: string): EventInput {
+  const email = payload?.email ?? {};
+  const at = typeof email.received_at === 'string' && !Number.isNaN(Date.parse(email.received_at)) ? new Date(email.received_at).toISOString() : nowIso();
+  return {
+    source: 'primitive', dedupe_key: `primitive:email:${email.id ?? payload?.id}`, primitive_event_id: payload?.id ?? null, primitive_email_id: email.id ?? null,
+    thread_id: null, message_id: null, in_reply_to: null, references: [], direction: 'inbound',
+    from: String(email.smtp?.mail_from ?? 'unknown').toLowerCase(), to: [], cc: [], subject: String(email.headers?.subject ?? ''), body_text: '',
+    occurred_at: at, received_at: at, attachments: [], raw: { normalize_error: error },
+    time_flags: [{ kind: 'normalize_error', detail: `payload could not be normalized: ${error}` }],
+  };
 }

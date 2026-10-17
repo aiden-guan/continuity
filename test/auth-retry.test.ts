@@ -79,3 +79,28 @@ test('webhook: counts attempts itself when redeliveries do not increment the att
   assert.equal((await send(1)).status, 503);
   assert.equal((await send(1)).status, 200);
 });
+
+test('pull path (ingest by id): re-fetches while the error is temporary, then stores as unknown', async () => {
+  const app = await makeApp();
+  app.authRetryDelayMs = 0;
+  const transport = app.transport as LocalSimTransport;
+  const detail = (id: string, auth: 'dns_temperror' | 'pass') => ({
+    id, message_id: `<${id}@x>`, from_header: `Priya <${a.finance}>`, from_email: a.finance, to_email: a.self, subject: 'PO-4817 budget D',
+    body_text: 'Approved up to $11.50/unit for PO-4817.', received_at: '2026-10-19T15:05:00Z', created_at: '2026-10-19T15:05:00Z', thread_id: null, reply_to_sent_email_id: null,
+    parsed: { in_reply_to: [], references: [], attachments: [], cc: [] },
+    auth: simAuth({ from: a.finance, auth }),
+  });
+  let fetches = 0;
+  transport.fetchEmailDetail = async (id: string) => { fetches++; return detail(id, fetches < 2 ? 'dns_temperror' : 'pass'); };
+  const ok = await app.ingestEmailById(ORG, { id: 'em_retry_x' }) as Record<string, any>;
+  assert.equal(fetches, 2);
+  assert.equal((await verdictOf(app, ok.event_id)).status, 'pass');
+
+  fetches = 0; // stays temporary for every attempt
+  transport.fetchEmailDetail = async (id: string) => { fetches++; return detail(id, 'dns_temperror'); };
+  const unknown = await app.ingestEmailById(ORG, { id: 'em_retry_y' }) as Record<string, any>;
+  assert.equal(fetches, app.authRetries);
+  const verdict = await verdictOf(app, unknown.event_id);
+  assert.equal(verdict.status, 'unknown');
+  assert.equal(verdict.retryable, false);
+});

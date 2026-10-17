@@ -14,15 +14,16 @@ import type { Backend, JobInput, JobRow, ReceiveResult, TaskSnapshot } from '../
 import { backoffMs } from '../store/backend.ts';
 import type { MemoryStore } from '../store/state.ts';
 import type { Artifact, EventInput, StoredEvent, TaskSpec } from '../types.ts';
-import type { Extractor, Proposal } from '../extract/types.ts';
+import type { ExtractInput, Extractor, Proposal } from '../extract/types.ts';
 import { heuristicExtractor, classifyArtifact } from '../extract/heuristic.ts';
 import { attachmentText } from '../ingest/attachments.ts';
 import { resolveTask } from '../ingest/link.ts';
 import { applyProposal, isOpen, labelOf, partyOf, refreshDerived } from './resolver.ts';
 import { nowIso } from '../clock.ts';
 import { parseSenderAuth, senderAuthMode } from '../ingest/sender-auth.ts';
+import { Breaker, isTransient, limiter, withDeadline } from './limit.ts';
 
-export type AttachmentFetcher = (event: StoredEvent, partIndex: number) => Promise<Buffer | null>;
+export type AttachmentFetcher = (event: StoredEvent, partIndex: number, signal?: AbortSignal) => Promise<Buffer | null>;
 
 export interface IngestResult {
   event: StoredEvent;
@@ -38,7 +39,16 @@ export interface EngineOptions {
   maxStaleRetries?: number;
   /** wait for inline processing (ingest/send) before giving up and leaving it to the worker */
   inlineTimeoutMs?: number;
+  /** overall deadline for one extraction, retries included (CONTINUITY_EXTRACT_DEADLINE_MS, default 150 s) */
+  extractDeadlineMs?: number;
+  /** extractions running at once in this process (CONTINUITY_EXTRACT_CONCURRENCY, default 4) */
+  extractConcurrency?: number;
+  /** per attachment download (CONTINUITY_ATTACHMENT_TIMEOUT_MS, default 30 s) */
+  attachmentTimeoutMs?: number;
+  breaker?: Breaker;
 }
+
+const envNum = (key: string, fallback: number) => (process.env[key] ? Number(process.env[key]) : fallback);
 
 type Listener = (org: string, taskId: string) => void;
 
@@ -66,6 +76,11 @@ export class Engine {
   #stopped = true;
   #wake: (() => void) | null = null;
   stats = { processed: 0, stale_retries: 0, failures: 0 };
+  /** opens after repeated outages of the primary extractor; events then fall back to the rules at once */
+  breaker: Breaker;
+  #limit: ReturnType<typeof limiter>;
+  #extractDeadlineMs: number;
+  #attachmentTimeoutMs: number;
 
   constructor(backend: Backend, extractor: Extractor, fetchAttachment: AttachmentFetcher | null = null, opts: EngineOptions = {}) {
     this.backend = backend;
@@ -75,6 +90,10 @@ export class Engine {
     this.leaseMs = opts.leaseMs ?? 120_000;
     this.maxStaleRetries = opts.maxStaleRetries ?? 4;
     this.inlineTimeoutMs = opts.inlineTimeoutMs ?? 120_000;
+    this.#extractDeadlineMs = opts.extractDeadlineMs ?? envNum('CONTINUITY_EXTRACT_DEADLINE_MS', 150_000);
+    this.#attachmentTimeoutMs = opts.attachmentTimeoutMs ?? envNum('CONTINUITY_ATTACHMENT_TIMEOUT_MS', 30_000);
+    this.#limit = limiter(opts.extractConcurrency ?? envNum('CONTINUITY_EXTRACT_CONCURRENCY', 4));
+    this.breaker = opts.breaker ?? new Breaker();
   }
 
   async createTask(org: string, spec: TaskSpec, at: string) {
@@ -274,17 +293,7 @@ export class Engine {
         activeClaims: snap.store.claimsForTask(task.id).filter((c) => c.status === 'active' || c.status === 'contested'),
       } as const;
 
-      let proposal: Proposal;
-      let extractorName = this.extractor.name;
-      let fallback: string | null = null;
-      try {
-        proposal = await this.extractor.extract(input);
-      } catch (err) {
-        // an event is never lost because interpretation failed: fall back to the rules and flag it
-        fallback = `${this.extractor.name} failed: ${(err as Error).message}`;
-        proposal = await heuristicExtractor.extract(input);
-        extractorName = heuristicExtractor.name;
-      }
+      const { proposal, extractorName, fallback } = await this.#extract(input);
 
       if (this.beforeCommit) await this.beforeCommit(job, snap);
       const committed = await this.backend.commit(
@@ -313,7 +322,7 @@ export class Engine {
       }
       let bytes = await this.backend.getBlob(org, { event_id: event.id, part_index: meta.part_index });
       if (!bytes && this.fetchAttachment) {
-        bytes = await this.fetchAttachment(event, meta.part_index).catch(() => null);
+        bytes = await this.fetchAttachment(event, meta.part_index, AbortSignal.timeout(this.#attachmentTimeoutMs)).catch(() => null);
         if (bytes) {
           // cache it privately, keyed by the Primitive source and the content hash
           const digest = sha256Hex(bytes);
@@ -334,6 +343,32 @@ export class Engine {
       });
     }
     return out;
+  }
+
+  /**
+   * Interpretation with a hard deadline. Any failure (deadline, outage, bad output) falls back to the
+   * rule-based extractor and is flagged, so one email never holds its task for long and an event is
+   * never lost because interpretation failed. During an outage the breaker skips the primary entirely.
+   */
+  async #extract(input: ExtractInput): Promise<{ proposal: Proposal; extractorName: string; fallback: string | null }> {
+    const primary = this.extractor;
+    if (primary === heuristicExtractor) return { proposal: await primary.extract(input), extractorName: primary.name, fallback: null };
+    if (!this.breaker.allow()) {
+      return { proposal: await heuristicExtractor.extract(input), extractorName: heuristicExtractor.name, fallback: `${primary.name} skipped: circuit open after repeated failures` };
+    }
+    try {
+      // the deadline starts once a concurrency slot is free, so queueing does not eat into it
+      const proposal = await this.#limit(() => {
+        const signal = AbortSignal.timeout(this.#extractDeadlineMs);
+        return withDeadline(primary.extract(input, { signal }), signal);
+      });
+      this.breaker.success();
+      return { proposal, extractorName: primary.name, fallback: null };
+    } catch (err) {
+      if (isTransient(err)) this.breaker.failure();
+      const why = (err as Error)?.name === 'TimeoutError' ? `deadline of ${this.#extractDeadlineMs} ms exceeded` : (err as Error)?.message;
+      return { proposal: await heuristicExtractor.extract(input), extractorName: heuristicExtractor.name, fallback: `${primary.name} failed: ${why}` };
+    }
   }
 
   async #deadline(job: JobRow) {

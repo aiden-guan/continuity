@@ -3,6 +3,7 @@
 // to a set of tasks and to a single agent identity. This is about API permissions only — whether
 // a mail sender may *assert* a task term is a separate idea (participants[].authority).
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import type { IncomingMessage } from 'node:http';
 import type { Backend, Principal, PrincipalKind } from './store/backend.ts';
 
 export const SCOPES = ['context:read', 'evidence:read', 'send', 'agent:write', 'tasks:write', 'ingest'] as const;
@@ -57,3 +58,13 @@ export const localPrincipal = (org: string): Principal => ({
   task_ids: null,
   label: 'local (auth off)',
 });
+
+/** A bind address only this machine can reach. */
+export const isLoopback = (host: string) => ['127.0.0.1', '::1', 'localhost'].includes(host) || /^127\./.test(host);
+
+/** The Host header names this machine. An open (auth off) server must not answer a DNS-rebinding page, which sends its own host. */
+export function loopbackHostHeader(req: IncomingMessage): boolean {
+  const h = String(req.headers.host ?? '').toLowerCase();
+  const name = h.startsWith('[') ? h.slice(0, h.indexOf(']') + 1) : h.split(':')[0];
+  return name === 'localhost' || name === '[::1]' || /^127\.\d+\.\d+\.\d+$/.test(name);
+}

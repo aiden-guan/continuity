@@ -1,15 +1,15 @@
 // Live inbound from Primitive, no public webhook URL required.
 //
-// Long-polls the Primitive inbox (`client.inbox.stream()` → GET /v1/emails?since&wait), pulls each
-// email's detail with `getEmail`, and hands it to the running Continuity server. The stream cursor is
-// saved in Primitive Memories, so a restarted receiver carries on from where it stopped.
+// Long-polls the Primitive inbox (`client.inbox.stream()` → GET /v1/emails?since&wait) and hands each
+// email's id to the running Continuity server, which fetches the email from Primitive itself (a receiver
+// can name an email, never supply its content). The stream cursor is saved in Primitive Memories, so a
+// restarted receiver carries on from where it stopped.
 //
-//   PRIMITIVE_API_KEY=prim_... CONTINUITY_URL=http://localhost:4100 npm run receive
+//   PRIMITIVE_API_KEY=prim_... CONTINUITY_URL=http://localhost:4100 CONTINUITY_TOKEN=<ingest token> npm run receive
 //
 // (Or: point a Primitive webhook endpoint at POST {CONTINUITY_URL}/webhooks/primitive and set
 // PRIMITIVE_WEBHOOK_SECRET; the server checks signatures with the SDK.)
 import { createPrimitiveClient } from '@primitivedotdev/sdk';
-import { getEmail } from '@primitivedotdev/sdk/api';
 
 const apiKey = process.env.PRIMITIVE_API_KEY;
 if (!apiKey) {
@@ -46,17 +46,11 @@ async function main() {
       await saveCursor(email.cursor);
       continue;
     }
-    const detail = await getEmail({ client: primitive.client, path: { id: email.id } });
-    const body = (detail.data as { data?: unknown } | undefined)?.data;
-    if (!body) {
-      // skip it without advancing the cursor
-      console.warn(`[receive] could not fetch ${email.id}`, detail.error);
-      continue;
-    }
     const headers: Record<string, string> = { 'content-type': 'application/json' };
     if (process.env.CONTINUITY_TOKEN) headers.authorization = `Bearer ${process.env.CONTINUITY_TOKEN}`;
-    const res = await fetch(`${continuityUrl}/ingest/primitive-email`, { method: 'POST', headers, body: JSON.stringify(body) });
+    const res = await fetch(`${continuityUrl}/ingest/primitive-email`, { method: 'POST', headers, body: JSON.stringify({ id: email.id }), signal: AbortSignal.timeout(60_000) });
     console.log(`[receive] ${email.id} "${email.subject}" → ${res.status} ${await res.text()}`);
+    // on failure the cursor stays put, so the email is offered again after a restart
     if (res.ok) await saveCursor(email.cursor);
   }
 }

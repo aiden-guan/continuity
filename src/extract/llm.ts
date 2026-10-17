@@ -133,12 +133,15 @@ function userPrompt(input: ExtractInput, terms: TermDef[]): string {
   ].join('\n\n');
 }
 
+// one attempt; the engine's overall deadline (CONTINUITY_EXTRACT_DEADLINE_MS) bounds attempt + retry
+const ATTEMPT_MS = Number(process.env.CONTINUITY_EXTRACT_ATTEMPT_MS || 90_000);
+
 export function llmExtractor(opts: { apiKey?: string; model?: string } = {}): Extractor {
   const client = anthropicClient(opts.apiKey ?? process.env.ANTHROPIC_API_KEY);
   const model = opts.model ?? (process.env.CONTINUITY_EXTRACTOR_MODEL || 'claude-opus-5-5');
   return {
     name: `llm:${model}`,
-    async extract(input: ExtractInput): Promise<Proposal> {
+    async extract(input: ExtractInput, callOpts: { signal?: AbortSignal } = {}): Promise<Proposal> {
       const pack = domainFor(input.task);
       const terms = pack.terms;
 
@@ -150,7 +153,7 @@ export function llmExtractor(opts: { apiKey?: string; model?: string } = {}): Ex
         output_config: { effort: 'medium', format: { type: 'json_schema', schema: schemaFor(terms) } },
         betas: ['server-side-fallback-2026-07-01'],
         fallbacks: 'default',
-      } as never) as unknown as Anthropic.Message;
+      } as never, { timeout: ATTEMPT_MS, maxRetries: 1, signal: callOpts.signal }) as unknown as Anthropic.Message;
       if (res.stop_reason === 'refusal') throw new Error('model refused extraction');
 
       const raw = JSON.parse(responseText(res)) as RawOutput;
