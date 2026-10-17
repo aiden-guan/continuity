@@ -151,7 +151,7 @@ async function main() {
   const rows: Record<string, unknown>[] = [];
   let assertionsPassed = 0;
   let assertionsTotal = 0;
-  console.log(`\nPrimitive Continuity eval — ${SCENARIOS.length} scenarios · extractor=${extractor.name}${args.llm ? ' · + LLM handoff (3 conditions)' : ''}\n`);
+  console.log(`\nContinuity eval — ${SCENARIOS.length} scenarios · extractor=${extractor.name}${args.llm ? ' · + LLM handoff (3 conditions)' : ''}\n`);
 
   const only = args.only ? new Set(args.only.split(',')) : null;
   const selected = SCENARIOS.filter((sc) => !only || only.has(sc.id));

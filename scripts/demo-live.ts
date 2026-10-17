@@ -184,7 +184,7 @@ async function main() {
   }
   for (const f of [DB, `${DB}-wal`, `${DB}-shm`]) rmSync(f, { force: true });
 
-  await beat('Primitive Continuity — LIVE cold-handoff demo');
+  await beat('Continuity — LIVE cold-handoff demo');
   say(`agent inbox: ${C.bold}${addr.self}${C.reset}   supplier: ${addr.supplier}   finance: ${addr.finance}`);
   if (domains.size > 1) say(`${C.yellow}note:${C.reset} the three addresses are on different domains; the counterparties must be inboxes this Primitive account can read and send from.`);
   say(`agents + extraction: ${agentMode === 'llm' ? 'Claude' : 'offline rule-based (--fast or no ANTHROPIC_API_KEY)'}`);

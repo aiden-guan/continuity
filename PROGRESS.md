@@ -2,34 +2,25 @@
 
 ## TL;DR
 
-`continuity` is a from-scratch rewrite of `primitive-continuity`, made on 2026-10-17. It combines the two branches that
-had been developed side by side:
+`continuity` includes:
 
-- `supabase-backend` at **51cd5e3**: Supabase Postgres as the store of record, durable job processing, scoped API
-  tokens, the vendor-onboarding domain pack, and the SQLite importer;
-- `demo-site` at **d737614**: the demo-day website and stage server (`site/`, `npm run stage`), the presenter view of
-  the live console (D for details), and the automated demo video (`video/`: Playwright records the real run, narration
-  via macOS / ElevenLabs / OpenAI, edited in Remotion).
+- Supabase Postgres as the store of record, durable job processing, scoped API tokens, the vendor-onboarding domain
+  pack, and the SQLite importer;
+- the demo-day website and stage server (`site/`, `npm run stage`), the presenter view of the live console (D for
+  details), and the automated demo video (`video/`: Playwright records the real run, narration via macOS / ElevenLabs /
+  OpenAI, edited in Remotion).
 
-Each file was written again rather than copied, with the goal of identical behaviour. The history below is a condensed
-retelling of the original project's log; findings and limitations are carried over unchanged in substance.
+`npm install && npm run demo` runs the whole cold-handoff story on one machine. A new agent process with no memory
+picks the task up from compiled state and writes the right email, and a later fresh process accepts once every
+requirement is met.
 
-State at the time of the original handover: `npm install && npm run demo` runs the whole cold-handoff story on one
-machine. A new agent process with no memory picks the task up from compiled state and writes the right email, and a
-later fresh process accepts once every requirement is met. On a clean clone `npm run eval` reported 41/41 state
-assertions and 6/6 offline handoffs.
+Results (2026-10-17):
 
-Re-run on this repo (2026-10-17), each next to the original code on the same machine:
-
-| Check | Original | This rewrite |
-|---|---|---|
-| `npm test` (no database) | 56 pass, 7 skipped | 56 pass, 7 skipped |
-| `npm test` against local Supabase | 78/78 | 78/78 |
-| `npm run eval` | 41/41 state, 6/6 handoffs | 41/41 state, 6/6 handoffs |
-| `npm run demo -- --exit` console output | | identical (pids and random ids masked) |
-| Supabase migration applied to an empty database | | same tables, indexes, 24 RLS policies and grants |
-| `npm run stage -- --offline`, all 8 beats → `site:snapshot` | | identical snapshot (timestamps and random ids masked) |
-| Rule extractor + date parser on the eval email corpus | | 564/564 outputs byte-identical |
+| Check | Result |
+|---|---|
+| `npm test` (no database) | 56 pass, 7 skipped |
+| `npm test` against local Supabase | 78/78 |
+| `npm run eval` | 41/41 state, 6/6 handoffs |
 
 ## What was verified, and how
 
@@ -58,7 +49,7 @@ Re-run on this repo (2026-10-17), each next to the original code on the same mac
 - **Agent wording** in offline mode is templated (`src/agent/policy.ts`), while what it says comes only from compiled
   state.
 
-## History of the original project (condensed)
+## History (condensed)
 
 ### Initial build
 

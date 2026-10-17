@@ -1,5 +1,5 @@
 
-Primitive Continuity eval — 10 scenarios · extractor=llm:claude-opus-5-5 · + LLM handoff (3 conditions)
+Continuity eval — 10 scenarios · extractor=llm:claude-opus-5-5 · + LLM handoff (3 conditions)
 
 canonical-handoff        cold handoff             state 11/11  policy-agent PASS  llm[compiled PASS | recent-3 PASS | transcript PASS]   tokens: briefing ~1394 / transcript ~859 / recent-3 ~505
 long-backlog             cold handoff (long)      state 5/5    policy-agent PASS  llm[compiled PASS | recent-3 FAIL | transcript PASS]   tokens: briefing ~1661 / transcript ~1255 / recent-3 ~241

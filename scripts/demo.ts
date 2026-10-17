@@ -134,7 +134,7 @@ async function main() {
   } catch (e) {
     if ((e as Error).message.startsWith('port')) throw e;
   }
-  await banner('Primitive Continuity — cold agent handoff demo');
+  await banner('Continuity — cold agent handoff demo');
   if (STORE === 'postgres') {
     await preparePostgres();
   } else {

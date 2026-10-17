@@ -151,7 +151,7 @@ lines.on('line', async (line) => {
       return reply({
         protocolVersion: req.params?.protocolVersion ?? '2025-06-18',
         capabilities: { tools: {} },
-        serverInfo: { name: 'primitive-continuity', version: '0.1.0' },
+        serverInfo: { name: 'continuity', version: '0.1.0' },
         instructions: 'Conversation state for Primitive agents. On wake: continuity_get_context → act (continuity_send) → continuity_mark_seen.',
       });
     case 'notifications/initialized':

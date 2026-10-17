@@ -2,10 +2,6 @@
 
 **Primitive hands an AI agent an inbox. Continuity hands each conversation in that inbox a state.**
 
-> This repository is a from-scratch rewrite of `primitive-continuity`. It merges that project's two parallel branches,
-> `supabase-backend` (Postgres/Supabase store, job queue, API tokens, vendor-onboarding pack) and `demo-site`
-> (demo-day website and automated Remotion video), into one codebase with the same behaviour.
-
 Continuity is a communication-state engine for agents whose mail runs through [Primitive](https://primitive.dev).
 It reads everything an agent sends and receives and keeps, for each task, an answer backed by evidence to one question:
 
