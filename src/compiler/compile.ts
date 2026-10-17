@@ -235,7 +235,8 @@ export function compileContext(store: StateStore, taskId: string, opts: CompileO
   const changes = capNewest(changeList, 30);
 
   // ---- who moves next and what they might do (derived from state; the agent decides)
-  const { next_actor, reason, actions } = suggestActions(store, task, { failing, contested, openObs, events, checks, allTransitions: transitions, live, today });
+  const tentativeClaims = claims.filter((c) => c.status === 'proposed');
+  const { next_actor, reason, actions } = suggestActions(store, task, { failing, contested, openObs, events, checks, allTransitions: transitions, live, tentative: tentativeClaims, today });
   for (const a of actions) {
     for (const id of a.evidence) if (id.startsWith('ev_')) cite(id);
   }
@@ -390,6 +391,8 @@ interface SuggestInput {
   checks: CheckResult[];
   allTransitions: Transition[];
   live: Claim[];
+  /** Claims recorded but not applied (unauthorised, unauthenticated, hedged). */
+  tentative: Claim[];
   today: string;
 }
 
@@ -519,6 +522,7 @@ function suggestActions(store: StateStore, task: TaskSpec, s: SuggestInput) {
     task,
     checks: s.checks,
     live: s.live,
+    tentative: s.tentative,
     contested: s.contested,
     openDebtors: s.openObs.map((o) => ({ debtor: o.debtor, creditor: o.creditor, topic_keys: o.topic_keys })),
     label,

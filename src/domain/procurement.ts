@@ -3,8 +3,9 @@
 import type { CheckResult, Claim, Participant, TaskSpec } from '../types.ts';
 import { findDates, prettyDate } from '../extract/dates.ts';
 import { registerDomain, sameValue, termOf, type DomainPack, type HeuristicSentence, type TermDef } from './pack.ts';
+import { displayTyped as displayShared, mergePartialLots, normalizeTyped, type Lot } from './values.ts';
 
-export interface Lot { qty: number; date: string }
+export type { Lot };
 
 export const TERMS: TermDef[] = [
   { key: 'price.unit', type: 'money', description: 'Offered unit price in USD', topics: ['price', 'pricing', 'unit cost', 'cost per', 'quote', '$', 'per unit'] },
@@ -23,8 +24,6 @@ export function termDef(key: string): TermDef | undefined {
   return TERMS.find((t) => t.key === key);
 }
 
-const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
-
 /** Validate a proposed value against its term and put it in canonical form; null when unusable. */
 export function normalizeValue(key: string, value: unknown): unknown | null {
   const def = termDef(key);
@@ -32,34 +31,7 @@ export function normalizeValue(key: string, value: unknown): unknown | null {
   return normalizeTyped(def, value);
 }
 
-export function normalizeTyped(def: TermDef, value: unknown): unknown | null {
-  switch (def.type) {
-    case 'money':
-    case 'number': {
-      const n = typeof value === 'number' ? value : Number(String(value).replace(/[$,\s]/g, ''));
-      return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null;
-    }
-    case 'date':
-      return typeof value === 'string' && ISO_DAY.test(value) ? value : null;
-    case 'enum': {
-      const v = typeof value === 'string' ? value.trim().toLowerCase() : null;
-      return v !== null && def.values?.includes(v) ? v : null;
-    }
-    case 'text':
-      return typeof value === 'string' && value.trim() ? value.trim() : null;
-    case 'schedule': {
-      if (!Array.isArray(value) || !value.length) return null;
-      const byDate = new Map<string, number>();
-      for (const lot of value as Record<string, unknown>[]) {
-        const qty = Number(lot?.qty);
-        const date = String(lot?.date ?? '');
-        if (!Number.isFinite(qty) || qty <= 0 || !ISO_DAY.test(date)) return null;
-        byDate.set(date, (byDate.get(date) ?? 0) + qty); // lots arriving the same day are one delivery
-      }
-      return [...byDate].map(([date, qty]) => ({ qty, date })).sort((a, b) => a.date.localeCompare(b.date));
-    }
-  }
-}
+export { normalizeTyped };
 
 /** How a value reads in briefings: "$11.40", "300 units Fri Oct 23 + 200 units Wed Oct 28". */
 export function displayValue(key: string, value: unknown): string {
@@ -68,34 +40,11 @@ export function displayValue(key: string, value: unknown): string {
 }
 
 export function displayTyped(def: TermDef, value: unknown): string {
-  switch (def.type) {
-    case 'money': return `$${Number(value).toFixed(2)}`;
-    case 'date': return prettyDate(String(value));
-    case 'schedule': return (value as Lot[]).map((l) => `${l.qty} units ${prettyDate(l.date)}`).join(' + ');
-    default: return String(value);
-  }
+  return def.type === 'money' ? `$${Number(value).toFixed(2)}` : displayShared(def, value);
 }
 
-/**
- * Apply a partial update ("the remaining 200 now arrive Fri") to a schedule. A lot of exactly that size
- * moves. Otherwise, if exactly one larger lot sits on another date, it is split ("of the 500 due Friday,
- * the remaining 200 arrive Monday" → 300 Friday + 200 Monday). Anything else is ambiguous: null.
- */
-export function mergePartialSchedule(current: Lot[], update: Lot[]): Lot[] | null {
-  const lots = current.map((l) => ({ ...l }));
-  for (const u of update) {
-    const same = lots.find((l) => l.qty === u.qty && l.date !== u.date);
-    if (same) {
-      same.date = u.date;
-      continue;
-    }
-    const larger = lots.filter((l) => l.qty > u.qty && l.date !== u.date);
-    if (larger.length !== 1) return null;
-    larger[0].qty -= u.qty;
-    lots.push({ qty: u.qty, date: u.date });
-  }
-  return normalizeValue('delivery.schedule', lots) as Lot[];
-}
+/** Apply a partial update ("the remaining 200 now arrive Fri") to a schedule (see values.ts). */
+export const mergePartialSchedule = mergePartialLots;
 
 export { sameValue };
 

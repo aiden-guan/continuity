@@ -34,7 +34,7 @@ const CORRECTION = /\b(correction|correcting|to correct|apolog(?:y|ies|ize)|my m
 const BOILERPLATE = /(let (me|us) know if you have any (other |further )?questions|any questions|hope this helps|thanks in advance|best regards|kind regards)/i;
 const INJECTION = /(ignore (all |any )?(previous|prior|above) (instructions|messages)|disregard (the |all )?(previous|prior|above) (instructions|messages|rules)|you are (now )?an? (ai|assistant|agent)|system prompt|as an ai (agent|model)|new instructions:|override (your|the) (rules|instructions)|reveal (your|the) (api key|instructions|prompt))/i;
 const COMMITMENT = /\b(?:i'll|i will|we'll|we will|i'm going to|we're going to|i shall|we shall)\s+(?!need\b|have to\b|be able\b|try\b)(.+?)[.!]?$/i;
-const REQUEST = /\b(please|kindly|could you|can you|would you|let (?:me|us) know|confirm)\b/i;
+const REQUEST = /\b(please(?! (?:note|be advised|find|see (?:attached|below)))|kindly|could you|can you|would you|let (?:me|us) know|confirm)\b/i;
 const LIST_ITEM = /^\s*(?:\d+[.)]|[-*•])\s+/;
 
 /** "Can you confirm: 1. final unit price? 2. whether all 500 can arrive Friday?" becomes one question per item. */
@@ -63,6 +63,8 @@ function addObligation(p: Proposal, o: ProposedObligation): void {
 function extractFromText(text: string, input: ExtractInput, fromAttachment: string | null, p: Proposal, pack: DomainPack): void {
   const { event, senderRole } = input;
   const ref = event.occurred_at;
+  const from = (event.from ?? '').toLowerCase();
+  const senderAuthority = input.task.participants.find((x) => x.address.toLowerCase() === from)?.authority ?? [];
   const body = fromAttachment ? text : stripQuoted(text);
   const correction = !fromAttachment && CORRECTION.test(body);
   const state = pack.heuristic?.begin();
@@ -73,6 +75,10 @@ function extractFromText(text: string, input: ExtractInput, fromAttachment: stri
   };
   const fulfillment: HeuristicSentence['fulfillment'] = (f) => {
     (p.fulfillments ??= []).push({ confidence: 0.8, ...f });
+  };
+  let current = '';
+  const obligation: HeuristicSentence['obligation'] = (o) => {
+    if (!fromAttachment) addObligation(p, { expects_artifact: null, confidence: 0.75, evidence: current, ...o });
   };
 
   // a numbered question list is read item by item instead of line by line
@@ -87,7 +93,8 @@ function extractFromText(text: string, input: ExtractInput, fromAttachment: stri
     }
     const isQuestion = s.endsWith('?');
     const hedged = HEDGE.test(s);
-    pack.heuristic?.sentence({ text: s, isQuestion, hedged, senderRole, fromAttachment, ref, claim, fulfillment }, state);
+    current = s;
+    pack.heuristic?.sentence({ text: s, isQuestion, hedged, senderRole, senderAuthority, fromAttachment, ref, claim, fulfillment, obligation }, state);
 
     if (fromAttachment) continue; // obligations come from message bodies, not documents
     if (BOILERPLATE.test(s)) continue;
@@ -103,11 +110,11 @@ function extractFromText(text: string, input: ExtractInput, fromAttachment: stri
     const promise = s.match(COMMITMENT);
     if (promise && !hedged) {
       const action = promise[1].replace(/\s+/g, ' ').trim();
-      addObligation(p, { kind: 'commitment', debtor: 'sender', text: action, topic_keys: topics, expects_artifact: expectsArtifact(action), evidence: s, confidence: 0.8 });
+      addObligation(p, { kind: 'commitment', debtor: 'sender', text: action, topic_keys: topics, expects_artifact: expectsArtifact(action, pack), evidence: s, confidence: 0.8 });
       continue;
     }
     if (REQUEST.test(s) && topics.length) {
-      const expects = /\b(send|share|attach|forward)\b/i.test(s) ? expectsArtifact(s) : null;
+      const expects = /\b(send|share|attach|forward|return)\b/i.test(s) ? expectsArtifact(s, pack) : null;
       addObligation(p, { kind: 'request', debtor: 'recipient', text: s, topic_keys: topics, expects_artifact: expects, evidence: s, confidence: 0.7 });
     }
   }
@@ -115,10 +122,14 @@ function extractFromText(text: string, input: ExtractInput, fromAttachment: stri
 }
 
 const DOCUMENT_WORD = /\b(quote|quotation|invoice|contract|spec(?:ification)?|document|po|purchase order|certificate of insurance|coi|w-9|w9|tax form)\b/i;
-const SENDING_WORD = /\b(send|share|attach|forward|provide|get you|email|issue|upload)\b/i;
+const SENDING_WORD = /\b(send|share|attach|forward|provide|get you|email|issue|upload|return|resend|re-send)\b/i;
 
 /** The kind of document a promise or request is about, when it is about sending one. */
-export function expectsArtifact(text: string): string | null {
+export function expectsArtifact(text: string, pack?: DomainPack): string | null {
+  if (pack?.documents && SENDING_WORD.test(text)) {
+    const named = pack.documents.find((d) => d.mention.test(text));
+    if (named) return named.kind;
+  }
   const m = text.match(DOCUMENT_WORD);
   if (!m || !SENDING_WORD.test(text)) return null;
   const word = m[1].toLowerCase();
@@ -130,10 +141,12 @@ export function expectsArtifact(text: string): string | null {
   return word;
 }
 
-export function classifyArtifact(filename: string, text: string): { kind: string; version_label: string | null } {
+export function classifyArtifact(filename: string, text: string, pack?: DomainPack): { kind: string; version_label: string | null } {
   const hay = `${filename}\n${text.slice(0, 2000)}`;
   let kind = 'document';
-  if (/quot/i.test(hay)) kind = 'quote';
+  const own = pack?.documents?.find((d) => d.match.test(`${filename}\n${text.slice(0, 400)}`));
+  if (own) kind = own.kind;
+  else if (/quot/i.test(hay)) kind = 'quote';
   else if (/invoice/i.test(hay)) kind = 'invoice';
   else if (/purchase order|\bPO\b/.test(hay)) kind = 'po';
   else if (/certificate of (?:liability )?insurance|\bCOI\b/i.test(hay)) kind = 'insurance_certificate';
@@ -148,7 +161,7 @@ export const heuristicExtractor: Extractor = {
     const pack = domainFor(input.task);
     const p = emptyProposal();
     for (const a of input.attachments) {
-      p.artifacts.push({ filename: a.filename, ...classifyArtifact(a.filename, a.text) });
+      p.artifacts.push({ filename: a.filename, ...classifyArtifact(a.filename, a.text, pack) });
       extractFromText(a.text, input, a.filename, p, pack);
     }
     extractFromText(input.event.body_text, input, null, p, pack);

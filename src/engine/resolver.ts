@@ -64,6 +64,9 @@ function groupOf(task: TaskSpec, address: string): string {
 
 export const isOpen = (o: Obligation) => isOpenStatus(o.status);
 
+/** Primitive's sender analysis (or, failing that, DMARC) vouches for the From address. */
+export const senderAuthenticated = (event: Pick<StoredEvent, 'auth_verdict'>) => event.auth_verdict === 'authenticated' || event.auth_verdict === 'pass';
+
 /** Overlap of significant words (longer than two chars), relative to the smaller text. */
 function wordOverlap(a: string, b: string): number {
   const words = (s: string) => new Set(
@@ -187,19 +190,25 @@ export function applyProposal(inp: ApplyInput) {
 
     let authoritative = false;
     if (whoParty) {
-      // our own decisions count, except on a term another participant decides (a ceiling we quote is not finance's approval)
+      // our own decisions count, except on a term an internal approver decides (a ceiling we quote is not
+      // finance's approval); a counterparty deciding the same deal from its side does not take ours away
       if (whoParty.role === 'self') {
         authoritative = pc.kind === 'decision'
-          && !task.participants.some((p) => p !== whoParty && p.authority.some((prefix) => pc.key.startsWith(prefix)));
+          && !task.participants.some((p) => p.role === 'internal' && p.authority.some((prefix) => pc.key.startsWith(prefix)));
       }
       else if (isLifecycle) authoritative = whoParty.role === 'counterparty'; // any counterparty may withdraw its own offer
       else authoritative = whoParty.authority.some((prefix) => pc.key.startsWith(prefix));
     }
+    // payment and bank details count only from a participant whose mail passed sender authentication
+    const unverified = authoritative && event.direction === 'inbound' && !senderAuthenticated(event)
+      && !!pack.verifiedSenderOnly?.some((prefix) => pc.key.startsWith(prefix));
+    if (unverified) authoritative = false;
 
     // 2a. tentative: hedged, low confidence, or not this speaker's term to set
     if (pc.hedged || pc.confidence < MIN_CONFIDENCE || !authoritative) {
       let reason: string;
-      if (!authoritative) reason = `${who} is not authoritative for ${pc.key}`;
+      if (unverified) reason = `${pc.key} changes need an authenticated sender (${event.auth_verdict ?? 'no authentication result'})`;
+      else if (!authoritative) reason = `${who} is not authoritative for ${pc.key}`;
       else if (pc.hedged) reason = 'hedged language';
       else reason = `low confidence (${pc.confidence})`;
       const tentative = store.insertClaim({ ...base, status: 'proposed', supersede_reason: reason });
@@ -219,7 +228,8 @@ export function applyProposal(inp: ApplyInput) {
       const withdrawal = store.insertClaim({ ...base, status: 'active' });
       attachEvidence(withdrawal.id);
       const retracted: string[] = [];
-      const offerTerms = liveClaims().filter((x) => x.speaker === speaker && x.kind === 'offer' && !lifecycleKeys.has(x.key));
+      const withdrawable = (key: string) => !pack.withdrawable || pack.withdrawable.some((prefix) => key.startsWith(prefix));
+      const offerTerms = liveClaims().filter((x) => x.speaker === speaker && x.kind === 'offer' && !lifecycleKeys.has(x.key) && withdrawable(x.key));
       for (const term of offerTerms) {
         store.updateClaim(term.id, { status: 'retracted', supersede_reason: `offer withdrawn by ${who} in ${event.id}` });
         retracted.push(`${term.key} (${term.display})`);
@@ -267,7 +277,9 @@ export function applyProposal(inp: ApplyInput) {
         log('stale_evidence', `Older ${pc.key} from ${who} (${display}) arrived late; current value ${latest.display} kept`, late.id);
         continue;
       }
-      const revised = store.insertClaim({ ...base, status: 'active' });
+      // a live dispute inside the group is not settled by one side restating a new value
+      const disputing = peers.filter((c) => c.status === 'contested' && !sameValue(c.value, value));
+      const revised = store.insertClaim({ ...base, status: disputing.length ? 'contested' : 'active' });
       attachEvidence(revised.id);
       const why = pc.mode === 'correction' ? `explicit correction by ${who}` : `revised by ${who}`;
       for (const old of own) {
@@ -318,6 +330,8 @@ export function applyProposal(inp: ApplyInput) {
     const debtor = senderOwes ? speaker : recipient;
     const creditor = senderOwes ? recipient : speaker;
     if (!debtor) continue;
+    // someone outside the task cannot put us on the hook (a spoofer's "reply to confirm" is not owed)
+    if (!senderOwes && !whoParty) continue;
     const topics = po.topic_keys.filter((k) => vocabulary.has(k));
     // a compound question becomes one obligation per issue, each closable independently
     const issues = po.kind !== 'commitment' && !po.expects_artifact ? issuesFor(pack, task, debtor, topics) : [];

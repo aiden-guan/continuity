@@ -19,7 +19,7 @@ import { compileContext } from '../../src/compiler/compile.ts';
 import { renderBriefing } from '../../src/compiler/render.ts';
 import { heuristicExtractor } from '../../src/extract/heuristic.ts';
 import { llmExtractor } from '../../src/extract/llm.ts';
-import { registeredDomains } from '../../src/domain/index.ts';
+import { domainFor, registeredDomains } from '../../src/domain/index.ts';
 import type { EventInput, TaskSpec } from '../../src/types.ts';
 import { isOpenStatus } from '../../src/types.ts';
 import type { AgentOutput, ConflictKind } from '../core/types.ts';
@@ -120,6 +120,44 @@ const CHECK_TERMS: Record<string, Record<string, { kind: ConflictKind; term: str
     budget_approval: { kind: 'requirement_violation', term: 'budget.max_unit_price' },
     offer_available: { kind: 'offer_unavailable', term: 'offer.status' },
   },
+  freight: {
+    pickup_window: { kind: 'requirement_violation', term: 'pickup.window' },
+    deliver_by: { kind: 'requirement_violation', term: 'delivery.eta' },
+    equipment: { kind: 'requirement_violation', term: 'equipment.type' },
+    reefer_temp: { kind: 'requirement_violation', term: 'equipment.reefer_temp_f' },
+    max_all_in: { kind: 'requirement_violation', term: 'rate.all_in' },
+    loads: { kind: 'requirement_violation', term: 'capacity.loads' },
+    all_picked_up_by: { kind: 'requirement_violation', term: 'capacity.loads' },
+    budget_approval: { kind: 'requirement_violation', term: 'budget.max_all_in' },
+    offer_available: { kind: 'offer_unavailable', term: 'offer.status' },
+  },
+  hotel: {
+    block: { kind: 'requirement_violation', term: 'block.rooms' },
+    max_rate: { kind: 'requirement_violation', term: 'rate.group' },
+    min_attrition: { kind: 'requirement_violation', term: 'attrition.allowance' },
+    cutoff: { kind: 'requirement_violation', term: 'cutoff.date' },
+    max_fnb_minimum: { kind: 'requirement_violation', term: 'fnb.minimum' },
+    budget_approval: { kind: 'requirement_violation', term: 'budget.max_rate' },
+    offer_available: { kind: 'offer_unavailable', term: 'offer.status' },
+  },
+  finance: {
+    three_way_match: { kind: 'requirement_violation', term: 'invoice.amount' },
+    max_amount: { kind: 'requirement_violation', term: 'invoice.amount' },
+    payment_run: { kind: 'requirement_violation', term: 'discount.deadline' },
+    pay_by_due_date: { kind: 'requirement_violation', term: 'invoice.due_date' },
+    verified_remit_to: { kind: 'unverified_change', term: 'payment.remit_to' },
+    offer_available: { kind: 'offer_unavailable', term: 'offer.status' },
+  },
+  legal: {
+    liability_cap: { kind: 'requirement_violation', term: 'liability.cap_months_fees' },
+    governing_law: { kind: 'requirement_violation', term: 'governing.law' },
+    termination_notice: { kind: 'requirement_violation', term: 'termination.convenience_notice_days' },
+    renewal_term: { kind: 'requirement_violation', term: 'renewal.auto' },
+    renewal_notice: { kind: 'requirement_violation', term: 'renewal.notice_days' },
+    dpa: { kind: 'requirement_violation', term: 'dpa.status' },
+    fully_executed_by: { kind: 'requirement_violation', term: 'signature.status' },
+    offer_available: { kind: 'offer_unavailable', term: 'offer.status' },
+  },
 };
 
 /**
@@ -130,8 +168,9 @@ function engineReport(h: Harness, context: ReturnType<typeof compileContext>, id
   const ids = (evs: (string | null | undefined)[]) => [...new Set(evs.filter((e): e is string => !!e).map((e) => idOf.get(e) ?? e))];
   const evidenceOf = (claimId: string, source: string) => ids([source, ...h.store.claimEvidence(claimId).map((r) => r.event_id)]);
   const claims = h.claims();
-  const subjectOf = (o: ReturnType<Harness['obligations']>[number]) =>
-    o.expects_artifact ? `document.${o.expects_artifact}` : o.kind === 'commitment' && o.quantity != null ? 'delivery.remaining_units' : o.issue_key ?? o.topic_keys[0] ?? 'other';
+  const pack = domainFor(domain);
+  const subjectOf = (o: ReturnType<Harness['obligations']>[number]) => pack.loopSubject?.(o)
+    ?? (o.expects_artifact ? `document.${o.expects_artifact}` : o.kind === 'commitment' && o.quantity != null ? 'delivery.remaining_units' : o.issue_key ?? o.topic_keys[0] ?? 'other');
   const conflicts: AgentOutput['conflicts'] = [];
   for (const c of h.checks().filter((x) => x.status === 'fail')) {
     const m = CHECK_TERMS[domain]?.[c.id.split(':')[0]];
