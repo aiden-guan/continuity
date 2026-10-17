@@ -135,7 +135,7 @@ function userPrompt(input: ExtractInput, terms: TermDef[]): string {
 
 export function llmExtractor(opts: { apiKey?: string; model?: string } = {}): Extractor {
   const client = anthropicClient(opts.apiKey ?? process.env.ANTHROPIC_API_KEY);
-  const model = opts.model ?? (process.env.CONTINUITY_EXTRACTOR_MODEL || 'claude-opus-5-5');
+  const model = opts.model ?? (process.env.CONTINUITY_EXTRACTOR_MODEL || 'claude-haiku-5-5');
   return {
     name: `llm:${model}`,
     async extract(input: ExtractInput): Promise<Proposal> {

@@ -162,7 +162,7 @@ differently. Importing the same file twice changes nothing the second time. Coll
 | `ANTHROPIC_API_KEY` | unset → rule-based extractor + offline policy agent | Turns on the Claude extractor (`src/extract/llm.ts`) and the LLM agent (`src/agent/llm-agent.ts`). |
 | `ANTHROPIC_WORKSPACE_ID` | unset | Only for keys without a workspace scope (`wrkspc_…`); sent as `anthropic-workspace-id`. |
 | `CONTINUITY_EXTRACTOR` | `auto` | `auto` \| `llm` \| `heuristic` |
-| `CONTINUITY_EXTRACTOR_MODEL` / `CONTINUITY_AGENT_MODEL` | `claude-opus-5-5` | Model ids. |
+| `CONTINUITY_EXTRACTOR_MODEL` / `CONTINUITY_AGENT_MODEL` | `claude-haiku-5-5` | Model ids. |
 | `CONTINUITY_SELF_ADDRESS` | `procurement@acme-buyer.primitive.email` | The agent's own Primitive address. |
 | `CONTINUITY_SUPPLIER_ADDRESS`, `CONTINUITY_FINANCE_ADDRESS` | made-up `.example` addresses | The scenario's counterparties. |
 | `SUPABASE_DB_URL` | unset | Supabase Postgres connection string; selects hosted (authoritative) mode. |
@@ -256,7 +256,7 @@ Instead of long-polling you can aim a Primitive webhook endpoint (or a Function)
   **Our agent's emails are never scripted.**
 
 **Claude path (verified 2026-10-17)**
-- When `ANTHROPIC_API_KEY` is set, Claude (`claude-opus-5-5`) performs extraction and makes every agent decision. This
+- When `ANTHROPIC_API_KEY` is set, Claude (`claude-haiku-5-5`) performs extraction and makes every agent decision. This
   was checked end to end: the demo runs on Claude agents, and a fresh Claude Agent C kept a promise that Agent A had made
   to finance. Claude extraction passes all 41 state assertions.
 - With no key, a cautious rule-based extractor (`src/extract/heuristic.ts`) and a rule-based policy agent that writes

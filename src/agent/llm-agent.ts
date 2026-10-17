@@ -46,7 +46,7 @@ export const agentSystem = (domain = 'procurement') => AGENT_SYSTEM.replace(PROC
 
 type RawDecision = Decision & { messages: { to: string; subject: string | null; body: string }[] };
 
-export async function llmDecide(briefing: string, model = process.env.CONTINUITY_AGENT_MODEL || 'claude-opus-5-5', domain = 'procurement'): Promise<Decision> {
+export async function llmDecide(briefing: string, model = process.env.CONTINUITY_AGENT_MODEL || 'claude-haiku-5-5', domain = 'procurement'): Promise<Decision> {
   const client = anthropicClient();
   const request = {
     model,

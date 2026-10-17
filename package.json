@@ -27,7 +27,9 @@
     "token": "node --env-file-if-exists=.env scripts/token.ts",
     "import:sqlite": "node --env-file-if-exists=.env scripts/import-sqlite.ts",
     "db:migrate:local": "supabase migration up --local",
-    "site:snapshot": "node scripts/site-snapshot.ts"
+    "site:snapshot": "node scripts/site-snapshot.ts",
+    "bench": "node --env-file-if-exists=.env bench/run.ts",
+    "bench:judge-calibration": "node --env-file-if-exists=.env bench/judge-calibration.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0",

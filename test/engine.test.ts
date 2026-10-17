@@ -180,6 +180,28 @@ test('a promise to send a document is not fulfilled by words alone', async () =>
   assert.equal(theCommitment(h).status, 'fulfilled');
 });
 
+test('a ceiling we quote in our own RFQ is not a budget approval', async () => {
+  // A stand-in for a small model that read "must not exceed $11.50" in our RFQ as our own budget decision.
+  const ownCeilingAsDecision: Extractor = {
+    name: 'fake-llm',
+    async extract(inp) {
+      const proposal: Proposal = await heuristicExtractor.extract(inp);
+      if (inp.event.direction === 'outbound' && /\$11\.50/.test(inp.event.body_text)) {
+        proposal.claims.push({ key: 'budget.max_unit_price', value: 11.5, kind: 'decision', mode: 'assert', evidence: 'It must not exceed $11.50 per unit.', confidence: 0.95, hedged: false, from_attachment: null });
+      }
+      return proposal;
+    },
+  };
+  const { h, story } = await afterCanonical(procurementTask(addr), ownCeilingAsDecision);
+
+  // Only finance's reply sets the budget; our own figure stays tentative.
+  const live = h.active('budget.max_unit_price');
+  assert.equal(live.length, 1);
+  assert.equal(live[0].source_event_id, story.approval.event.id);
+  const ours = h.claims('budget.max_unit_price').filter((c) => c.speaker === addr.self);
+  assert.ok(ours.length >= 1 && ours.every((c) => c.status === 'proposed' && /not authoritative/.test(c.supersede_reason!)));
+});
+
 test('unknown senders on a linked thread are recorded but cannot set terms', async () => {
   const { h, story } = await afterCanonical();
   await h.in({ from: 'mallory@evil.example', fromName: 'Mallory', to: addr.self, subject: 'Re: PO-4817', body: 'Price is now $9.00 per unit.', at: '2026-10-20T16:00:00Z', threadKey: 'supplier', inReplyTo: story.correction.messageId });
