@@ -10,7 +10,7 @@ export const TERMS: TermDef[] = [
   { key: 'price.unit', type: 'money', description: 'Offered unit price in USD', topics: ['price', 'pricing', 'unit cost', 'cost per', 'quote', '$', 'per unit'] },
   { key: 'delivery.schedule', type: 'schedule', description: 'Offered delivery schedule: list of {qty, date} lots', topics: ['deliver', 'delivery', 'arrive', 'ship', 'lead time', 'schedule', 'when', 'by friday', 'units'] },
   { key: 'order.quantity', type: 'number', description: 'Quantity offered/available in total', topics: ['quantity', 'how many', 'units', 'volume'] },
-  { key: 'payment.terms', type: 'text', description: 'Payment terms, e.g. Net 30', topics: ['payment', 'terms', 'net 30', 'invoice'] },
+  { key: 'payment.terms', type: 'text', description: 'Payment terms, e.g. Net 30', topics: ['payment', 'terms', 'net 30', 'invoice'], sensitive: 'change' },
   { key: 'quote.valid_until', type: 'date', description: 'Date the quote expires', topics: ['valid', 'expire', 'expiry'] },
   { key: 'offer.status', type: 'enum', values: ['withdrawn'], lifecycle: true, description: 'The counterparty withdrew/cancelled its offer or cannot supply (value "withdrawn"). History is kept; the offer is no longer available.', topics: ['withdraw', 'cancel', 'disregard', 'rescind'] },
   { key: 'budget.max_unit_price', type: 'money', description: 'Internally approved maximum unit price (a decision by finance/approver)', topics: ['budget', 'approve', 'approval', 'authoriz', 'sign off', 'sign-off'] },

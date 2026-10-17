@@ -106,6 +106,21 @@ section.col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .actor.us { color: var(--red); }
 .actor.them { color: var(--accent); }
 .actor.none { color: var(--green); }
+.actor.human { color: var(--amber); }
+
+/* ---------- approval queue: agents propose, a human decides */
+.card.approve { border-color: var(--amber); box-shadow: 0 0 0 1px var(--amber); }
+.ap { padding: 4px 0 12px; margin-bottom: 10px; border-bottom: 1px solid var(--line); }
+.ap:last-child { border-bottom: 0; margin-bottom: 0; }
+.ap h3 { margin: 0 0 6px; font-size: 14px; }
+.ap ul { margin: 4px 0 8px; padding-left: 18px; font-size: 12.5px; }
+.ap .why { color: var(--amber); font-size: 12.5px; }
+.ap textarea, .ap input { box-sizing: border-box; width: 100%; margin: 4px 0; padding: 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--soft); color: var(--ink); font: 12px/1.45 var(--mono); }
+.ap textarea { min-height: 110px; }
+.ap .opts { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.ap .opts button { padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); font: inherit; font-size: 12.5px; text-align: left; cursor: pointer; }
+.ap .opts button.rec { border-color: var(--green); background: var(--green-bg); }
+.ap .res { margin-top: 6px; font-size: 12px; }
 
 /* ---------- timeline */
 .ev { position: relative; padding: 2px 0 10px 12px; border-left: 2px solid var(--line); }
@@ -231,6 +246,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .35); }
   </section>
 
   <section class="col">
+    <div class="card approve" id="apcard" hidden><h2>Needs your approval <span id="apcount"></span></h2><div id="approvals"></div></div>
     <div class="card"><h2>Who acts next</h2><div class="next"><div id="actor" class="actor"></div><div id="actorwhy" class="goal"></div></div></div>
     <div class="card"><h2>Conflicts &amp; checks</h2><div id="checks"></div></div>
     <div class="card"><h2>Current terms <span>click a term to explain</span></h2><div id="terms"></div></div>
@@ -291,12 +307,15 @@ dialog::backdrop { background: rgba(0, 0, 0, .35); }
       byId('goal').textContent = 'No tasks yet — run `npm run demo`.';
       return false;
     }
-    view.task = view.task ?? tasks[0].id;
+    // an approval link opens its task: /#task=<id>&approval=<id>
+    const linked = decodeURIComponent(location.hash.match(/task=([^&]+)/)?.[1] ?? '');
+    view.task = view.task ?? (tasks.some((x) => x.id === linked) ? linked : tasks[0].id);
     const t = view.task;
-    const [health, state, timeline, ctx, runs] = await Promise.all([
+    const [health, state, timeline, ctx, runs, approvals] = await Promise.all([
       api('/api/health'), api(`/tasks/${t}/state`), api(`/tasks/${t}/timeline`), api(`/tasks/${t}/context`), api(`/tasks/${t}/agent-runs`),
+      api(`/tasks/${t}/approvals`).catch(() => []),
     ]);
-    view.data = { health, state, timeline, ctx, runs };
+    view.data = { health, state, timeline, ctx, runs, approvals: Array.isArray(approvals) ? approvals : [] };
     view.version = state.state_version;
     render();
     return true;
@@ -350,6 +369,51 @@ dialog::backdrop { background: rgba(0, 0, 0, .35); }
     const strays = timeline.unlinked.map((u) => `
     <div class="ev unlinked"><div class="meta">${stamp(u.at, 16)} · <span class="ids">${esc(u.id)}</span> · not linked to any task</div><div class="subj">${esc(u.from)}: ${esc(u.subject)}</div></div>`).join('');
     byId('timeline').innerHTML = linked + strays;
+  }
+
+  // the approver decides here (open the console with an approver token: /#token=ctk_…)
+  function renderApprovals(list) {
+    byId('apcard').hidden = !list.length;
+    byId('apcount').textContent = list.length ? `${list.length} open` : '';
+    byId('approvals').innerHTML = list.map((a) => {
+      const c = a.card;
+      const change = c.change
+        ? `<div><b>${c.change.previous ? 'Changed' : 'New'} ${esc(c.change.term)}</b> from ${esc(c.change.party)} <span class="ids">${esc(c.change.source)}</span>${c.change.previous ? `<div class="old">${esc(c.change.previous)}</div>` : ''}<pre class="mail">${esc(c.change.value)}</pre></div>`
+        : '';
+      const unverified = c.unverified.length ? `<ul>${c.unverified.map((u) => `<li class="why">${esc(u.what)} — ${esc(u.why)} <span class="ids">${esc(u.source ?? '')}</span></li>`).join('')}</ul>` : '';
+      const draft = c.draft
+        ? `<div class="ids">Agent's draft to ${esc(c.draft.to)} (intent: ${esc(c.draft.intent ?? 'undeclared')}) — edit it to approve with edits, or write a reply:</div><textarea data-body="${esc(a.id)}">${esc(c.draft.body)}</textarea>`
+        : '';
+      const options = c.options.map((o) => `<button class="${o.id === c.recommended ? 'rec' : ''}" data-decide="${esc(a.id)}" data-option="${esc(o.id)}">${esc(o.label)}${o.id === c.recommended ? ' — recommended' : ''}</button>`).join('');
+      return `<div class="ap">
+        <h3>${esc(c.title)} <span class="st ${a.status === 'held' ? 'open' : 'fail'}">${esc(a.status)}</span>${a.current ? '' : ' <span class="st superseded">deal changed</span>'} <span class="ids">${esc(a.id)}</span></h3>
+        <div class="why">${c.asked_because.map(esc).join('<br>')}</div>
+        <ul>${c.situation.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>
+        ${change}
+        <ul>${c.requirements.map((r) => `<li><span class="st ${esc(r.status.toLowerCase())}">${esc(r.status)}</span> ${esc(r.label)} — ${esc(r.detail)} <span class="ids">${esc(r.sources.join(', '))}</span></li>`).join('')}</ul>
+        ${unverified}${draft}
+        <input data-by="${esc(a.id)}" placeholder="your name (logged with the decision)">
+        <div class="opts">${options}</div>
+        <div class="ids">${esc(c.recommended_because)} · expires ${stamp(a.expires_at, 16)}</div>
+        <div class="res" data-res="${esc(a.id)}"></div>
+      </div>`;
+    }).join('');
+  }
+
+  async function decide(id, option) {
+    const field = (attr) => byId('approvals').querySelector(`[${attr}="${id}"]`);
+    const body = field('data-body')?.value;
+    const payload = {
+      option, by: field('data-by')?.value || 'dashboard',
+      ...(option === 'approve_with_edits' ? { edited_body: body } : {}), ...(option === 'reject_with_reply' ? { reply_body: body } : {}),
+    };
+    const r = await fetch(`/tasks/${view.task}/approvals/${id}/decide`, {
+      method: 'POST', headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(payload),
+    });
+    const j = await r.json().catch(() => ({}));
+    const hint = r.status === 403 ? 'This token cannot approve — open the console with an approver token. ' : '';
+    field('data-res').textContent = r.ok ? `Done: ${j.status}` : `${hint}${j.error ?? r.status}`;
+    if (r.ok || r.status === 409 || r.status === 410) setTimeout(load, 400);
   }
 
   function renderNextActor(c) {
@@ -473,6 +537,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .35); }
     if (!d) return;
     const c = d.ctx.context;
     renderHeader(d.health, d.state);
+    renderApprovals(d.approvals);
     renderTimeline(d.timeline);
     renderNextActor(c);
     renderChecks(c);
@@ -539,6 +604,11 @@ dialog::backdrop { background: rgba(0, 0, 0, .35); }
     view.selectedRun = Number(card.dataset.run);
     view.tab = 'brief';
     render();
+  });
+
+  byId('approvals').addEventListener('click', (e) => {
+    const button = e.target.closest('[data-decide]');
+    if (button) decide(button.dataset.decide, button.dataset.option);
   });
 
   byId('dlg-close').addEventListener('click', () => byId('dlg').close());

@@ -47,8 +47,9 @@ Open http://localhost:4100 and watch. Everything runs on your machine (see "What
    > *the updated schedule (200 units arrive Wed Oct 28) doesn't work for us: all 500 units need to arrive by Fri Oct 23 …
    > Can you get the remaining units to us by Fri Oct 23 … Also, we're still expecting the revised quote you mentioned.*
 7. The supplier expedites and sends *quote rev 2*. The commitment becomes **fulfilled**, quote v1 becomes **superseded**
-   and the conflict becomes **resolved**. **Agent C**, yet another fresh process, accepts. The send guard lets binding
-   language through only after every check passes.
+   and the conflict becomes **resolved**. **Agent C**, yet another fresh process, drafts the acceptance. The send guard
+   refuses binding language while any check fails; once every check passes it holds the commitment for a **human
+   approver**, who sees a card compiled from state and approves it (the sent email records who approved).
 
 **Whoever wrote that email had never seen the earlier conversation.**
 
@@ -199,7 +200,9 @@ HTTP. Every task route takes either the id or the alias (e.g. `PO-4817`):
 | Why does the system think the delivery date moved? | `GET /tasks/:id/explain?term=delivery.schedule` |
 | Which quote terms are out of date? | `documents[].stale_terms` in the context, or `GET /tasks/:id/state` |
 | Where did this item come from? | `GET /items/{cl_|ob_|ar_|ev_}*/provenance` |
-| Send a reply (threaded, recorded, guarded) | `POST /tasks/:id/send {agent_id, to, body, subject?, based_on_version}`. Returns 409 while mail is still being interpreted, or when someone else has changed the task since `based_on_version`. Hosted mode requires `based_on_version`. |
+| Send a reply (threaded, recorded, guarded) | `POST /tasks/:id/send {agent_id, to, body, subject?, intent?, based_on_version}`. `intent` is `inform` / `ask` / `negotiate` / `commit`. Returns 409 while mail is still being interpreted, when someone else has changed the task since `based_on_version`, or when a hard limit blocks it; **202 `{held: true, approval_id}`** when a human must approve it first (commitments, payment details, gray areas). Hosted mode requires `based_on_version`. |
+| What is waiting for a human? | `GET /approvals` (or `/tasks/:id/approvals`, `?all=1` for decided ones): each with a card (why, situation, requirements with sources, the draft, options, a recommendation) and its text form |
+| Decide a held card (human approver only) | `POST /tasks/:id/approvals/:ap_id/decide {option, by?, note?, edited_body?, reply_body?}` with a token minted by `npm run token -- --kind approver`. Options: `approve`, `approve_with_edits`, `reject_with_reply`, `reject`, `hold_verify`, `take_over`; verification cards: `verified`, `reject`, `hold_verify`, `take_over`. 409 if the deal changed since the card was made (a fresh card is issued), 410 once expired. |
 | Is the state complete, and how large may it get? | `context.processing` (`complete`, pending/failed events, sends in flight) · `&max_tokens=N` → `budget {unit, used, fits, trimmed}`. Blockers and open obligations are never cut; a result over budget says so. |
 | What became of my send? | `GET /tasks/:id/actions` (`pending` / `attempted` / `delivered` / `replayed` / `failed`) |
 | I have acted; remember my position | `POST /tasks/:id/cursor {agent_id, seq}` |

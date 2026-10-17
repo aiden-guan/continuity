@@ -250,6 +250,21 @@ export function applyProposal(inp: ApplyInput) {
       continue;
     }
 
+    // 2a''. money / identity details (wire or bank details, payment terms): never applied from email alone —
+    // held until a human verifies them out of band (an approval card); a repeat of the current value just corroborates
+    const sensitivity = event.direction === 'inbound' && pc.mode !== 'retraction' ? termOf(pack, pc.key)?.sensitive : undefined;
+    if (sensitivity) {
+      const current = liveClaims().find((c) => c.key === pc.key && c.speaker === speaker);
+      const changed = !current || !sameValue(current.value, value);
+      if (changed && (sensitivity === 'always' || current)) {
+        const held = store.insertClaim({ ...base, status: 'proposed', supersede_reason: `held for human verification: ${pc.key} is a payment/identity detail and is never applied from email alone` });
+        attachEvidence(held.id);
+        const what = current ? `changed ${pc.key} (${current.display} → ${display})` : `new ${pc.key} (${display})`;
+        log('claim_held_for_verification', `${who}'s ${what} is held until a human verifies it`, held.id, { previous: current?.display ?? null });
+        continue;
+      }
+    }
+
     if (pc.kind === 'offer') speakerMadeOffer = true;
 
     const onKey = liveClaims().filter((c) => c.key === pc.key);

@@ -4,7 +4,8 @@
 // which terms are current, what is still owed, what has already been answered.
 import type { CompiledContext } from '../compiler/compile.ts';
 
-export interface OutMessage { to: string; subject?: string; body: string }
+/** `intent` is declared to the send guard: "commit" for anything that accepts, confirms, orders or approves payment. */
+export interface OutMessage { to: string; subject?: string; body: string; intent?: 'inform' | 'ask' | 'negotiate' | 'commit' }
 export interface Decision { action: 'send' | 'wait'; messages: OutMessage[]; rationale: string; relied_on: string[]; /** provider-reported usage (LLM decisions) */ usage?: unknown }
 
 type Action = CompiledContext['suggested_actions'][number];
@@ -27,6 +28,9 @@ function activeTermsOf(ctx: CompiledContext, partyLabel: string) {
 }
 
 export function policyDecide(ctx: CompiledContext): Decision {
+  // a person has the next move (a held commitment, a detail to verify): wait for them
+  if (ctx.next_actor === 'human') return { action: 'wait', messages: [], rationale: ctx.next_actor_reason, relied_on: ctx.pending_approvals.map((p) => p.id) };
+
   // anything addressable at priority 1 or 2, grouped by recipient in first-seen order
   const actionable = ctx.suggested_actions.filter((a) => a.to_address && a.priority <= 2);
   const perRecipient = new Map<string, Action[]>();
@@ -142,7 +146,11 @@ export function policyDecide(ctx: CompiledContext): Decision {
     }
 
     lines.push('', 'Thanks,', 'Acme Procurement Agent', `(${alias})`);
-    messages.push({ to: address, subject, body: lines.join('\n') });
+    let intent: OutMessage['intent'] = 'inform';
+    if (accepting.length) intent = 'commit';
+    else if (conflictsRaised.length) intent = 'negotiate';
+    else if (lines.some((l) => /\?\s*$/.test(l))) intent = 'ask';
+    messages.push({ to: address, subject, body: lines.join('\n'), intent });
   }
 
   if (!messages.length) {

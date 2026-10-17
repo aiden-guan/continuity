@@ -3,11 +3,17 @@
 // principal making the call.
 import { createHash, randomUUID } from 'node:crypto';
 import { PRIMITIVE_SIGNATURE_HEADER, safeValidateEmailReceivedEvent, verifyWebhookSignature } from '@primitivedotdev/sdk';
-import type { ActionRow, Backend, JobRow, Principal } from './store/backend.ts';
+import type { ActionRow, Backend, JobRow, Principal, TaskSnapshot } from './store/backend.ts';
 import type { MemoryStore } from './store/state.ts';
 import { Engine } from './engine/engine.ts';
 import type { Extractor } from './extract/types.ts';
-import { guardSend } from './engine/guard.ts';
+import { guardSend, taskBindingPhrases, SEND_INTENTS, type GuardResult, type SendIntent } from './engine/guard.ts';
+import { modelBindingPhrases, type SendClassifier } from './engine/send-check.ts';
+import { applyVerifiedClaim, buildCard, notifyApproval, optionsFor, rejectHeldClaim, renderCard, approvalLink, sendTitle, type OptionId } from './approvals.ts';
+import {
+  approvalsForTask, openApprovals, recordDecision, recordExpired, requestApproval, stateFingerprint,
+  type Approval, type ApprovalDraft, type ApprovalStatus,
+} from './engine/approval-log.ts';
 import { compileContext, estimateTokens, artifactSummary, TOKEN_UNIT, type ContextPurpose } from './compiler/compile.ts';
 import { renderWithBudget } from './compiler/render.ts';
 import { replayTask } from './engine/replay.ts';
@@ -40,11 +46,25 @@ export interface SendInput {
   based_on_version?: number | null;
   /** client retry key; when absent one is derived from (task, agent, version, recipient, body) */
   idempotency_key?: string | null;
+  /** what the email is meant to do; "commit" for anything that accepts, confirms, orders or approves payment */
+  intent?: SendIntent | null;
+}
+
+/** A human's decision on a held approval. */
+export interface DecisionInput {
+  option?: string;
+  /** who decided (logged; defaults to the approver token's label) */
+  by?: string;
+  note?: string;
+  edited_body?: string;
+  reply_body?: string;
 }
 
 export interface ContextOptions { agentId?: string; party?: string; maxTokens?: number; asOf?: string; purpose?: ContextPurpose; historyLimit?: number }
 
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
+/** provider keys of sends a human approved: continuity:<instance>:<task>:approval:<ap_n>:... */
+const APPROVAL_KEY = /:approval:ap_\d+:/;
 /** an ambiguous send is retried at most this many attempts before reconciliation gives up */
 const RECONCILE_ATTEMPTS = 4;
 /** how many times a task note / flag commit is retried on a version race */
@@ -73,15 +93,31 @@ export class Continuity {
   /** attempts seen per email, in case a redelivery does not carry an incremented attempt number */
   #authAttempts = new Map<string, number>();
 
-  constructor(opts: { backend: Backend; extractor: Extractor; transport: Transport; webhookSecret: string | null; selfAddress?: string; requireStateVersion?: boolean; ingestOrg?: string; engine?: Engine }) {
+  /** Claude's second opinion on counterparty wording (null: tripwire + declared intent only) */
+  sendClassifier: SendClassifier | null;
+  /** new approval cards are posted here (Slack-style {"text": ...}); CONTINUITY_APPROVAL_WEBHOOK */
+  approvalWebhook: string | undefined;
+  /** verification cards already posted by this process */
+  #notified = new Set<string>();
+
+  constructor(opts: {
+    backend: Backend; extractor: Extractor; transport: Transport; webhookSecret: string | null; selfAddress?: string; requireStateVersion?: boolean; ingestOrg?: string; engine?: Engine;
+    sendClassifier?: SendClassifier | null; approvalWebhook?: string;
+  }) {
     this.backend = opts.backend;
     this.transport = opts.transport;
     this.webhookSecrets = (opts.webhookSecret ?? '').split(',').map((x) => x.trim()).filter(Boolean);
     this.selfAddress = (opts.selfAddress ?? '').toLowerCase();
     this.requireStateVersion = opts.requireStateVersion ?? false;
     this.ingestOrg = opts.ingestOrg ?? 'org_local';
+    this.sendClassifier = opts.sendClassifier ?? null;
+    this.approvalWebhook = opts.approvalWebhook ?? process.env.CONTINUITY_APPROVAL_WEBHOOK;
     this.engine = opts.engine ?? new Engine(this.backend, opts.extractor, (ev, i, signal) => this.transport.fetchAttachment(ev, i, signal));
     this.engine.handlers.set('reconcile_action', (job) => this.#reconcileJob(job));
+    // verification cards are raised by the resolver while interpreting mail; post the new ones
+    this.engine.listeners.add((org, taskId) => {
+      if (this.approvalWebhook) void this.#notifyVerifications(org, taskId).catch(() => undefined);
+    });
   }
 
   /** Resolve a task by id or alias, or fail with 404. */
@@ -101,6 +137,10 @@ export class Continuity {
     const spec = validateTaskSpec(input, this.selfAddress);
     const clash = (await this.backend.getTask(org, spec.id)) || (await this.backend.getTask(org, spec.alias));
     if (clash) throw new HttpError(409, `task ${spec.id} exists`);
+    // who may commit us: a human approves every commitment unless the task explicitly says otherwise
+    if (spec.approval !== undefined && !['human', 'auto_when_clear'].includes(spec.approval?.commitments)) {
+      throw new HttpError(400, 'approval.commitments must be "human" or "auto_when_clear"');
+    }
     await this.engine.createTask(org, spec, nowIso());
     return spec;
   }
@@ -236,11 +276,14 @@ export class Continuity {
   /**
    * An agent's send: guarded, threaded and checked against the state version it was decided on.
    *  1. refuse while state is incomplete (interpretation pending or failed) or stale (based_on_version)
-   *  2. run the guard against state (recipients, credentials, binding language while requirements fail)
+   *  2. run the guard against state, with the declared intent. block (409): a hard limit (recipients,
+   *     credentials, a commitment while a requirement fails) — nothing is sent. hold (202): a human
+   *     decides (commitments, money details, gray areas) — the draft waits as an approval card.
    *  3. persist a durable pending action carrying a stable provider idempotency key
    *  4. try delivery, record the outbound event, and reconcile ambiguous failures under the same key
    */
   async send(org: string, taskId: string, s: SendInput, principal?: Principal | null) {
+    if (s.intent != null && !SEND_INTENTS.includes(s.intent)) throw new HttpError(400, `intent must be one of ${SEND_INTENTS.join(', ')}`, { code: 'bad_intent' });
     const { task, snap } = await this.snapshot(org, taskId);
     const store = snap.store;
     const to = s.to.toLowerCase();
@@ -262,32 +305,80 @@ export class Continuity {
     this.#assertComplete(store, task, snap.version);
     this.#assertFresh(store, task, s, snap.version);
 
-    const parent = this.#replyParent(store, task, s, to);
-    const guard = guardSend(task, to, s.body, store.getChecks(task.id), store.claimsForTask(task.id));
-    if (!guard.allowed) {
+    const guard = await this.#guard(task, store, to, s.body, s.intent ?? null);
+    if (guard.outcome === 'block') {
       const summary = `Blocked send from ${s.agent_id} to ${labelOf(task, to)}: ${guard.reasons.join('; ')}`;
-      await this.backend.commit(snap, (w) => w.addTransition({ task_id: task.id, event_id: null, at: nowIso(), type: 'send_blocked', subject_id: null, summary, detail: { body: s.body } })).catch(() => undefined);
+      await this.backend.commit(snap, (w) => w.addTransition({ task_id: task.id, event_id: null, at: nowIso(), type: 'send_blocked', subject_id: null, summary, detail: { body: s.body, intent: s.intent ?? null } })).catch(() => undefined);
       throw new HttpError(409, 'send blocked by guard', { ...guard, code: 'blocked_by_guard' });
     }
+    if (guard.outcome === 'hold') return this.#hold(org, task, snap, s, to, guard);
 
-    let subject: string;
-    if (s.subject != null) subject = s.subject;
-    else if (parent) subject = /^re:/i.test(parent.subject) ? parent.subject : `Re: ${parent.subject}`;
-    else subject = `${task.alias}`;
-    const inReplyTo = parent?.message_id ?? null;
-    const references = parent ? [...parent.references, ...(parent.message_id ? [parent.message_id] : [])] : [];
-    const at = nowIso();
-    const row: ActionRow = {
-      id: `act_${randomUUID().slice(0, 12)}`, org, task_id: task.id, agent_id: s.agent_id, principal_id: principal?.id ?? null, idempotency_key: key,
-      based_on_version: snap.version, to_addr: to, subject, body: s.body, body_sha256: sha256(s.body), in_reply_to: inReplyTo, references,
-      status: 'pending', attempts: 0, provider: null, primitive_email_id: null, event_id: null, last_error: null, created_at: at, updated_at: at,
-    };
+    const row = this.#actionRow(org, task, store, snap.version, { ...s, to }, key, principal?.id ?? null);
     const c = await this.backend.commit(snap, () => undefined, { actions: [row] });
     if (!c.ok) {
       if (c.reason === 'stale') throw new HttpError(409, 'stale context: the task changed while the send was being prepared', { code: 'stale_context', state_version: c.version });
       throw new HttpError(409, c.detail ?? 'another send for this task is in flight — wait for it to settle', { code: 'send_in_flight', state_version: c.version });
     }
     return this.#attempt(org, task, row);
+  }
+
+  /** The guard with everything it needs from state, including the model's second opinion where it can matter. */
+  async #guard(task: TaskSpec, store: Store, to: string, body: string, intent: SendIntent | null): Promise<GuardResult> {
+    const party = task.participants.find((p) => p.address.toLowerCase() === to);
+    let modelBinding: string[] = [];
+    let modelError: string | null = null;
+    // ask the model only where its answer can change the outcome: counterparty mail, not declared a
+    // commitment (that goes to a human anyway), and not already caught by the tripwire
+    if (this.sendClassifier && party?.role === 'counterparty' && intent !== 'commit' && !taskBindingPhrases(task, body).length) {
+      const r = await modelBindingPhrases(this.sendClassifier, body);
+      if (r.check.error) modelError = r.check.error;
+      else modelBinding = r.phrases;
+    }
+    return guardSend(task, to, body, store.getChecks(task.id), store.claimsForTask(task.id), intent, { modelBinding, modelError, flags: store.flagsForTask(task.id) });
+  }
+
+  /** A held send: the draft becomes an approval card in the task's log (one open card per decision); nothing is sent. */
+  async #hold(org: string, task: TaskSpec, snap: TaskSnapshot, s: SendInput, to: string, guard: GuardResult) {
+    const at = nowIso();
+    const draft: ApprovalDraft = { agent_id: s.agent_id, to, subject: s.subject ?? null, body: s.body, intent: s.intent ?? null, reply_to_event: s.reply_to_event ?? null };
+    const c = await this.backend.commit(snap, (w) => {
+      recordExpired(w, task.id, at);
+      // the same draft, or a second commitment to the same party, returns the card already open
+      const open = openApprovals(w, task.id, at).find((a) => a.kind === 'send' && a.draft?.to === to
+        && (a.draft.body === s.body || (guard.commitment && a.reasons.some((r) => r.startsWith('commitment')))));
+      if (open) return { approval: open, existing: true };
+      const id = requestApproval(w, task.id, at, { kind: 'send', title: sendTitle(task, to, guard.hold_reasons), reasons: guard.hold_reasons, gray_areas: guard.gray_areas, draft, claim_id: null });
+      return { approval: approvalsForTask(w, task.id, at).find((a) => a.id === id)!, existing: false };
+    });
+    if (!c.ok) throw new HttpError(409, 'stale context: the task changed while the send was being prepared', { code: 'stale_context', state_version: c.version });
+    const { approval, existing } = c.value;
+    this.engine.notify(org, task.id);
+    if (!existing && this.approvalWebhook) {
+      const fresh = await this.backend.loadTask(org, task.id);
+      void notifyApproval(this.approvalWebhook, approval, buildCard(fresh.store, task, approval));
+    }
+    return {
+      __status: 202, held: true, status: 'held' as const, action_id: null, event_id: null, idempotent_replay: false,
+      approval_id: approval.id, title: approval.title, reasons: approval.reasons, gray_areas: approval.gray_areas,
+      expires_at: approval.expires_at, existing, link: approvalLink(task.id, approval.id), state_version: c.version,
+    };
+  }
+
+  /** A durable outbound action for a draft: threaded under its parent, keyed for the provider. */
+  #actionRow(org: string, task: TaskSpec, store: Store, version: number, d: { agent_id: string; to: string; subject?: string | null; body: string; reply_to_event?: string | null }, key: string, principalId: string | null): ActionRow {
+    const parent = this.#replyParent(store, task, d.reply_to_event, d.to);
+    let subject: string;
+    if (d.subject != null) subject = d.subject;
+    else if (parent) subject = /^re:/i.test(parent.subject) ? parent.subject : `Re: ${parent.subject}`;
+    else subject = `${task.alias}`;
+    const inReplyTo = parent?.message_id ?? null;
+    const references = parent ? [...parent.references, ...(parent.message_id ? [parent.message_id] : [])] : [];
+    const at = nowIso();
+    return {
+      id: `act_${randomUUID().slice(0, 12)}`, org, task_id: task.id, agent_id: d.agent_id, principal_id: principalId, idempotency_key: key,
+      based_on_version: version, to_addr: d.to, subject, body: d.body, body_sha256: sha256(d.body), in_reply_to: inReplyTo, references,
+      status: 'pending', attempts: 0, provider: null, primitive_email_id: null, event_id: null, last_error: null, created_at: at, updated_at: at,
+    };
   }
 
   /** No send while any email of the task is still being interpreted or failed interpretation. */
@@ -313,8 +404,10 @@ export class Continuity {
       if (!e || e.direction !== 'outbound') return false;
       return (store.getEventRaw(eventId) as { sent_by_agent?: string } | null)?.sent_by_agent === s.agent_id;
     };
-    const isOwn = (t: { event_id: string | null; type: string; summary: string }) => {
+    const isOwn = (t: { event_id: string | null; type: string; summary: string; detail: Record<string, unknown> }) => {
       if (t.event_id) return sentByThisAgent(t.event_id);
+      // this agent's own held drafts are known to it, like its blocked ones
+      if (t.type === 'approval_requested') return (t.detail as { draft?: { agent_id?: string } | null }).draft?.agent_id === s.agent_id;
       return t.type === 'send_blocked' && String(t.summary).includes(`from ${s.agent_id} `);
     };
     const foreign = store.transitionsForTask(task.id, basis).filter((t) => !isOwn(t));
@@ -327,8 +420,8 @@ export class Continuity {
   }
 
   /** The email a send replies to: the one named, else the latest inbound from the recipient, else our latest to them. */
-  #replyParent(store: Store, task: TaskSpec, s: SendInput, to: string) {
-    if (s.reply_to_event) return store.getEvent(s.reply_to_event);
+  #replyParent(store: Store, task: TaskSpec, replyToEvent: string | null | undefined, to: string) {
+    if (replyToEvent) return store.getEvent(replyToEvent);
     const newestFirst = [...store.eventsForTask(task.id)].reverse();
     return newestFirst.find((e) => e.direction === 'inbound' && e.from === to)
       ?? newestFirst.find((e) => e.direction === 'outbound' && e.to.includes(to))
@@ -369,11 +462,13 @@ export class Continuity {
     const status = out.replayed ? 'replayed' : 'delivered';
     action = await this.backend.updateAction(org, action.id, { status, provider: out as never, primitive_email_id: out.primitive_email_id, last_error: null });
     const at = nowIso();
+    // a send a human approved records who approved it
+    const approval = APPROVAL_KEY.test(action.idempotency_key) ? await this.#approvalOfAction(org, task, action.id) : null;
     const input: EventInput = {
       source: out.mode, dedupe_key: `outbound:${out.primitive_email_id ?? out.message_id ?? action.id}`, primitive_email_id: out.primitive_email_id,
       thread_id: out.thread_id ?? null, message_id: out.message_id, in_reply_to: action.in_reply_to, references: action.references, direction: 'outbound',
       from: task.self_address.toLowerCase(), to: [action.to_addr], cc: [], subject: action.subject, body_text: action.body, occurred_at: at, received_at: at, attachments: [], task_id: task.id,
-      raw: { sent_by_agent: action.agent_id, action_id: action.id, transport: out },
+      raw: { sent_by_agent: action.agent_id, action_id: action.id, transport: out, ...(approval ? { approved_by: approval.decided_by, approval_id: approval.id } : {}) },
     };
     if (!input.thread_id) {
       // provider gave no thread id: inherit the parent's thread when we know the parent
@@ -430,6 +525,172 @@ export class Continuity {
         this.engine.notify(org, task.id);
         return;
       }
+    }
+  }
+
+  // ------------------------------------------------------------------ human approval
+  /** Approvals with their cards: open ones (pending, or held to verify), or all with `all`. */
+  async approvals(org: string, opts: { taskId?: string; all?: boolean; allowTask?: (taskId: string) => boolean } = {}) {
+    const allow = opts.allowTask ?? (() => true);
+    const tasks = opts.taskId ? [await this.task(org, opts.taskId)] : (await this.backend.listTasks(org)).map((t) => t.spec);
+    const out: ReturnType<Continuity['approvalView']>[] = [];
+    for (const task of tasks.filter((t) => allow(t.id))) {
+      const snap = await this.backend.loadTask(org, task.id);
+      const list = approvalsForTask(snap.store, task.id).filter((a) => opts.all || a.status === 'pending' || a.status === 'held');
+      if (!list.length) continue;
+      const actions = await this.backend.listActions(org, task.id);
+      for (const a of list) out.push(this.approvalView(snap.store, task, a, actions));
+    }
+    return out;
+  }
+
+  async approval(org: string, taskId: string, id: string) {
+    const { task, snap } = await this.snapshot(org, taskId);
+    const a = approvalsForTask(snap.store, task.id).find((x) => x.id === id);
+    if (!a) throw new HttpError(404, `no approval ${id} on task ${task.alias}`);
+    return this.approvalView(snap.store, task, a, await this.backend.listActions(org, task.id));
+  }
+
+  /** An approval as the API shows it: its record, the card compiled from current state, and the card as text. */
+  approvalView(store: Store, task: TaskSpec, a: Approval, actions: ActionRow[]) {
+    const card = buildCard(store, task, a);
+    const link = approvalLink(task.id, a.id);
+    return {
+      ...a, task_alias: task.alias,
+      // false once the deal changed under a send card: deciding it re-issues a fresh card
+      current: a.kind !== 'send' || a.fingerprint === stateFingerprint(store, task.id),
+      result_event_id: a.action_id ? actions.find((x) => x.id === a.action_id)?.event_id ?? null : null,
+      link, card, text: renderCard(a.id, card, link),
+    };
+  }
+
+  /**
+   * A human's decision on an approval. Refused if the card expired (410), was already decided (409), or
+   * the deal changed after it was made (409; a fresh card replaces it, or the draft is now blocked). Hard
+   * limits are re-checked before anything is sent, also on the human's own edits. Every decision is a
+   * logged transition: who, which option, when; an approved send carries approved_by.
+   */
+  async decide(org: string, taskId: string, approvalId: string, d: DecisionInput, principal?: Principal | null) {
+    const { task, snap } = await this.snapshot(org, taskId);
+    const store = snap.store;
+    const at = nowIso();
+    const a = approvalsForTask(store, task.id, at).find((x) => x.id === approvalId);
+    if (!a) throw new HttpError(404, `no approval ${approvalId} on task ${task.alias}`);
+    if (a.status === 'expired') {
+      if (!a.decided_at) await this.backend.commit(snap, (w) => recordExpired(w, task.id, at)).then((c) => c.ok && this.engine.notify(org, task.id));
+      throw new HttpError(410, `approval ${a.id} expired at ${a.expires_at}`, { code: 'approval_expired' });
+    }
+    if (a.status !== 'pending' && a.status !== 'held') throw new HttpError(409, `approval ${a.id} was already decided (${a.status})`, { code: 'approval_decided', status: a.status });
+    const option = String(d.option ?? '') as OptionId;
+    const options = optionsFor(a.kind);
+    if (!options.some((o) => o.id === option)) throw new HttpError(400, `option must be one of: ${options.map((o) => o.id).join(', ')}`, { code: 'bad_option' });
+
+    const by = `approver:${String(d.by || principal?.label || principal?.id || 'unnamed').slice(0, 80)}`;
+    const extras = {
+      ...(d.note ? { note: String(d.note).slice(0, 500) } : {}),
+      ...(d.edited_body ? { edited_body: String(d.edited_body) } : {}),
+      ...(d.reply_body ? { reply_body: String(d.reply_body) } : {}),
+    };
+    const decision = (status: ApprovalStatus, extra: Record<string, unknown> = {}) => ({ approval_id: a.id, status, option, by, ...extras, ...extra });
+    const commit = async <T>(mutate: (w: Store) => T, opts?: Parameters<Backend['commit']>[2]) => {
+      const c = await this.backend.commit(snap, mutate, opts);
+      if (!c.ok) {
+        if (c.reason === 'stale') throw new HttpError(409, 'the task changed while deciding — reload the card and decide again', { code: 'stale_context', state_version: c.version });
+        throw new HttpError(409, c.detail ?? 'another send for this task is in flight — wait for it to settle', { code: 'send_in_flight', state_version: c.version });
+      }
+      this.engine.notify(org, task.id);
+      return c.value;
+    };
+    const to = a.draft ? labelOf(task, a.draft.to) : null;
+
+    // never decide on a stale picture: the facts changed under the card
+    const acts = option === 'approve' || option === 'approve_with_edits' || option === 'reject_with_reply' || option === 'verified';
+    if (acts && a.kind === 'send' && a.draft && a.fingerprint !== stateFingerprint(store, task.id)) {
+      const g = await this.#guard(task, store, a.draft.to, a.draft.body, (a.draft.intent as SendIntent | null) ?? null);
+      const fresh = await commit((w) => {
+        recordDecision(w, task.id, at, decision('stale', { by: 'system: state changed' }), `${a.id} not decided: the deal changed since the card was made`);
+        if (g.outcome === 'block') {
+          w.addTransition({ task_id: task.id, event_id: null, at, type: 'send_blocked', subject_id: a.id, summary: `Held draft ${a.id} to ${to} is now blocked: ${g.reasons.join('; ')}`, detail: { body: a.draft!.body, intent: a.draft!.intent } });
+          return null;
+        }
+        const reasons = g.hold_reasons.length ? g.hold_reasons : ['re-issued: the deal changed since the earlier card'];
+        return requestApproval(w, task.id, at, { kind: 'send', title: sendTitle(task, a.draft!.to, reasons), reasons, gray_areas: g.gray_areas, draft: a.draft, claim_id: null, replaces: a.id });
+      });
+      const why = fresh ? `review the new card ${fresh}` : 'the draft is now blocked by a hard limit';
+      throw new HttpError(409, `the deal changed since this card was made; ${why}`, { code: 'approval_stale', stale: true, new_approval_id: fresh, reasons: g.reasons });
+    }
+    if (acts && a.kind === 'verify_change') {
+      // a later change to the same detail from the same party replaces this one
+      const claim = store.getClaim(a.claim_id!)!;
+      const newer = openApprovals(store, task.id, at).find((x) => x.kind === 'verify_change' && x.requested_seq > a.requested_seq
+        && store.getClaim(x.claim_id!)?.key === claim.key && store.getClaim(x.claim_id!)?.speaker === claim.speaker);
+      if (newer) {
+        await commit((w) => recordDecision(w, task.id, at, decision('stale', { by: 'system: superseded', new_approval_id: newer.id }), `${a.id} not decided: ${labelOf(task, claim.speaker)} sent a newer ${claim.key} (${newer.id})`));
+        throw new HttpError(409, `a newer change replaced this one; review ${newer.id}`, { code: 'approval_stale', stale: true, new_approval_id: newer.id });
+      }
+    }
+
+    switch (option) {
+      case 'approve':
+      case 'approve_with_edits':
+      case 'reject_with_reply': {
+        const draft = a.draft!;
+        const field = option === 'approve_with_edits' ? 'edited_body' : 'reply_body';
+        const body = option === 'approve' ? draft.body : d[field];
+        if (!body?.trim()) throw new HttpError(400, `${field} is required`, { code: 'bad_decision' });
+        const intent: SendIntent | null = option === 'reject_with_reply' ? 'negotiate' : (draft.intent as SendIntent | null) ?? null;
+        // a human approves what a hold asks about; hard limits still apply, to the human's own words too
+        const g = await this.#guard(task, store, draft.to, body, intent);
+        if (g.outcome === 'block') throw new HttpError(409, 'still blocked by a hard limit — nothing was sent', { ...g, code: 'blocked_by_guard' });
+        if (option === 'reject_with_reply' && g.commitment) {
+          throw new HttpError(409, 'a reply sent instead of the draft must not commit us; approve the draft (or an edit) for that', { ...g, code: 'reply_commits' });
+        }
+        const status: ApprovalStatus = option === 'approve' ? 'approved' : option === 'approve_with_edits' ? 'edited' : 'replied';
+        const instance = await this.backend.instanceId(org);
+        const key = `continuity:${instance}:${task.id}:approval:${a.id}:${option}:${sha256(body).slice(0, 16)}`;
+        const row = this.#actionRow(org, task, store, snap.version, { ...draft, body }, key, principal?.id ?? null);
+        const summary = {
+          approved: `approved and sent the draft to ${to}`, edited: `approved with edits and sent to ${to}`, replied: `rejected the draft and sent a reply to ${to} instead`,
+        }[status as 'approved' | 'edited' | 'replied'];
+        await commit((w) => recordDecision(w, task.id, at, decision(status, { action_id: row.id }), `${by} decided ${a.id}: ${summary}`), { actions: [row] });
+        return { approval_id: a.id, status, sent: await this.#attempt(org, task, row) };
+      }
+      case 'reject':
+        await commit((w) => {
+          if (a.kind === 'verify_change') rejectHeldClaim(w, task, a.claim_id!, by, at);
+          recordDecision(w, task.id, at, decision('rejected'), `${by} decided ${a.id}: ${a.kind === 'send' ? 'rejected the draft; nothing sent' : 'rejected the detail as not genuine'}`);
+        });
+        return { approval_id: a.id, status: 'rejected' };
+      case 'hold_verify':
+        await commit((w) => recordDecision(w, task.id, at, decision('held'), `${by} decided ${a.id}: holding to verify by phone${d.note ? ` (${String(d.note).slice(0, 120)})` : ''}`));
+        return { approval_id: a.id, status: 'held' };
+      case 'verified':
+        await commit((w) => {
+          applyVerifiedClaim(w, task, a.claim_id!, by, at);
+          recordDecision(w, task.id, at, decision('verified'), `${by} decided ${a.id}: verified by phone with a number on file; detail applied`);
+        });
+        return { approval_id: a.id, status: 'verified' };
+      case 'take_over':
+        await commit((w) => recordDecision(w, task.id, at, decision('taken_over'), `${by} decided ${a.id}: a human took over this decision`));
+        return { approval_id: a.id, status: 'taken_over' };
+    }
+    throw new HttpError(400, 'unknown option');
+  }
+
+  /** The approval whose decision created this outbound action (for approved_by on the sent email). */
+  async #approvalOfAction(org: string, task: TaskSpec, actionId: string): Promise<Approval | null> {
+    const snap = await this.backend.loadTask(org, task.id);
+    return approvalsForTask(snap.store, task.id).find((a) => a.action_id === actionId) ?? null;
+  }
+
+  /** Post verification cards the resolver raised while interpreting mail (each once per process). */
+  async #notifyVerifications(org: string, taskId: string) {
+    const { task, snap } = await this.snapshot(org, taskId);
+    for (const a of openApprovals(snap.store, task.id)) {
+      const key = `${org}\u0000${a.id}`;
+      if (a.kind !== 'verify_change' || this.#notified.has(key)) continue;
+      this.#notified.add(key);
+      await notifyApproval(this.approvalWebhook, a, buildCard(snap.store, task, a));
     }
   }
 
@@ -722,6 +983,7 @@ export function validateTaskSpec(input: unknown, selfAddress = ''): TaskSpec {
   return {
     id: t.id, alias: t.alias, goal: str(t.goal, 'goal'), ...(typeof t.item === 'string' ? { item: t.item.slice(0, 200) } : {}),
     self_address: self, participants, requirements, domain,
+    ...(t.approval !== undefined ? { approval: t.approval } : {}),
   };
 }
 

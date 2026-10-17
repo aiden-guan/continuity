@@ -4,8 +4,9 @@
 //   node src/agent/run.ts --task PO-4817 --agent agent-a --watch       # long-running, wakes on new mail
 //
 // On every wake: fetch the compiled context → decide (LLM when ANTHROPIC_API_KEY is set, offline
-// policy otherwise) → POST /send per message (guarded and threaded by Continuity) → move the cursor
-// forward → record the run.
+// policy otherwise) → POST /send per message with its declared intent (guarded and threaded by
+// Continuity; a 202 means a human must approve it, and the plan stops there) → move the cursor
+// forward → record the run. While the next actor is a human, the agent does not act.
 import { parseArgs } from 'node:util';
 import { randomUUID } from 'node:crypto';
 import { policyDecide, type Decision } from './policy.ts';
@@ -90,6 +91,17 @@ async function wake(reason: string) {
     for (const a of ctx.suggested_actions) log(`  P${a.priority} ${a.action}`);
   }
 
+  if (ctx.next_actor === 'human') {
+    // a person has the next move (a held commitment, a detail to verify): do not act around them
+    log(`waiting on a human — not acting this wake: ${ctx.next_actor_reason}`);
+    await http('POST', `${taskPath}/agent-runs`, {
+      agent_id: agentId, started_at: startedAt, mode: args.mode, purpose: 'act', state_version: r.state_version, context_digest: r.context_digest ?? null, context: ctx, briefing: r.briefing,
+      context_tokens: r.briefing_tokens, transcript_tokens: r.transcript_tokens, budget: r.budget ?? null,
+      decision: { action: 'wait', rationale: ctx.next_actor_reason, wake_reason: reason, pid: process.pid }, actions: [],
+    });
+    return r.state_version;
+  }
+
   let mode = args.mode!;
   let decision: Decision;
   try {
@@ -103,7 +115,8 @@ async function wake(reason: string) {
 
   const sent: string[] = [];
   const blocked: unknown[] = [];
-  const actions: { action_id?: string; to: string; status: string; error?: string }[] = [];
+  const held: unknown[] = [];
+  const actions: { action_id?: string; approval_id?: string; to: string; status: string; error?: string }[] = [];
   for (let i = 0; i < decision.messages.length; i++) {
     const m = decision.messages[i];
     if (blocked.length) {
@@ -114,9 +127,18 @@ async function wake(reason: string) {
     }
     try {
       // based_on_version pins the state this decision saw; the server refuses if it moved since
-      const s = await http<{ event_id: string; transport: { mode: string }; subject: string; action_id: string; status: string }>('POST', `${taskPath}/send`, {
-        agent_id: agentId, to: m.to, subject: m.subject, body: m.body, based_on_version: ctx.meta.state_version,
+      const s = await http<{ event_id: string; transport: { mode: string }; subject: string; action_id: string; status: string; held?: boolean; approval_id?: string; title?: string; reasons?: string[] }>('POST', `${taskPath}/send`, {
+        agent_id: agentId, to: m.to, subject: m.subject, body: m.body, intent: m.intent, based_on_version: ctx.meta.state_version,
       });
+      if (s.held) {
+        // 202: a human decides this one; the rest of the plan assumed it went out, so stop here
+        held.push({ to: m.to, approval_id: s.approval_id, reasons: s.reasons });
+        actions.push({ approval_id: s.approval_id, to: m.to, status: 'held' });
+        log(`held for a human: ${s.approval_id} "${s.title}" — ${s.reasons?.join('; ')}`);
+        if (!args.quiet) console.log(m.body.split('\n').map((l) => `    | ${l}`).join('\n'));
+        if (decision.messages.length > i + 1) log(`not sending remaining ${decision.messages.length - i - 1} message(s) until the human decides`);
+        break;
+      }
       sent.push(s.event_id);
       actions.push({ action_id: s.action_id, to: m.to, status: s.status });
       log(`sent ${s.event_id} to ${m.to} via ${s.transport?.mode ?? '?'} (${s.status}, ${s.action_id}): "${s.subject}"`);
@@ -136,7 +158,7 @@ async function wake(reason: string) {
   await http('POST', `${taskPath}/agent-runs`, {
     agent_id: agentId, started_at: startedAt, mode, purpose: 'act', state_version: ctx.meta.state_version, context_digest: r.context_digest ?? null, budget: r.budget ?? null,
     context: ctx, briefing: r.briefing, context_tokens: r.briefing_tokens, transcript_tokens: r.transcript_tokens, usage: decision.usage ?? null, actions,
-    decision: { ...decision, usage: undefined, sent, blocked, pid: process.pid, prior_messages_in_process_memory: conversationMemory.length, wake_reason: reason },
+    decision: { ...decision, usage: undefined, sent, blocked, held, pid: process.pid, prior_messages_in_process_memory: conversationMemory.length, wake_reason: reason },
     sent_event_id: sent[0] ?? null,
   });
   // a long-running agent accumulates this; a fresh process always starts at 0
@@ -155,6 +177,7 @@ async function main() {
     seen = state_version;
     if (ch.changes.some((c) => c.type === 'event_ingested' && c.detail.direction === 'inbound')) seen = await wake('new inbound mail');
     else if (ch.changes.some((c) => c.type === 'obligation_overdue')) seen = await wake('a deadline passed');
+    else if (ch.changes.some((c) => ['approval_decided', 'claim_verified', 'claim_rejected'].includes(c.type))) seen = await wake('a human decided');
   }
 }
 
