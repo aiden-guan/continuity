@@ -152,12 +152,12 @@ export function runChecks(task: TaskSpec, active: Claim[]): CheckResult[] {
 
 const MONEY_LABELS: [string, RegExp][] = [
   ['invoice.amount', /\b(?:total(?: due)?|invoice total|invoiced|amount due|total of|corrected total|revised total|new total|billed)\b/i],
-  ['balance.due', /\b(?:balance(?: due| outstanding| owed)?|outstanding|you owe|still owe|owed|settle(?: [\w-]+)? (?:at|for)|settlement amount|amount payable under this offer|payable under)\b/i],
+  ['balance.due', /\b(?:balance(?: due| outstanding| owed)?|outstanding|you owe|still owe|owed|remains? (?:due|outstanding|owing)|due in full|settle(?: [\w-]+)? (?:at|for)|settlement amount|amount payable under this offer|payable under)\b/i],
   ['credit.memo_amount', /\b(?:credit(?: memo| note)?(?: amount)?|credited)\b/i],
 ];
 const APPROVAL = /\b(approv\w*|ok from me|okay from me|sign(?:ed)? off|cleared|go ahead|budget for|up to|max(?:imum)?|cap|ceiling|limit)\b/i;
 const NEGATED = /\b(?:no|not|cannot|can't|can not|don't|do not|won't|unable|never)\b[^.]{0,25}$/i;
-const WITHDRAW = /\b(?:withdraw\w*|rescind\w*|retract\w*|pull\w*|cancel\w*) (?:the |our |my |yesterday's |that |this )?(?:[\w%.-]+ ){0,3}?(?:offer|discount|settlement|proposal)\b|\bplease disregard (?:the |our |my )?(?:[\w%.-]+ ){0,3}?(?:offer|discount|settlement)|\b(?:offer|discount|settlement) (?:is |has been )?(?:withdrawn|off the table|no longer (?:valid|available|stands))|\bdid not approve (?:it|the (?:discount|offer|settlement))/i;
+const WITHDRAW = /\b(?:withdraw\w*|rescind\w*|retract\w*|pull\w*|cancel\w*) (?:the |our |my |yesterday's |that |this )?(?:[\w%.-]+ ){0,3}?(?:offer|discount|settlement|proposal)\b|\bplease disregard (?:the |our |my )?(?:[\w%.-]+ ){0,3}?(?:offer|discount|settlement)|\b(?:offer|discount|settlement)\b[^.]{0,30}?\b(?:is|has been|was)\s+(?:now\s+)?(?:withdrawn|cancel+ed|rescinded|off the table|no longer (?:valid|available|on offer))|\bdid not approve (?:it|the (?:discount|offer|settlement))/i;
 const NOT_WITHDRAWN = /\b(?:not|never|haven't|hasn't)\s+(?:been\s+)?(?:withdraw|cancel|rescind)/i;
 const CONDITIONAL = /\b(if|unless|in case|would you|should we)\b/i;
 const SCHEDULED = /\b(?:payment (?:has been|was|is now|is) (?:scheduled|released|sent|approved|made|initiated)|(?:we|i)(?:'ve| have) (?:scheduled|released|sent|paid|remitted) (?:the |your |this )?(?:payment|invoice|wire|installment)|(?:we|i)(?:'ll| will) (?:release|remit|send|make|process|schedule) (?:the |your )?(?:full )?payment)\b/i;
@@ -194,17 +194,33 @@ function financeSentence(x: HeuristicSentence, st: FinanceState): void {
   }
 
   const all = amounts(s);
+  const remit = bankAccount(s);
+  const remitOk = remit && !/\b(?:not|old|previous|instead of|from|closed)\s*(?:the\s+|our\s+)?$/i.test(s.slice(Math.max(0, remit.index - 16), remit.index));
   if (internal) {
+    // a colleague relaying "new bank details" is recorded, never applied (purchasing has no say over remittance)
+    if (remit && remitOk && !x.fromAttachment) claim('payment.remit_to', remit.value, 'info');
     // the controller's approval; purchasing's receipt count
     if (has(x.senderAuthority, 'approval.') && APPROVAL.test(s)) {
       const capped = all.find((a) => /\b(?:max(?:imum)?|up to|cap|ceiling|limit|not to exceed|budget)\b[^$]{0,20}$/i.test(s.slice(Math.max(0, a.index - 25), a.index))) ?? (all.length === 1 ? all[0] : undefined);
       if (capped) claim('approval.max_amount', capped.value, 'decision');
     }
     if (has(x.senderAuthority, 'receipt.')) {
-      const rx = s.match(/\b(?:counted|received|accepted|got|took in)\s+(?:all\s+)?(\d[\d,]*)\b(?!\s*%)|\b(\d[\d,]*)\s+(?:[a-z-]+\s+)?(?:were\s+|was\s+)?(?:accepted|received)\b|\b(?:all|every one of the)\s+(\d[\d,]*)\s+[a-z-]+\s+(?:arrived|were received)\b/i);
-      const lead = rx ? s.slice(Math.max(0, rx.index! - 20), rx.index!) : '';
-      if (rx && !/\b(?:rejected|damaged|refused|missing|short)\b/i.test(s.slice(rx.index!, rx.index! + rx[0].length)) && !/\bof the\s*$/i.test(lead)) {
-        claim('receipt.quantity', toNumber(rx[1] ?? rx[2] ?? rx[3]), 'info');
+      // accepted beats arrived ("All 400 arrived but 16 were rejected, so we accepted 384"); "37 of 40" is 37
+      const patterns = [
+        /\b(?:we |so we |and )?accepted\s+(?:all\s+)?(\d[\d,]*)\b(?!\s*%)|\b(\d[\d,]*)\s+(?:[a-z-]+\s+)?(?:were\s+|was\s+)?accepted\b/i,
+        /\b(\d[\d,]*)\s+of\s+(?:the\s+)?\d[\d,]*\s+(?:[a-z-]+\s+)?(?:were\s+)?(?:received|accepted|arrived|came in)\b|\b(?:receiving|we|it|the system|the log) (?:shows?|confirms?|counted|logged|has|have)\s+(\d[\d,]*)\b/i,
+        /\b(?:counted|received|got|took in)\s+(?:all\s+|the full\s+)?(\d[\d,]*)\b(?!\s*%)|\bfull quantity\s*\((\d[\d,]*)\)/i,
+        /\b(?:only|the full|full|all|every one of the)?\s*(\d[\d,]*)\s+(?:[a-z-]+\s+)?(?:were\s+|was\s+)?(?:received|came in|arrived|went into stock|(?:were )?put away|(?:are|is|went) in(?:to)? stock)\b/i,
+      ];
+      for (const rx of patterns) {
+        const m = s.match(rx);
+        const qty = m ? m.slice(1).find((g) => g !== undefined) : undefined;
+        if (!m || !qty) continue;
+        const lead = s.slice(Math.max(0, m.index! - 20), m.index!);
+        const right = s.slice(m.index!, m.index! + m[0].length) + s.slice(m.index! + m[0].length, m.index! + m[0].length + 14).split(/[,;.]/)[0];
+        if (/\b(?:rejected|damaged|refused|missing|short|never)\b/i.test(right) || /\b(?:of the|of)\s*$/i.test(lead)) continue;
+        claim('receipt.quantity', toNumber(qty), 'info');
+        break;
       }
     }
     return;
@@ -212,20 +228,37 @@ function financeSentence(x: HeuristicSentence, st: FinanceState): void {
 
   // money, by label; "i.e. $17,640" or "net $39,000" after a discount is not a term
   const allowedKey = (key: string) => !x.senderAuthority.length || has(x.senderAuthority, key);
+  // "INV-16849 comes down by $1,200 to $14,800": what is owed now
+  const down = s.match(/\b(?:comes? down|reduced|drops?|goes? down|brings? (?:it|the balance|the invoice|the total)(?: down)?)\b[^$.]{0,20}(?:\$[\d,.]+[^$.]{0,6})?\bto\s+\$([\d,]+(?:\.\d{2})?)/i);
+  if (down && allowedKey('balance.due')) claim('balance.due', toNumber(down[1]));
+
   for (const a of all) {
     const before = s.slice(Math.max(0, a.index - 14), a.index);
-    if (NEGATED.test(s.slice(Math.max(0, a.index - 30), a.index)) || /\b(?:not|instead of|rather than|was|from|i\.e\.|net|less|minus)\s*\(?$/i.test(before)) continue;
+    if (NEGATED.test(s.slice(Math.max(0, a.index - 30), a.index)) || /\b(?:not|instead of|rather than|was|from|i\.e\.|net|less|minus|by)\s*\(?$/i.test(before)) continue;
+    if (down && a.index > down.index! && a.index < down.index! + down[0].length) continue;
     if (/^\s*(?:net|instead|off)\b/i.test(s.slice(a.end, a.end + 8))) continue;
     const key = labelAmount(s, a, all, MONEY_LABELS, 30);
     if (key && allowedKey(key)) claim(key, a.value);
   }
 
+  // a restated bill: "$74,100 for the 285 boxes"
+  const restated = !/\bcredit/i.test(s) ? s.match(/\$([\d,]+(?:\.\d{2})?)\s+for\s+(?:the\s+|all\s+|only\s+)?(\d[\d,]*)\s+(?!x\b)[a-z-]+/i) : null;
+  if (restated && allowedKey('invoice.amount')) {
+    claim('invoice.amount', toNumber(restated[1]));
+    claim('invoice.quantity', toNumber(restated[2]));
+  }
+
   // invoice number, billed quantity, terms, due date, discount
-  const num = fieldValue(s, /invoice\s*(?:#|no\.?|number)/i)?.match(/^([A-Z]{1,5}-?\d{3,})/)?.[1];
+  const num = fieldValue(s, /invoice\s*(?:#|no\.?|number)/i)?.match(/^([A-Z]{1,5}-?\d{3,})/)?.[1]
+    ?? (!x.fromAttachment && /\b(?:invoice|discount|offer|pay|settle|due)\w*/i.test(s)
+      ? [...s.matchAll(/\b([A-Z]{2,4})-(\d{4,6})\b/g)].find((m) => !/^(?:PO|CM|SO|ACM|RMA|GL)$/.test(m[1]))?.[0]
+      : undefined);
   if (num) claim('invoice.number', num, 'info');
-  const line = s.match(/^\s*\d+\.\s+[^:]+:\s*(\d[\d,]*)\s*x\s*\$/);
-  if (line) claim('invoice.quantity', toNumber(line[1]));
-  const billedQty = !line && s.match(/\b(?:bill(?:s|ed|ing)?|invoice(?:s|d)?)\s+(?:for\s+)?(?:only\s+)?(?:the\s+)?(\d[\d,]*)\s+(?!x\b)[a-z-]+/i);
+  // an invoice line ("M8 hex bolts (HB-M8): 60 x $395.00 = $23,700.00"), or the cover note ("covering the 60 boxes")
+  const line = x.fromAttachment ? s.match(/^[^:]{3,90}:\s*(\d[\d,]*)\s*x\s*\$/) : null;
+  if (line && !/\bcredit/i.test(s)) claim('invoice.quantity', toNumber(line[1]));
+  const billedQty = !line && (s.match(/\b(?:bill(?:s|ed|ing)?|invoice(?:s|d)?)\s+(?:for\s+)?(?:only\s+)?(?:the\s+)?(\d[\d,]*)\s+(?!x\b)[a-z-]+/i)
+    ?? s.match(/\binvoice\b[^.]{0,40}?\b(?:covering|for) (?:the |all )?(\d[\d,]*)\s+(?!x\b)[a-z-]+/i));
   if (billedQty && !x.fromAttachment && !/\bof\b/i.test(billedQty[0])) claim('invoice.quantity', toNumber(billedQty[1]));
   const terms = fieldValue(s, /payment terms/i) ?? s.match(/\b(\d(?:\.\d)?\/10,? net\s?\d{2,3}|net\s?-?\d{2,3})\b/i)?.[1];
   if (terms) claim('payment.terms', terms.replace(/\bnet\s?-?(\d+)/i, 'Net $1').replace(/^(\d(?:\.\d)?\/10),?\s*/, '$1 ').trim());
@@ -238,9 +271,9 @@ function financeSentence(x: HeuristicSentence, st: FinanceState): void {
   };
   const due = dateAfter(/\b(?:due date|(?:invoice |it |which )?(?:is |now |will be )?(?:now )?due(?: on| by)?|payable (?:by|on)|pay(?:ment)? by the due date of)\b/i);
   if (due && !/\bdeposit|discount|if paid|to take/i.test(s.slice(Math.max(0, due.index - 40), due.index))) claim('invoice.due_date', due.iso);
-  const pct = s.match(/(\d{1,2}(?:\.\d+)?)\s*%\s*(?:early[- ]payment\s+)?(?:discount|off)\b|\b(?:discount|take|offer)\b[^.%]{0,30}?(\d{1,2}(?:\.\d+)?)\s*%/i);
+  const pct = s.match(/(\d{1,2}(?:\.\d+)?)\s*%\s*(?:early[- ]payment\s+)?(?:discount|off)\b|\b(?:discount|take|offer)\b[^.%]{0,30}?(\d{1,2}(?:\.\d+)?)\s*%|\b(?:honou?r|keep|stay at|back to|restore)\s+(?:the\s+)?(\d{1,2}(?:\.\d+)?)\s*%/i);
   if (pct && !NEGATED.test(s.slice(0, pct.index)) && !/\b(?:not|no longer)\b/i.test(s.slice(Math.max(0, pct.index! - 12), pct.index!))) {
-    claim('discount.early_pay_pct', Number(pct[1] ?? pct[2]));
+    claim('discount.early_pay_pct', Number(pct[1] ?? pct[2] ?? pct[3]));
     const by = dateAfter(/\b(?:if (?:paid|we (?:have|receive) (?:the funds|payment)|payment is received)|paid|received|funds)\s+by\b|\bby\b(?=[^.]{0,30}\b(?:mon|tue|wed|thu|fri|sat|sun|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\d))/i);
     if (by) claim('discount.deadline', by.iso);
   } else {
@@ -259,8 +292,7 @@ function financeSentence(x: HeuristicSentence, st: FinanceState): void {
   }
 
   // remit-to and the dispute
-  const remit = bankAccount(s);
-  if (remit && !/\b(?:not|old|previous|instead of|from|closed)\s*(?:the\s+|our\s+)?$/i.test(s.slice(Math.max(0, remit.index - 16), remit.index))) claim('payment.remit_to', remit.value);
+  if (remit && remitOk) claim('payment.remit_to', remit.value);
   if (/\bdispute\b/i.test(s)) {
     if (/\b(?:stays|remains|is still|still) open\b|\bopen(?:ed)? a dispute\b/i.test(s)) claim('dispute.status', 'open', 'info');
     else if (/\b(?:dispute\b[^.]{0,30}\bresolved|resolv\w+ the dispute|close[sd]? the dispute)\b/i.test(s)) claim('dispute.status', 'resolved', 'info');

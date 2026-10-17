@@ -98,7 +98,8 @@ export interface LinkLookup {
   taskForThread(threadId: string): Promise<string | null>;
   eventByPrimitiveEmailId(id: string): Promise<StoredEvent | null>;
   eventByMessageId(id: string): Promise<StoredEvent | null>;
-  tasks(): Promise<{ id: string; alias: string }[]>;
+  /** `goal` lets the linker match other references the task names (e.g. the PO an invoice is on). */
+  tasks(): Promise<{ id: string; alias: string; goal?: string }[]>;
 }
 
 export interface BlobRef { event_id: string; part_index: number }

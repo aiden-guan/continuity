@@ -139,7 +139,7 @@ export class PostgresBackend implements Backend {
           taskForThread: async (t) => (await tx`select task_id from continuity.task_threads where org_id = ${org} and thread_id = ${t}`)[0]?.task_id ?? null,
           eventByPrimitiveEmailId: async (pid) => this.#eventBy(tx, org, 'primitive_email_id', pid),
           eventByMessageId: async (mid) => this.#eventBy(tx, org, 'message_id', mid),
-          tasks: async () => (await tx`select id, alias from continuity.tasks where org_id = ${org} order by created_at`).map((r) => ({ id: r.id as string, alias: r.alias as string })),
+          tasks: async () => (await tx`select id, alias, goal from continuity.tasks where org_id = ${org} order by created_at`).map((r) => ({ id: r.id as string, alias: r.alias as string, goal: r.goal as string })),
         });
         const seq = input.preserve_seq
           ? Number((await tx`update continuity.counters set value = greatest(value, ${input.preserve_seq}) where org_id = ${org} and name = 'ev'

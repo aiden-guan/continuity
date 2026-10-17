@@ -34,10 +34,24 @@ export async function resolveTask(store: LinkLookup, e: EventInput): Promise<Lin
 
   // 5. the task alias written out in the subject or body, as people actually write it
   const haystack = `${e.subject}\n${e.body_text}`;
-  for (const task of await store.tasks()) {
+  const tasks = await store.tasks();
+  for (const task of tasks) {
     if (aliasPattern(task.alias).test(haystack)) return { task_id: task.id, reason: `explicit task reference "${task.alias}"` };
   }
+  // 6. another reference the task itself names (the PO an invoice is on), when exactly one task names it
+  for (const task of tasks) {
+    for (const ref of referencesIn(task.goal ?? '', task.alias)) {
+      if (!aliasPattern(ref).test(haystack)) continue;
+      if (tasks.filter((t) => t !== task && referencesIn(t.goal ?? '', t.alias).includes(ref)).length) continue;
+      return { task_id: task.id, reason: `reference "${ref}" named in the task` };
+    }
+  }
   return null;
+}
+
+/** Reference codes ("PO-4817", "LGL-4417") a task's goal names besides its alias. */
+function referencesIn(goal: string, alias: string): string[] {
+  return [...new Set(goal.match(/\b[A-Z]{2,6}-\d{3,}\b/g) ?? [])].filter((r) => r.toLowerCase() !== alias.toLowerCase());
 }
 
 /** NOUNS people put before a bare reference number ("load 40209", "invoice #20417", "matter 4417"). */
