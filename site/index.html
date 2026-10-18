@@ -198,7 +198,7 @@
           </div>
           <div class="lb-key reveal"><span class="me"><i></i>Continuity</span><span><i></i>Primitive alone</span><span class="lb-unit">handoffs right, %</span></div>
           <div class="lb">
-            <figure class="bench reveal">
+            <figure class="bench reveal" data-spec="ledger" tabindex="0">
               <figcaption><b>LedgerBench</b><span>finance</span></figcaption>
               <em>+21</em>
               <div class="bars">
@@ -206,7 +206,7 @@
                 <div class="col"><b>28</b><i style="--h:0.28"></i></div>
               </div>
             </figure>
-            <figure class="bench reveal" style="--d:0.08s">
+            <figure class="bench reveal" data-spec="cargo" tabindex="0" style="--d:0.08s">
               <figcaption><b>CargoBench</b><span>freight</span></figcaption>
               <em>+32</em>
               <div class="bars">
@@ -214,7 +214,7 @@
                 <div class="col"><b>39</b><i style="--h:0.39"></i></div>
               </div>
             </figure>
-            <figure class="bench reveal" style="--d:0.16s">
+            <figure class="bench reveal" data-spec="stay" tabindex="0" style="--d:0.16s">
               <figcaption><b>StayBench</b><span>hotels</span></figcaption>
               <em>+5</em>
               <div class="bars">
@@ -222,7 +222,7 @@
                 <div class="col"><b>62</b><i style="--h:0.62"></i></div>
               </div>
             </figure>
-            <figure class="bench reveal" style="--d:0.24s">
+            <figure class="bench reveal" data-spec="clause" tabindex="0" style="--d:0.24s">
               <figcaption><b>ClauseBench</b><span>legal</span></figcaption>
               <em>+23</em>
               <div class="bars">
@@ -230,7 +230,7 @@
                 <div class="col"><b>59</b><i style="--h:0.59"></i></div>
               </div>
             </figure>
-            <figure class="bench reveal" style="--d:0.32s">
+            <figure class="bench reveal" data-spec="procure" tabindex="0" style="--d:0.32s">
               <figcaption><b>ProcureBench</b><span>procurement</span></figcaption>
               <em>+18</em>
               <div class="bars">
@@ -239,6 +239,64 @@
               </div>
             </figure>
           </div>
+          <aside class="lb-spec" aria-live="polite">
+            <p class="spec on spec-hint" data-for="hint"><span class="h-mouse">Hover a benchmark.</span><span class="h-touch">Tap a benchmark.</span></p>
+            <div class="spec" data-for="ledger">
+              <b class="spec-n">LedgerBench</b>
+              <p>Accounts payable: invoices, disputes, payment plans, bank-change fraud.</p>
+              <p class="spec-m">130 held-out email threads, 13 trap types. A fresh agent with zero memory picks the next move. Right = right move and every key fact.</p>
+              <table>
+                <tr><th></th><th><i class="me"></i></th><th><i></i></th></tr>
+                <tr><td>Right /130</td><td>64</td><td>37</td></tr>
+                <tr><td>Key facts</td><td>64%</td><td>33%</td></tr>
+                <tr><td>Tokens</td><td>6.2k</td><td>14.0k</td></tr>
+              </table>
+            </div>
+            <div class="spec" data-for="cargo">
+              <b class="spec-n">CargoBench</b>
+              <p>Freight brokerage: rate confirmations, pickup windows, carrier quotes, remit-to fraud.</p>
+              <p class="spec-m">130 held-out email threads, 13 trap types. A fresh agent with zero memory picks the next move. Right = right move and every key fact.</p>
+              <table>
+                <tr><th></th><th><i class="me"></i></th><th><i></i></th></tr>
+                <tr><td>Right /130</td><td>92</td><td>51</td></tr>
+                <tr><td>Key facts</td><td>86%</td><td>59%</td></tr>
+                <tr><td>Tokens</td><td>7.9k</td><td>10.9k</td></tr>
+              </table>
+            </div>
+            <div class="spec" data-for="stay">
+              <b class="spec-n">StayBench</b>
+              <p>Hotel group sales: room blocks, contract redlines, cutoffs, deposit-wire fraud.</p>
+              <p class="spec-m">130 held-out email threads, 13 trap types. A fresh agent with zero memory picks the next move. Right = right move and every key fact.</p>
+              <table>
+                <tr><th></th><th><i class="me"></i></th><th><i></i></th></tr>
+                <tr><td>Right /130</td><td>87</td><td>81</td></tr>
+                <tr><td>Key facts</td><td>88%</td><td>75%</td></tr>
+                <tr><td>Tokens</td><td>8.0k</td><td>15.3k</td></tr>
+              </table>
+            </div>
+            <div class="spec" data-for="clause">
+              <b class="spec-n">ClauseBench</b>
+              <p>Contracts: clause redlines, fallback positions, sign-off authority, spoofed final versions.</p>
+              <p class="spec-m">130 held-out email threads, 13 trap types. A fresh agent with zero memory picks the next move. Right = right move and every key fact.</p>
+              <table>
+                <tr><th></th><th><i class="me"></i></th><th><i></i></th></tr>
+                <tr><td>Right /130</td><td>107</td><td>77</td></tr>
+                <tr><td>Key facts</td><td>93%</td><td>66%</td></tr>
+                <tr><td>Tokens</td><td>7.4k</td><td>13.1k</td></tr>
+              </table>
+            </div>
+            <div class="spec" data-for="procure">
+              <b class="spec-n">ProcureBench</b>
+              <p>Procurement: quotes, delivery lots, budgets, supplier corrections.</p>
+              <p class="spec-m">130 held-out email threads, 13 trap types. A fresh agent with zero memory picks the next move. Right = right move and every key fact.</p>
+              <table>
+                <tr><th></th><th><i class="me"></i></th><th><i></i></th></tr>
+                <tr><td>Right /130</td><td>97</td><td>74</td></tr>
+                <tr><td>Key facts</td><td>89%</td><td>75%</td></tr>
+                <tr><td>Tokens</td><td>5.6k</td><td>10.1k</td></tr>
+              </table>
+            </div>
+          </aside>
           <p class="source reveal">Held-out split · 650 cases · same Haiku agent · <code>bench/FINDINGS.md</code> · <code>bench/value</code></p>
         </div>
       </div>

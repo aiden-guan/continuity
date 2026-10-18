@@ -316,6 +316,39 @@ async function setupStory() {
   one('#foot-src').textContent = `story: real engine output, ${snap.captured_at.slice(0, 10)}`;
 }
 
+// ============================================================ 4 · results: hover a benchmark for its spec
+// The card sits in the label column's empty space, level with the leaderboard; on narrow screens it
+// follows the leaderboard and a tap picks the benchmark.
+function setupBenchSpec() {
+  const lb = one('.lb');
+  const spec = one('.lb-spec');
+  if (!lb || !spec) return;
+  const grid = one('#proof .sec-grid');
+  const label = one('#proof .sec-k');
+  const cards = all('.spec', spec);
+  const panels = all('.bench', lb);
+  const show = (key) => {
+    cards.forEach((c) => c.classList.toggle('on', c.dataset.for === key));
+    panels.forEach((p) => p.classList.toggle('on', p.dataset.spec === key));
+  };
+  panels.forEach((p) => {
+    const pick = () => show(p.dataset.spec);
+    p.addEventListener('mouseenter', pick);
+    p.addEventListener('focus', pick);
+    p.addEventListener('click', pick);
+  });
+  lb.addEventListener('mouseleave', () => show('hint'));
+
+  const place = () => {
+    const beside = getComputedStyle(grid).gridTemplateColumns.split(' ').length > 1;
+    spec.classList.toggle('beside', beside);
+    spec.style.top = beside ? `${lb.offsetTop}px` : '';
+    spec.style.width = beside ? `${label.getBoundingClientRect().width}px` : '';
+  };
+  new ResizeObserver(place).observe(grid);
+  place();
+}
+
 // ============================================================ 5 · wordmark
 // paper-on-paper: the dither only reaches full ink where the slow sweep or the pointer lights it
 const wordmarkPalette = () => [token('--bg'), token('--bg-2'), token('--faint'), token('--muted')];
@@ -360,4 +393,5 @@ if (document.documentElement.classList.contains('px')) {
 }
 setupMechanism(one('#mech'));
 setupStory();
+setupBenchSpec();
 setupWordmark();

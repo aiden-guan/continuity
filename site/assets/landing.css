@@ -839,6 +839,31 @@
 
 .source { margin: 20px 0 0; font: 12px/1.5 var(--mono); color: var(--muted); }
 
+/* a benchmark's spec: what it is, how it ran, three numbers */
+#proof .sec-body { position: relative; }
+.bench { cursor: default; outline: none; transition: background 0.25s; }
+.bench.on { background: var(--surface); }
+.bench:focus-visible { box-shadow: inset 0 0 0 2px var(--signal); }
+.lb-spec { margin-top: 20px; }
+.lb-spec.beside { position: absolute; top: 0; right: calc(100% + 40px); margin: 0; }
+.spec { display: none; padding-top: 14px; border-top: 1px solid var(--ink); }
+.spec.on { display: block; animation: spec-in 0.35s var(--ease); }
+@keyframes spec-in { from { opacity: 0; transform: translateY(6px); } }
+.spec-hint { margin: 0; border-top-color: var(--line); font: 500 11.5px/1 var(--mono); color: var(--faint); }
+.spec-n { display: block; font: 600 17px/1.2 var(--sans); letter-spacing: -0.02em; }
+.spec p { margin: 8px 0 0; font-size: 13px; line-height: 1.45; color: var(--ink-2); }
+.spec .spec-m { font: 11px/1.55 var(--mono); color: var(--muted); }
+.spec table { width: 100%; margin-top: 12px; border-collapse: collapse; font: 500 12px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.spec th,
+.spec td { padding: 7px 0 7px 10px; border-top: 1px solid var(--line); text-align: right; }
+.spec th:first-child,
+.spec td:first-child { padding-left: 0; text-align: left; color: var(--muted); }
+.spec td:nth-child(2) { font-weight: 600; color: var(--signal-ink); }
+.spec th i { display: inline-block; width: 9px; height: 9px; background: var(--line-2); }
+.spec th i.me { background: var(--signal); }
+@media (hover: hover) { .h-touch { display: none; } }
+@media (hover: none) { .h-mouse { display: none; } }
+
 @media (max-width: 960px) {
   .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .stat:nth-child(3) { padding-left: 0; border-left: 0; }
