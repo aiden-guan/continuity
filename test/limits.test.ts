@@ -14,6 +14,11 @@ import { defaultAddresses, procurementTask } from '../src/sim/scenario.ts';
 import { MemoryBackend } from '../src/store/memory-backend.ts';
 import type { EventInput } from '../src/types.ts';
 
+// Wall-clock bound for "was cut off by the configured limit". Generous (far above the tiny limits the tests set, so a
+// loaded machine still passes) yet well below the defaults (150 s extraction deadline, 30 s attachment timeout), so a
+// limit that silently fell back to its default still fails. The limit itself is also checked without the clock.
+const CUT_OFF_BOUND_MS = 10_000;
+
 const addr = defaultAddresses();
 const task = procurementTask(addr);
 const ORG = 'org_limits';
@@ -34,14 +39,16 @@ async function setup(extractor: Extractor, opts: EngineOptions = {}, fetchAttach
   return { backend, engine, flags, claims };
 }
 
-test('an extraction past its deadline falls back to rules and is flagged, even if the extractor ignores the signal', async () => {
+test('an extraction past its deadline falls back to rules and is flagged, even if the extractor ignores the signal', { timeout: 60_000 }, async () => {
   const hangs: Extractor = { name: 'hangs', extract: () => new Promise(() => {}) };
   const { engine, flags, claims } = await setup(hangs, { extractDeadlineMs: 50 });
   const started = Date.now();
   const r = await engine.ingest(ORG, mail('PO-4817 quote'));
-  assert.ok(Date.now() - started < 1000);
+  const elapsed = Date.now() - started;
   assert.equal(r.extractor, heuristicExtractor.name);
-  assert.ok((await flags()).some((f) => f.kind === 'extractor_fallback' && /deadline/.test(f.detail)));
+  // the configured 50 ms deadline fired (not the default), and nothing waited on the hung extractor
+  assert.ok((await flags()).some((f) => f.kind === 'extractor_fallback' && /deadline of 50 ms exceeded/.test(f.detail)));
+  assert.ok(elapsed < CUT_OFF_BOUND_MS, `ingest took ${elapsed} ms with a 50 ms extraction deadline`);
   assert.equal((await claims()).find((c) => c.key === 'price.unit')?.value, 11.4);
 });
 
@@ -109,11 +116,15 @@ test('limiter: at most N jobs run at once, the rest wait their turn', async () =
   assert.equal(peak, 2);
 });
 
-test('an attachment download that hangs is cut off by its timeout; the email is still interpreted', async () => {
+test('an attachment download that hangs is cut off by its timeout; the email is still interpreted', { timeout: 60_000 }, async () => {
   let sawSignal = false;
+  let abortReason: unknown = null;
   const hangingFetch: AttachmentFetcher = (_event, _part, signal) => new Promise((_resolve, reject) => {
     sawSignal = !!signal;
-    signal?.addEventListener('abort', () => reject(signal.reason));
+    signal?.addEventListener('abort', () => {
+      abortReason = signal.reason;
+      reject(signal.reason);
+    });
   });
   const { engine, flags } = await setup(heuristicExtractor, { attachmentTimeoutMs: 30 }, hangingFetch);
   const input = mail('PO-4817 quote attached');
@@ -121,8 +132,11 @@ test('an attachment download that hangs is cut off by its timeout; the email is 
   input.attachments = [{ filename: 'quote.pdf', content_type: 'application/pdf', size_bytes: 1000, sha256: 'abc', part_index: 0 }];
   const started = Date.now();
   const r = await engine.ingest(ORG, input);
-  assert.ok(Date.now() - started < 1000);
+  const elapsed = Date.now() - started;
   assert.equal(sawSignal, true);
+  // the download was ended by the timeout signal, not by anything else, and well before the 30 s default
+  assert.equal((abortReason as Error | null)?.name, 'TimeoutError');
+  assert.ok(elapsed < CUT_OFF_BOUND_MS, `ingest took ${elapsed} ms with a 30 ms attachment timeout`);
   assert.equal(r.extractor, heuristicExtractor.name);
   assert.ok((await flags()).some((f) => f.kind === 'attachment_unreadable'));
 });

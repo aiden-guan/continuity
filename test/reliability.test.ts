@@ -34,7 +34,6 @@ function supplierEmail(body: string, at: string, subject = 'PO-4817 update'): Ev
 
 const nowIso = () => new Date().toISOString();
 const inFuture = (ms: number) => new Date(Date.now() + ms).toISOString();
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const OFFER = 'We can deliver 500 units Friday (Oct 23) at $11.40 each.';
 const CORRECTION = 'Correction: only 300 units can arrive Friday. The other 200 won\'t arrive until Wednesday, Oct 28.';
@@ -70,7 +69,10 @@ for (const backendCase of backendCases()) {
   test(`[${label}] receipt is durable before interpretation; a crashed worker's job is recovered exactly once`, async () => {
     const backend = await backendCase.make();
     const { org, task } = await freshTask(backend);
-    const doomed = new Engine(backend, heuristicExtractor, null, { workerId: 'crashed', leaseMs: 150 });
+    // Lease expiry is judged against the `now` each claim passes in, so the test moves that clock instead of
+    // sleeping: a fixed sleep raced a short real lease on a loaded machine.
+    const LEASE_MS = 60_000;
+    const doomed = new Engine(backend, heuristicExtractor, null, { workerId: 'crashed', leaseMs: LEASE_MS });
 
     const received = await doomed.receive(org, supplierEmail(OFFER, '2026-10-19T11:00:00Z'));
     assert.equal(received.linked, true);
@@ -78,13 +80,12 @@ for (const backendCase of backendCases()) {
     assert.deepEqual(snap.store.pendingEventIds(task.id), [received.event.id], 'stored and visible as pending before interpretation');
 
     // The worker takes the job and then dies while still holding the lease.
-    const heldJob = await backend.claimJob('crashed', nowIso(), 150);
+    const heldJob = await backend.claimJob('crashed', nowIso(), LEASE_MS);
     assert.ok(heldJob);
 
     const survivor = new Engine(backend, heuristicExtractor, null, { workerId: 'survivor', leaseMs: 60_000 });
     assert.equal(await survivor.drain({ org }), 0, 'lease still live');
-    await sleep(200);
-    assert.equal(await survivor.drain({ org }), 1, 'expired lease reclaimed');
+    assert.equal(await survivor.drain({ org }, inFuture(LEASE_MS + 1_000)), 1, 'expired lease reclaimed');
 
     // The dead worker wakes up and runs its outdated copy of the job; it must not apply twice.
     await doomed.runJob(heldJob!);
@@ -201,13 +202,18 @@ for (const backendCase of backendCases()) {
   test(`[${label}] sends: refused on incomplete or stale state; one in flight per task; retries reconcile without duplicate mail`, async () => {
     const backend = await backendCase.make();
 
-    // An extractor we can pause, to hold an email in the "being interpreted" state.
+    // An extractor we can pause, to hold an email in the "being interpreted" state. `reached` resolves once
+    // interpretation is actually under way, so the test never guesses how long that takes.
     let openGate!: () => void;
     let gate: Promise<void> | null = null;
+    let reachedGate: () => void = () => {};
     const pausable: Extractor = {
       name: 'gated',
       async extract(input) {
-        if (gate) await gate;
+        if (gate) {
+          reachedGate();
+          await gate;
+        }
         return heuristicExtractor.extract(input);
       },
     };
@@ -230,8 +236,9 @@ for (const backendCase of backendCases()) {
 
     // An email has arrived but is still being interpreted.
     gate = new Promise((resolve) => (openGate = resolve));
+    const reached = new Promise<void>((resolve) => (reachedGate = resolve));
     const interpreting = app.engine.ingest(org, supplierEmail(OFFER, '2026-10-19T11:00:00Z'));
-    await sleep(50);
+    await reached;
     await expectHttpError(sendToSupplier('Hi Dana, can you quote 500 units?', await stateVersion()), 409, 'state_incomplete');
     openGate();
     gate = null;

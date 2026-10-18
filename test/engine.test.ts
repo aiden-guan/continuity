@@ -240,13 +240,16 @@ test('questions never get due dates from their subject matter', async () => {
 
 test('context reports emails still being interpreted, so agents never act on a half-updated state', async () => {
   // An extractor that blocks until we let it go, so we can look at the state mid-interpretation.
+  // `reached` resolves once interpretation is under way, so the test never guesses how long that takes.
   let unblock!: () => void;
+  let entered!: () => void;
   const gate = new Promise<void>((resolve) => (unblock = resolve));
-  const blocked: Extractor = { name: 'slow', async extract(inp) { await gate; return heuristicExtractor.extract(inp); } };
+  const reached = new Promise<void>((resolve) => (entered = resolve));
+  const blocked: Extractor = { name: 'slow', async extract(inp) { entered(); await gate; return heuristicExtractor.extract(inp); } };
   const h = new Harness(procurementTask(addr), blocked);
   const delivery = h.mailbox.inbound({ from: addr.supplier, fromName: 'Dana', to: addr.self, subject: 'PO-4817 update', body: 'We can deliver 500 units Friday (Oct 23) at $11.40 each.', at: '2026-10-19T11:00:00Z', threadKey: 's' }, 'k');
   const ingesting = h.ingest(fromPrimitiveWebhook(JSON.parse(delivery.body)));
-  await new Promise((resolve) => setTimeout(resolve, 20));
+  await reached;
 
   assert.equal(h.context().meta.pending_events.length, 1);
   assert.match(h.briefing(), /still being processed/);
