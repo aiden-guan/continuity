@@ -7,6 +7,24 @@ four of the defects below were fixed there afterwards, so these numbers predate 
 All runs: `claude-haiku-5-5` for every condition and the judge; held-out variants 11–22 frozen in `manifest.json`;
 95% intervals are bootstrap over cases; p-values are sign-flip permutation tests on per-case differences.
 
+## Final engine (re-run, commit f73fb07 = optimization track d2b1386)
+
+Continuity only, re-run on the final engine (no fallback reads); baselines from the first run. Results in
+`bench/results/value-fig1-merged/`.
+
+| | Continuity | Primitive-only | Full history |
+|---|---|---|---|
+| All 84 cases | **74.2%** [67.5–80.6] | 41.7% | 42.9% |
+| Depth 1 / 2 / 4 / 6 | 86 / 83 / 78 / 81 | 64 / 42 / 47 / 36 | 72 / 72 / 53 / 33 |
+| Threads 2 / 5 / 8 | 53 / 67 / 72 | 53 / 11 / 39 | 19 / 25 / 25 |
+| Critical state right (code only) | 84.1% | 59.9% | 63.5% |
+
+vs Primitive-only +32.5 pp [22.6, 42.5] (49 / 12 cases); vs full history +31.3 pp [22.2, 40.5] (47 / 7); both p < 0.001.
+Cost per correct decision: break-even 2.7 wakes vs Primitive-only, 7.5 vs full history; $0.0033 at 50 wakes (3.7× less
+than Primitive-only). Optimization track's clean held-out run, 650 cases, 5 domains: 68.8% vs 49.2%.
+
+The sections below are the first run (engine snapshot af69a53).
+
 ## Figure 1: handoff success vs dependency depth and thread fan-out (84 cases × 3 trials)
 
 | | Continuity | Primitive-only | Full history | True state given |
