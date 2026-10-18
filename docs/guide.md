@@ -1,0 +1,306 @@
+# Continuity operations guide
+
+[← Project overview](../README.md) · [Architecture](../ARCHITECTURE.md) · [Benchmark methodology](../bench/README.md)
+
+Full demo, storage, configuration and API instructions. Live verification statements below describe the recorded 2026-10-17 runs; this presentation pass reran the offline eval and context-scaling experiment only.
+
+## Live demo over real Primitive mail (one command)
+
+```bash
+npm run demo:live              # ~1.5 min with Claude; --step pauses at every beat, --fast makes no Claude calls
+```
+
+This is the same story, except every message (agent to supplier/finance, their replies, the PDF quotes) travels through
+Primitive between three inboxes on your own domain. Put `PRIMITIVE_API_KEY` and `CONTINUITY_{SELF,SUPPLIER,FINANCE}_ADDRESS`
+in `.env`. If `ANTHROPIC_API_KEY` is also set, Claude handles extraction and the agents. The UI on :4100 follows along live.
+Agent C's acceptance commits us, so it is held for a human: the script mints a separate approver token, approves the
+card as "Sam (ops lead)" and waits for the closing email to arrive.
+
+## Demo-day website (one command)
+
+```bash
+npm run stage                  # http://localhost:4000 (story) · http://localhost:4000/live (engine console)
+```
+
+`site/` needs no build. It holds two pages:
+
+- `index.html`, a scroll story that plays back real engine output for PO-4817 from `site/assets/snapshot.json`
+  (regenerate it with `npm run site:snapshot`);
+- `live.html`, a live console that steps the local-simulation story one beat at a time (→ / Space) using real agent
+  processes. It streams their output and shows each email, transition, handoff briefing and state change as it happens.
+
+`--offline` forces the rule-based extractor and the policy agents. If the console is served without the stage (from any
+static host), it plays back the recording instead.
+
+## Demo video (automated)
+
+```bash
+cd video && npm install && npm run make     # record the real run → narrate → render out/continuity-demo.mp4
+```
+
+Playwright walks the live presenter view through every beat while Chrome's screencast captures the screen. Remotion
+then edits the footage together with narration and captions. Details are in [video/README.md](../video/README.md).
+
+## Quick start
+
+You need Node ≥ 22.18 (it relies on the built-in TypeScript type-stripping; development used Node 24). There is no
+build step.
+
+```bash
+npm install
+npm test                 # every test on the in-memory backend (Supabase cases are skipped unless configured)
+npm run test:report      # the same, also writing the spec report to test-results/spec.txt (read a flaky run afterwards)
+npm run eval             # 10 scenarios, 42 state assertions, plus offline handoff grading
+node eval/scale.ts       # briefing size against history length
+npm run demo             # full cold handoff, OFFLINE (SQLite file + simulated mail), UI on :4100
+npm run agent -- --task PO-4817 --agent my-agent --once      # one fresh agent against a server that is already up
+```
+
+### Storage modes
+
+| Mode | Chosen by | Purpose |
+|---|---|---|
+| **Supabase Postgres** (authoritative) | `SUPABASE_DB_URL` (or `CONTINUITY_STORE=postgres`) | Hosted operation. Auth is required by default. |
+| SQLite (offline) | `CONTINUITY_STORE=sqlite` or `CONTINUITY_DB=<file>` | Local demos (`npm run demo`, `npm run stage`). One org per file. |
+| Memory (offline) | `CONTINUITY_STORE=memory` | Tests, evals, replay. Nothing persists. |
+
+If none of these is configured the server will not start; it never quietly falls back to a local file. A missing schema
+or a database it cannot reach is also a startup error. `GET /api/health` returns `storage.mode`, `storage.authoritative`,
+the target with credentials redacted, the auth setting, the transport (`primitive` / `local-sim`), and worker and job
+counts.
+
+### Supabase (the hosted path)
+
+```bash
+supabase start                      # local stack on ports 584xx (see supabase/config.toml)
+npm run db:migrate:local            # applies supabase/migrations/*.sql to the LOCAL database
+npm run test:supabase               # whole suite including Postgres, Storage, auth/tenant and import tests (local only)
+npm run demo:supabase -- --exit     # the canonical story on Supabase Postgres, auth on, one scoped token per agent
+
+# point the service at Supabase
+export SUPABASE_DB_URL=postgresql://…          # server-side only; direct or session-pooler URL (6543 = transaction pooler, prepared statements off)
+export SUPABASE_URL=https://<ref>.supabase.co  # optional: private Storage bucket for attachment bytes
+export SUPABASE_SECRET_KEY=…                   # server-side only; agents never receive it
+npm start                                      # API plus embedded worker (CONTINUITY_WORKER=off + `npm run worker` to run workers separately)
+npm run token -- --org org_acme --kind operator                                  # prints the token once
+npm run token -- --org org_acme --kind agent --agent agent-b --task PO-4817     # scoped agent token → CONTINUITY_TOKEN
+npm run token -- --org org_acme --kind approver --label "Sam (ops)"             # a human approver (decides held cards)
+```
+
+Pushing the migration to a **hosted** project is a step someone reviews (`supabase link` then `supabase db push`); no
+script here does it for you. To roll the schema back, run `drop schema continuity cascade;` and delete the
+`continuity-attachments` bucket. Doing so wipes every piece of Continuity data in that project.
+
+**Agents receive Continuity API tokens, never database credentials or Supabase keys.** Each token is bound to one org
+and may be narrowed to particular tasks and a single agent id. Being allowed to call the API is a different thing from
+a mail sender's authority to set terms (`participants[].authority`). The `continuity` schema is not exposed through the
+Data API, anon/authenticated hold no table grants, every table has RLS enabled, and the attachment bucket is private.
+
+**Approving needs its own token.** Deciding a held card (`POST /tasks/:id/approvals/:ap_id/decide`) requires the
+`approve` scope. The operator wildcard `*` deliberately does not include it and agents never get it, so mint one per
+person with `npm run token -- --kind approver --label "<name>"` (scopes `approve`, `context:read`, `evidence:read`: it
+can read and decide, not send or create tasks). An operator token on the decide route gets 403. With auth off (local
+only) the console user may approve.
+
+**Bringing over existing SQLite data** is an explicit command. The source file is opened read-only and left unchanged:
+
+```bash
+npm run import:sqlite -- --db data/live-demo.db                          # dry run: inventory only
+npm run import:sqlite -- --db data/live-demo.db --org org_demo --apply   # copy (ids kept) + integrity checks
+npm run import:sqlite -- --db data/demo.db --org org_x --apply --mode replay   # re-run saved proposals through the current resolver
+npm run import:sqlite -- --org org_demo --task PO-4817 --rollback        # take that imported task out again
+```
+
+Each import ends with integrity checks. The evidence (events and extraction proposals) has to match exactly, and in
+copy mode so does the projection. The report also points out where today's resolver would read the old data
+differently. Importing the same file twice changes nothing the second time. Colliding tasks or ids are refused.
+
+### Environment
+
+| Variable | Default | What it does |
+|---|---|---|
+| `PRIMITIVE_API_KEY` | unset → **local simulation** | Turns on real Primitive sending (`client.send`), attachment download and Memories checkpoints. The sim endpoints switch off when it is set. |
+| `PRIMITIVE_WEBHOOK_SECRET` | `local-sim-webhook-secret` in sim; unset in live → **webhook disabled (503)** | Secret used to check `Primitive-Signature` (SDK `verifyWebhookSignature`). Comma-separate several during a rotation. The public sim secret is refused in live mode. |
+| `ANTHROPIC_API_KEY` | unset → rule-based extractor + offline policy agent | Turns on the Claude extractor (`src/extract/llm.ts`) and the LLM agent (`src/agent/llm-agent.ts`). |
+| `ANTHROPIC_WORKSPACE_ID` | unset | Only for keys without a workspace scope (`wrkspc_…`); sent as `anthropic-workspace-id`. |
+| `CONTINUITY_EXTRACTOR` | `auto` | `auto` \| `llm` \| `heuristic` |
+| `CONTINUITY_EXTRACTOR_MODEL` / `CONTINUITY_AGENT_MODEL` | `claude-haiku-5-5` | Model ids. |
+| `CONTINUITY_EXTRACTOR_EFFORT` | `medium` | Reasoning effort for each email read (`low` \| `medium` \| `high`). |
+| `CONTINUITY_EXTRACTOR_THINKING` | `off` | Each email is read with no reasoning before the structured answer: about a third less output per email, with accuracy unchanged on the realistic set and the bench. `on` brings reasoning back. |
+| `CONTINUITY_EXTRACT_ROUTE` | `skip-empty,outbound-plain-rules` | Which mail skips the model call and is read by the rule extractor. `skip-empty`: inbound mail with no attachment and no question, from which the rules extract nothing, and which has no figure or names nothing the deal is about. `outbound-plain-rules`: our own outbound mail that asks, offers, promises and accepts nothing. `outbound-rules`: all of our outbound mail (not recommended: it drops our offers, questions and acceptances). `none`: every email goes to the model. |
+| `CONTINUITY_SEND_CHECK` | on with `ANTHROPIC_API_KEY` | Claude's second opinion on whether an outgoing draft commits us; `off` leaves the tripwire and declared intent only. |
+| `CONTINUITY_SEND_CHECK_MODEL` | `claude-haiku-5-5` | Model id for the send check. |
+| `CONTINUITY_ASK_MODEL` | `claude-haiku-5-5` | Model id for `POST /ask`. |
+| `CONTINUITY_APPROVAL_TTL_H` | `48` | Hours a held card stays decidable. Deciding needs an approver token (`npm run token -- --kind approver`); operator tokens cannot approve. |
+| `CONTINUITY_APPROVAL_WEBHOOK` / `CONTINUITY_PUBLIC_URL` | unset / `CONTINUITY_URL` | New cards are posted to the webhook (Slack-style `{"text": ...}`) with a link under the public URL. |
+| `CONTINUITY_SELF_ADDRESS` | `procurement@acme-buyer.primitive.email` | The agent's own Primitive address. |
+| `CONTINUITY_SUPPLIER_ADDRESS`, `CONTINUITY_FINANCE_ADDRESS` | made-up `.example` addresses | The scenario's counterparties. |
+| `CONTINUITY_SENDER_AUTH` | `enforce` | The sender-authentication policy for every participant that sets none of its own (see [Sender authentication](#sender-authentication)). `enforce`: a sender's statements carry authority only if Primitive's SPF/DKIM/DMARC results authenticate the From address (SDK `isTrustedSender`); otherwise they stay tentative, cannot close obligations or replace documents, and are flagged. `flag`: an *unknown* verdict keeps its authority and is flagged; a failing one still does not. Prefer a per-participant `sender_auth` over switching this for everyone. |
+| `CONTINUITY_DKIM_WITHOUT_DMARC` | `1` | A domain with no DMARC record still authenticates through a passing DKIM signature by exactly the From domain; `0` turns that off. |
+| `CONTINUITY_AUTH_TEMPERROR_RETRIES` | `3` | Webhook deliveries answered 503 (redeliver) while DMARC reports a temporary DNS error; after that the email is stored with an `unknown` sender and flagged. |
+| `CONTINUITY_AUTH_RETRY_DELAY_MS` | `5000` | Pause between re-fetches on the pull receiver, which has no redelivery. |
+| `SUPABASE_DB_URL` | unset | Supabase Postgres connection string; selects hosted (authoritative) mode. |
+| `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | unset | Private Storage bucket for attachment bytes (without it, bytes stay inline in Postgres). Server-side only. |
+| `CONTINUITY_STORE` | inferred | `postgres` \| `sqlite` \| `memory`. With nothing configured the server fails to start. |
+| `CONTINUITY_DB` | unset | SQLite file; setting it selects offline SQLite mode. |
+| `CONTINUITY_AUTH` | `required` with Postgres, otherwise `off` | Bearer tokens on every API route. `off` is refused in live Primitive mode and on a non-loopback `HOST`; with auth off, requests must carry a loopback `Host` header (DNS rebinding → 421). |
+| `CONTINUITY_ORG` | `org_local` | Org used for signed webhooks and when auth is off. |
+| `CONTINUITY_TOKEN` | unset | Token that `npm run agent`, the MCP server and the scripts send. |
+| `CONTINUITY_WORKER` | on | `off` disables the embedded job worker (run `npm run worker` instead). |
+| `PORT` | `4100` | HTTP port. |
+| `HOST` | `127.0.0.1` | Bind address. |
+| `CONTINUITY_MAX_BODY_BYTES` | `4194304` (4 MB) | Request body cap (413 beyond it). |
+| `CONTINUITY_EXTRACT_DEADLINE_MS` / `CONTINUITY_EXTRACT_ATTEMPT_MS` | `150000` / `90000` | Overall deadline for one Claude extraction (retry included) / per attempt. Past it the event falls back to the rule extractor, flagged. |
+| `CONTINUITY_EXTRACT_CONCURRENCY` | `4` | Claude extractions running at once per process. |
+| `CONTINUITY_ATTACHMENT_TIMEOUT_MS` | `30000` | Per attachment download from Primitive. |
+| `CONTINUITY_URL` | `http://localhost:4100` | Server address for the agent, the MCP server and scripts. |
+
+### Sender authentication
+
+Authority is granted by address (finance sets the budget, the supplier sets price and delivery), and anyone can type
+a From header. So an inbound email carries its sender's authority only when Primitive's SPF/DKIM/DMARC results prove
+the From address: DMARC passes for exactly that domain and the From header strictly parses to that one address
+(`src/ingest/sender-auth.ts`, built on the SDK's `isTrustedSender`). Each email gets one of three verdicts:
+
+- **pass**: DMARC passed for the From domain, or the domain has no DMARC record but a strong DKIM signature by exactly
+  that domain verifies (`CONTINUITY_DKIM_WITHOUT_DMARC=0` turns this off).
+- **unknown**: nothing proves or disproves the sender. The domain has no DMARC record and no aligned DKIM, a DMARC DNS
+  error persisted through the retries, or the email carries no auth data.
+- **fail**: evidence against the sender. DMARC failed (whatever the domain's policy), the domain has no DMARC record and
+  SPF failed, the From header is malformed or lists several addresses, or the From domain is not the domain that
+  authenticated.
+
+Legitimate parties do not always pass. A small supplier's domain may publish no DMARC record and sign nothing, which
+gives **unknown**. A forwarder or mailing list usually breaks the DKIM signature; when the original domain publishes
+DMARC, that is a **fail**. DMARC also proves the domain, not the mailbox, so two parties on one shared domain cannot be
+told apart by it. For a party whose real mail only reaches **unknown**, set a policy on that participant:
+
+```json
+{ "address": "dana@small-supplier.example", "role": "counterparty", "label": "supplier",
+  "authority": ["price.", "delivery."], "sender_auth": "flag" }
+```
+
+| Verdict | `sender_auth: "enforce"` (default) | `sender_auth: "flag"` |
+|---|---|---|
+| pass | applied | applied |
+| unknown | tentative, flagged | **applied, flagged** |
+| fail | tentative, flagged | tentative, flagged (never relaxed) |
+| any, From is our own address | never authoritative, flagged `sender_impersonates_us` | refused at task creation |
+
+"Tentative" means the statement is recorded but sets no term, closes no obligation and replaces no document. Under
+either policy, every email from a participant that did not pass gets a `sender_unauthenticated` flag. The flag names
+the policy that applied (`finance's sender_auth=flag` or `default CONTINUITY_SENDER_AUTH=enforce`) and says whether
+the email was applied. Mail from non-participants never carries authority and is flagged `unknown_sender`. Sender
+flags are kept past the context's history cap, like injection flags. The send guard treats them as a gray area, so a
+commitment drafted on such a deal goes to a human even with `auto_when_clear`. The briefing's parties line also marks
+a relaxed party.
+`CONTINUITY_SENDER_AUTH` only sets the default for participants without a `sender_auth`. Changing it relaxes everyone,
+including parties nobody checked.
+
+What `flag` does not fix: a forwarded email that fails DMARC stays tentative. Have that party write directly, or add
+the address its mail really comes from (e.g. the list address that rewrote From) as a participant. Two parties on one
+shared domain still look the same to DMARC. The flag tells a human to confirm a change through a channel they trust.
+
+`npm run demo:live` keeps the server on `enforce` and sets `sender_auth: "flag"` only on the scripted supplier and
+finance inboxes, because mail between inboxes on your own Primitive domain has not been confirmed to authenticate on
+every setup. Before hosting, run it once with `CONTINUITY_DEMO_SENDER_AUTH=enforce` against your real inboxes and check
+that no `sender_unauthenticated` flag appears. If one does, its verdict tells you which records (DMARC, DKIM) to fix.
+Use `flag` only for the parties that still need it.
+
+## Agent-facing interface
+
+HTTP. Every task route takes either the id or the alias (e.g. `PO-4817`):
+
+| What the agent wants to know | Call |
+|---|---|
+| What should a freshly started agent be told? | `GET /tasks/:id/context?agent=<agent-id>` (`&format=text` for the briefing, `&party=<addr>` to focus on one party) |
+| What did we believe at the moment we sent ev_7? | `GET /tasks/:id/context?as_of=ev_7` (state rebuilt by replaying the event log) |
+| Which commitments are overdue? | `waiting_on_them[].overdue` and the P1 follow-up actions in the context |
+| What are we waiting for, what do we owe, what is already answered? | `GET /tasks/:id/open-loops` |
+| What changed since we last interacted? | `GET /tasks/:id/changes?since=<seq>` (or the context's `changes_since_last_action` section, driven by the agent's cursor) |
+| Why does the system think the delivery date moved? | `GET /tasks/:id/explain?term=delivery.schedule` |
+| Which quote terms are out of date? | `documents[].stale_terms` in the context, or `GET /tasks/:id/state` |
+| Where did this item come from? | `GET /items/{cl_|ob_|ar_|ev_}*/provenance` |
+| Send a reply (threaded, recorded, guarded) | `POST /tasks/:id/send {agent_id, to, body, subject?, intent?, based_on_version}`. `intent` is `inform` / `ask` / `negotiate` / `commit`. Returns 409 while mail is still being interpreted, when someone else has changed the task since `based_on_version`, or when a hard limit blocks it; **202 `{held: true, approval_id}`** when a human must approve it first (commitments, payment details, gray areas). Hosted mode requires `based_on_version`. |
+| What is waiting for a human? | `GET /approvals` (or `/tasks/:id/approvals`, `?all=1` for decided ones): each with a card (why, situation, requirements with sources, the draft, options, a recommendation) and its text form |
+| Decide a held card (human approver only) | `POST /tasks/:id/approvals/:ap_id/decide {option, by?, note?, edited_body?, reply_body?}` with a token minted by `npm run token -- --kind approver`. Options: `approve`, `approve_with_edits`, `reject_with_reply`, `reject`, `hold_verify`, `take_over`; verification cards: `verified`, `reject`, `hold_verify`, `take_over`. 409 if the deal changed since the card was made (a fresh card is issued), 410 once expired. |
+| Is the state complete, and how large may it get? | `context.processing` (`complete`, pending/failed events, sends in flight) · `&max_tokens=N` → `budget {unit, used, fits, trimmed}`. Blockers and open obligations are never cut; a result over budget says so. |
+| What became of my send? | `GET /tasks/:id/actions` (`pending` / `attempted` / `delivered` / `replayed` / `failed`) |
+| I have acted; remember my position | `POST /tasks/:id/cursor {agent_id, seq}` |
+| Wake me when something changes | `GET /tasks/:id/wait?since=<seq>` (long-poll) |
+
+Ingestion goes through `POST /webhooks/primitive` (Primitive webhook / Function payloads, signature-verified) and
+`POST /ingest/primitive-email {id}` (the long-poll receiver names a Primitive email; the server fetches it with its own
+key and ingests it only when it is addressed to an agent inbox). Mail that matches no task stays
+unlinked: list it with `GET /events?unlinked=1` and attach it with `POST /events/:id/link {task_id}`.
+
+**MCP**: `node src/mcp.ts` runs a stdio MCP server exposing `continuity_get_context`, `continuity_open_loops`,
+`continuity_explain_term`, `continuity_provenance`, `continuity_changes`, `continuity_send` and `continuity_mark_seen`.
+It can be mounted alongside Primitive's own MCP server (`https://www.primitive.dev/mcp`):
+`claude mcp add continuity -- node /abs/path/src/mcp.ts`.
+
+## Live Primitive
+
+Built against `@primitivedotdev/sdk@2.4.0` and **verified live on 2026-10-17** with a real account. The whole story
+(RFQ → offer plus PDF quote → finance approval in a second thread → correction → fresh Agent B raises the conflict →
+expedite plus revised quote → fresh Agent C accepts) ran over real Primitive mail between three addresses on a single
+`*.primitive.email` domain. Keys live in `.env`; `npm run keys` asks for them with hidden input and `npm run check:keys`
+confirms they work. Then:
+
+```bash
+# .env: PRIMITIVE_API_KEY, CONTINUITY_SELF_ADDRESS=procurement@<you>.primitive.email,
+#       CONTINUITY_SUPPLIER_ADDRESS=supplier@<you>.primitive.email, CONTINUITY_FINANCE_ADDRESS=finance@<you>.primitive.email
+# live mode requires API auth: CONTINUITY_AUTH=required, then mint tokens (npm run token -- --kind operator / --kind ingest)
+# and one per human approver (npm run token -- --kind approver --label "<name>"): Agent C's acceptance waits for it
+npm start &                          # server (sim endpoints off in live mode)
+CONTINUITY_TOKEN=<ingest token> npm run receive &   # long-polls the inbox into Continuity; cursor checkpointed in Primitive Memories
+npm run live:task
+npm run live:counterparty &          # plays supplier and finance over real Primitive mail, replying in-thread (restart-safe)
+npm run agent -- --agent agent-a --once     # RFQ + budget request; then wait until the correction has been ingested
+npm run agent -- --agent agent-b --once     # fresh process: raises the delivery conflict
+npm run agent -- --agent agent-c --once     # once the revised quote is in: drafts the acceptance, held for a human
+# decide it on the dashboard, or: POST /tasks/PO-4817/approvals/<ap_id>/decide {"option":"approve","by":"<name>"} with the approver token
+```
+
+Instead of long-polling you can aim a Primitive webhook endpoint (or a Function) at `POST /webhooks/primitive` and set
+`PRIMITIVE_WEBHOOK_SECRET`.
+
+| Primitive capability | How Continuity uses it | Status |
+|---|---|---|
+| Agent identity (`*.primitive.email`) | the task's `self_address`; every send goes `from` it | **verified live** |
+| Send / threaded replies | `client.send({thread:{inReplyTo,references}})` with one idempotency key per action; Message-ID/thread_id read back with `getSentEmail` | **verified live** (status `delivered`, ids returned) |
+| Receive | signed `email.received` webhook (`verifyWebhookSignature`) **or** `client.inbox.stream()` long-poll + `getEmail` | long-poll **verified live**; webhook path exercised locally with SDK-signed, SDK-schema-valid payloads |
+| Threading metadata | `thread_id`, `Message-ID`, `In-Reply-To`, `References` and `reply_to_sent_email_id` decide task linkage, never an LLM | **verified live** (both thread_id and reply_to_sent_email_id used) |
+| Attachments | inline bytes (sim) or `downloadEmailAttachmentPart`; PDF/text extraction; provenance per term | **verified live** (quote PDFs downloaded and parsed, v1 superseded by rev 2) |
+| Auth verdicts | kept as provenance metadata, not treated as truth | exercised locally |
+| Primitive Memories | inbox cursor (`continuity:inbox-cursor`) and per-agent cursors (`continuity:cursor:<task>:<agent>`): checkpoints, not semantic truth | **verified live** (writes succeed) |
+
+## What is real and what is simulated
+
+**Real, and tested locally**
+- The event store, the extraction → proposal → resolver pipeline, the transition log, per-term artifact currency,
+  constraint checks, the context compiler, the briefing renderer, the send guard, the HTTP API, the MCP server and the
+  observability UI.
+- Primitive webhook verification and normalization. The simulator signs its payloads with the SDK's `signWebhookPayload`,
+  they pass the SDK's `safeValidateEmailReceivedEvent`, and they reach the real endpoint over HTTP.
+- The cold handoff. Agents are separate OS processes that speak to Continuity only over HTTP. Agent A gets `SIGKILL`;
+  B and C start with no memory and no cursor.
+
+**Simulated**
+- Mail transport when there is no `PRIMITIVE_API_KEY`. The local mailbox hands out Message-IDs and thread ids and quotes
+  earlier messages in replies the way a mail client would. The UI badge and every API response report `local-sim`.
+- The counterparties (supplier, finance). They are scripted fixtures that respond to whatever the agent actually sent.
+  **Our agent's emails are never scripted.**
+
+**Claude path (verified 2026-10-17)**
+- When `ANTHROPIC_API_KEY` is set, Claude (`claude-haiku-5-5`) performs extraction and makes every agent decision. The original demo notes recorded an end-to-end check: the demo runs on Claude agents, and a fresh Claude Agent C kept a promise that Agent A had made
+  to finance. The archived Claude API run used `claude-opus-5-5` and passed 41/41 state assertions at that revision; see the [recorded run](../eval/results/llm-api-2026-10-17/README.md). The current offline suite passes 42/42.
+- **Refusals.** Claude Haiku 5.5, the default model, has no server-side refusal fallback (another model re-running a
+  declined request), so a refusal is handled here: extraction falls back to the rule extractor (the event is flagged
+  `extractor_fallback`), the agent falls back to the offline policy, and the send check counts the draft as binding, so
+  it is held for a human (or blocked by a failing hard limit). To use another model, set `CONTINUITY_EXTRACTOR_MODEL`,
+  `CONTINUITY_AGENT_MODEL`, `CONTINUITY_SEND_CHECK_MODEL` or `CONTINUITY_ASK_MODEL`; non-Haiku models are requested
+  with the server-side fallback on.
+- With no key, a cautious rule-based extractor (`src/extract/heuristic.ts`) and a rule-based policy agent that writes
+  only from compiled state (`src/agent/policy.ts`) take over. The policy agent's *wording is templated*; *the content*
+  comes from state.

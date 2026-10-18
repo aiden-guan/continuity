@@ -1,0 +1,31 @@
+{
+  "recordedDate": "2026-10-18",
+  "source": "bench/FINDINGS.md",
+  "experiment": "Held-out eval split, final",
+  "model": "claude-haiku-5-5",
+  "cases": 650,
+  "casesPerDomain": 130,
+  "trialsPerCell": 1,
+  "conditions": ["primitive-native", "continuity"],
+  "domains": [
+    { "name": "Finance", "primitive": 37, "continuity": 64 },
+    { "name": "Freight", "primitive": 51, "continuity": 92 },
+    { "name": "Hotel", "primitive": 81, "continuity": 87 },
+    { "name": "Legal", "primitive": 77, "continuity": 107 },
+    { "name": "Procurement", "primitive": 74, "continuity": 97 }
+  ],
+  "reportedMetrics": {
+    "criticalFactsCorrect": { "primitive": 61.7, "continuity": 84.0 },
+    "currentStateAccuracy": { "primitive": 83.1, "continuity": 96.3 },
+    "nextActionCorrect": { "primitive": 76.6, "continuity": 78.8 },
+    "actorInputTokens": { "primitive": 12700, "continuity": 7000 },
+    "costPerCaseUSD": { "primitive": 0.0043, "continuity": 0.0044 }
+  },
+  "caveats": [
+    "Transcribed from the checked-in findings report; per-case raw results are not checked in.",
+    "Synthetic scenarios with one trial per cell; this is not production accuracy.",
+    "The held-out hotel breakdown was inspected before a later dev-only fix; the findings disclose this leakage.",
+    "Costs use the benchmark's dated price table, include ingestion, and exclude the judge.",
+    "Actor input tokens exclude ingestion; they are not total system token usage."
+  ]
+}
