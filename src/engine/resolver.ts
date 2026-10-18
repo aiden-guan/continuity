@@ -9,6 +9,9 @@
 //  - When two different parties disagree on a term, both claims become "contested"; neither wins,
 //    and one side revising does not settle it while the other still disagrees.
 //  - Hedged, low-confidence, or non-authoritative claims are kept as "proposed" and change nothing.
+//  - Our own decisions apply, and so do our offers on the terms the domain lets us offer on (a buyer's counter):
+//    our current position, per speaker, never standing in for the counterparty's terms. Accepting their terms
+//    retires an earlier offer of ours that differs from them.
 //  - A forwarded copy of older evidence is recorded but never overwrites the current claim; any other
 //    message wins by arrival order (its Date header is the sender's claim), with a date_skew flag.
 //    Likewise a forward older than the speaker's retraction (or offer withdrawal) never revives the
@@ -259,8 +262,9 @@ export function applyProposal(inp: ApplyInput) {
       // our own decisions count, except on a term someone on our side decides (a ceiling we quote is not finance's
       // approval); a counterparty owning the same term (a price both sides negotiate) does not take it away from us
       if (whoParty.role === 'self') {
-        authoritative = pc.kind === 'decision'
-          && !task.participants.some((p) => p.role === 'internal' && p.authority.some((prefix) => pc.key.startsWith(prefix)));
+        const ourSideDecides = task.participants.some((p) => p.role === 'internal' && p.authority.some((prefix) => pc.key.startsWith(prefix)));
+        const ourOffer = pc.kind === 'offer' && !!pack.ourOfferTerms?.some((prefix) => pc.key.startsWith(prefix));
+        authoritative = (pc.kind === 'decision' || ourOffer) && !ourSideDecides;
       }
       else if (isLifecycle) authoritative = whoParty.role === 'counterparty'; // any counterparty may withdraw its own offer
       else authoritative = whoParty.authority.some((prefix) => pc.key.startsWith(prefix));
@@ -420,6 +424,21 @@ export function applyProposal(inp: ApplyInput) {
       const agreeing = peers.find((d) => sameValue(d.value, value));
       log('claim_added', `${who}: ${pc.key} = ${display}${artifact ? ` (from ${artifact.filename})` : ''}`, added.id,
         { key: pc.key, corroborates: agreeing?.id ?? null });
+    }
+  }
+
+  // accepting their terms retires an earlier offer of ours that differs from them ("we offered $880,000"
+  // stops being our position once we accept their $905,000); an offer of ours they matched stays
+  const weAccepted = event.direction === 'outbound' && whoParty?.role === 'self' && !!pack.decisionKey
+    && liveClaims().some((c) => c.key === pack.decisionKey && c.speaker === speaker && c.source_event_id === event.id && c.value !== 'declined');
+  if (weAccepted && pack.ourOfferTerms) {
+    const live = liveClaims();
+    for (const ours of live.filter((c) => c.speaker === speaker && c.kind === 'offer' && c.source_event_id !== event.id)) {
+      const theirs = live.find((c) => c.key === ours.key && partyOf(task, c.speaker)?.role === 'counterparty');
+      if (!theirs || sameValue(theirs.value, ours.value)) continue;
+      store.updateClaim(ours.id, { status: 'superseded', superseded_by: theirs.id, supersede_reason: `we accepted ${nameOf(theirs.speaker)}'s ${ours.key} (${theirs.display}) in ${event.id}` });
+      log('claim_superseded', `${who} accepted ${nameOf(theirs.speaker)}'s ${ours.key}: our ${ours.display} → ${theirs.display}`, ours.id,
+        { from: ours.id, to: theirs.id, from_display: ours.display, to_display: theirs.display, mode: 'acceptance' });
     }
   }
 

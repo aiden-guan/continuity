@@ -310,6 +310,7 @@ export const realEstate: DomainPack = {
     .filter((p) => p.role === 'counterparty')
     .map((party) => ({ party, keys: ['price.purchase', 'closing.date'] })),
   decisionKey: 'decision.accept',
+  ourOfferTerms: ['price.', 'closing.', 'contingency.'],
   bindingPatterns: [
     /\b((?:we|our buyer) (?:hereby )?accepts?\b|accept(?:s|ed)? (?:the|your|this) (?:counter|offer|price|terms)\b|we agree to (?:the|your) (?:counter|price|terms)|(?:wire|release) (?:the )?(?:earnest money|deposit|funds)|waive (?:the )?(?:inspection |appraisal )?contingenc(?:y|ies))/gi,
   ],

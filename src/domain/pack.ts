@@ -129,6 +129,10 @@ export interface DomainPack {
   expectedTerms?(task: TaskSpec): { party: Participant; keys: string[] }[];
   /** The term that records a decision of ours (acceptance, approval). */
   decisionKey: string | null;
+  /** Term-key prefixes on which our own offers are our current position (a buyer's offer and counters:
+   *  "we counter at $945,000, closing Dec 18"). Elsewhere what we write is an ask, not an offer, and only our
+   *  decisions apply. Never a term our own side decides (a ceiling we quote is not the approver's budget). */
+  ourOfferTerms?: string[];
   /** Term-key prefixes a withdrawal retracts (default: every offer term of the speaker). Withdrawing an
    *  early-payment offer does not withdraw the invoice it was made on. */
   withdrawable?: string[];

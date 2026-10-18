@@ -10,7 +10,7 @@ import type { AddressInfo } from 'node:net';
 import { Harness } from '../src/sim/harness.ts';
 import { dealAddresses, dealParties, elmStreetDeal } from '../src/sim/real-estate.ts';
 import { runElmStreet } from '../src/sim/deal-story.ts';
-import { heuristicExtractor } from '../src/extract/heuristic.ts';
+import { heuristicExtractor, stripQuoted } from '../src/extract/heuristic.ts';
 import type { ExtractInput } from '../src/extract/types.ts';
 import { deriveTimeline, eventTypeIds, stateAt } from '../src/engine/timeline.ts';
 import { notifyWebhook, runSignal } from '../src/signal.ts';
@@ -224,4 +224,58 @@ test('an acceptance is stored as one word, so a restated acceptance is the same 
   assert.equal(re.normalizeValue('decision.accept', 'Counter #2 at $752,000'), null);
   assert.equal(canonicalDecision('We will not accept anything over $900k'), 'declined');
   assert.equal(canonicalDecision('accepted and placing PO-3392'), 'accepted');
+});
+
+// A scripted reading per message body, so the claims under test are exact.
+function scripted(byBody: Record<string, { key: string; value: unknown; kind: 'offer' | 'decision' }[]>) {
+  return {
+    name: 'scripted',
+    async extract(inp: ExtractInput) {
+      const proposal = await heuristicExtractor.extract(inp);
+      const fresh = stripQuoted(inp.event.body_text); // what this message itself says, not the history it quotes
+      const claims = Object.entries(byBody).find(([needle]) => fresh.includes(needle))?.[1] ?? [];
+      return { ...proposal, claims: claims.map((c) => ({ ...c, mode: 'assert' as const, evidence: inp.event.body_text, confidence: 0.95, hedged: false, from_attachment: null })) };
+    },
+  };
+}
+
+test('our counter is our current position, kept apart from the seller\'s terms', async () => {
+  const a = dealAddresses();
+  const h = new Harness(elmStreetDeal(a), scripted({
+    'We counter at $945,000': [{ key: 'price.purchase', value: 945000, kind: 'offer' }, { key: 'closing.date', value: '2026-12-18', kind: 'offer' }],
+    'Counter at $972,000': [{ key: 'price.purchase', value: 972000, kind: 'offer' }],
+    'our ceiling is $975,000': [{ key: 'budget.max_price', value: 975000, kind: 'offer' }],
+  }));
+  const offer = await h.out(a.listing, 'Offer - 12 Elm St', 'We counter at $945,000, closing Dec 18. Note our ceiling is $975,000 in any case.', '2026-11-02T09:00:00Z');
+  await h.in({ from: a.listing, fromName: 'Jordan', to: a.self, subject: 'Re: Offer - 12 Elm St', body: 'Counter at $972,000.', at: '2026-11-02T12:00:00Z', threadKey: 'elm', inReplyTo: offer.messageId });
+
+  const price = (who: string) => h.active('price.purchase').filter((c) => c.speaker === who).map((c) => c.value);
+  assert.deepEqual(price(a.self), [945000], 'our counter is current for us');
+  assert.deepEqual(price(a.listing), [972000], 'theirs is current for them; neither contests the other');
+  assert.equal(h.active('closing.date').find((c) => c.speaker === a.self)?.value, '2026-12-18');
+  // a figure of ours on a term our own side decides is still not the buyer's budget
+  assert.ok(h.claims('budget.max_price').every((c) => c.status === 'proposed' && /not authoritative/.test(c.supersede_reason!)));
+  // the price check reads the seller's terms, not ours
+  const check = h.checks().find((c) => c.id.startsWith('price_budget:'));
+  assert.match(check?.detail ?? '', /\$972,000/);
+});
+
+test('accepting their terms retires a different earlier offer of ours, and keeps one they matched', async () => {
+  const a = dealAddresses();
+  const h = new Harness(elmStreetDeal(a), scripted({
+    'We offer $880,000': [{ key: 'price.purchase', value: 880000, kind: 'offer' }, { key: 'closing.date', value: '2026-12-18', kind: 'offer' }],
+    'Counter: $905,000': [{ key: 'price.purchase', value: 905000, kind: 'offer' }, { key: 'closing.date', value: '2026-12-18', kind: 'offer' }],
+    'Buyer accepts the counter': [{ key: 'decision.accept', value: 'Buyer accepts the counter at $905,000', kind: 'decision' }],
+  }));
+  const offer = await h.out(a.listing, 'Offer - 12 Elm St', 'We offer $880,000, closing Dec 18.', '2026-11-02T09:00:00Z');
+  const counter = await h.in({ from: a.listing, fromName: 'Jordan', to: a.self, subject: 'Re: Offer - 12 Elm St', body: 'Counter: $905,000, closing Dec 18.', at: '2026-11-02T12:00:00Z', threadKey: 'elm', inReplyTo: offer.messageId });
+  await h.out(a.listing, 'Re: Offer - 12 Elm St', 'Buyer accepts the counter at $905,000.', '2026-11-02T15:00:00Z', { messageId: counter.messageId });
+
+  const ours = (key: string) => h.claims(key).filter((c) => c.speaker === a.self);
+  const oldPrice = ours('price.purchase').find((c) => c.value === 880000)!;
+  assert.equal(oldPrice.status, 'superseded');
+  assert.match(oldPrice.supersede_reason!, /we accepted listing agent's price\.purchase \(\$905,000\)/);
+  // our closing date matched theirs, so it is still our position
+  assert.equal(ours('closing.date')[0].status, 'active');
+  assert.equal(h.active('decision.accept')[0].value, 'accepted');
 });
