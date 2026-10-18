@@ -99,13 +99,21 @@ export function runChecks(task: TaskSpec, active: Claim[]): CheckResult[] {
       if (!schedule) {
         results.push({ id, label, status: 'unknown', detail: `No delivery schedule from ${party.label} yet`, party: who, evidence: [], requirement_key: deadline.key });
       } else {
-        const late = (schedule.value as Lot[]).filter((l) => l.date > String(deadline.value));
+        const lots = schedule.value as Lot[];
+        const late = lots.filter((l) => l.date > String(deadline.value));
+        // "all units" means all of them: a schedule that dates fewer units than we need cannot pass, even when
+        // every lot it does date is on time (the rest have no date yet; the quantity check reports the shortfall)
+        const scheduled = lots.reduce((sum, l) => sum + l.qty, 0);
+        const needed = Number(quantity?.value ?? qtyClaim?.value ?? 0);
+        const undated = !late.length && needed > scheduled ? needed - scheduled : 0;
         results.push({
           id, label, party: who, evidence: [schedule.id], requirement_key: deadline.key,
-          status: late.length ? 'fail' : 'pass',
+          status: late.length ? 'fail' : undated ? 'unknown' : 'pass',
           detail: late.length
             ? `${late.map((l) => `${l.qty} units arrive ${prettyDate(l.date)}`).join(', ')} — after the ${deadline.display} deadline (${party.label}'s current schedule: ${schedule.display})`
-            : `${party.label}'s schedule (${schedule.display}) meets the deadline`,
+            : undated
+              ? `${party.label}'s schedule (${schedule.display}) dates ${scheduled} of ${needed} units; no date yet for the other ${undated}`
+              : `${party.label}'s schedule (${schedule.display}) meets the deadline`,
         });
       }
     }
@@ -303,7 +311,7 @@ export const procurement: DomainPack = {
   terms: TERMS,
   llmGuidance: [
     '- delivery.schedule must be the sender\'s full resulting schedule as lots of {qty, date}. Resolve relative dates against the message date and referents like "the other 200" against the current terms provided. If the message only changes some lots, still output the full resulting schedule and set partial=false; set partial=true only if you cannot determine the full schedule.',
-    '- Units already delivered/received ("300 have been delivered") are a fulfillment (fulfillments[]), not a future delivery lot.',
+    '- Units already delivered/received ("300 have been delivered") are reported in fulfillments[] AND stay in delivery.schedule as a lot (on the day they arrived, or their scheduled day if none is given): the schedule always accounts for every unit. "First 300 delivered, the remaining 200 are delayed until Monday" on a schedule of 500 Friday is [{"qty":300,"date":<Friday>},{"qty":200,"date":<Monday>}].',
     '- offer.status="withdrawn" when the sender withdraws/cancels its offer or says it cannot supply the order. Do not restate the withdrawn terms as claims.',
   ].join('\n'),
   normalizeValue,

@@ -97,16 +97,25 @@ function buildSections(ctx: CompiledContext): Section[] {
 
   // ---- conflicts and current state
   if (ctx.conflicts.length) section('conflicts', true, 'Conflicts / blockers', ctx.conflicts.map((c) => bullet(`${c.check}: ${c.detail}`)));
+  // A newer value from the same party that is held for a human (a payment detail never applies from email alone)
+  // means the value on record is no longer that party's position: say so, rather than present it as current.
+  const evSeq = (id: string | null | undefined) => Number(String(id ?? '').match(/(\d+)$/)?.[1] ?? 0);
+  const heldNewer = (t: (typeof ctx.current_terms)[number]) => ctx.tentative_not_applied
+    .filter((h) => h.party === t.party && h.term === t.term && h.value !== t.value && /^held for human verification/.test(h.why_not_applied ?? '')
+      && evSeq(h.source) > Math.max(0, ...t.stated_in.map(evSeq)))
+    .sort((a, b) => evSeq(b.source) - evSeq(a.source))[0];
   const termLines = ctx.current_terms.map((t) => {
     const contestedMark = t.status === 'contested' ? ' (CONTESTED)' : '';
     const alsoIn = t.documents.length ? ` (also in ${t.documents.join(', ')})` : '';
+    const held = heldNewer(t);
+    if (held) return bullet(`${t.party} — ${t.term}: now says ${held.value}${evidenceTag([held.source])}, held until a human verifies it; the earlier ${t.value}${evidenceTag(t.stated_in)} no longer stands. Commit to neither until it is verified`);
     return bullet(`${t.party} — ${t.term} = ${t.value}${contestedMark}${alsoIn}${evidenceTag(t.stated_in)}`);
   });
   section('current_terms', true, 'Current terms (latest valid statements)', termLines.length ? termLines : [bullet('(none yet)')]);
   if (ctx.withdrawn_offers.length) {
     section('withdrawn', true, 'Withdrawn offers — NOT available (history only)', ctx.withdrawn_offers.map((w) => {
       const gone = w.no_longer_available.length ? ` — no longer available: ${w.no_longer_available.map((x) => `${x.term} ${x.was}`).join(', ')}` : '';
-      return bullet(`${w.party} withdrew${evidenceTag([w.withdrawn_in])}: "${w.quote}"${gone}`);
+      return bullet(`${w.party} withdrew${evidenceTag([w.withdrawn_in])} (offer.status = withdrawn): "${w.quote}"${gone}`);
     }));
   }
 
@@ -140,9 +149,20 @@ function buildSections(ctx: CompiledContext): Section[] {
     ]);
   }
   if (ctx.already_answered_do_not_reask.length) {
-    section('answered', false, 'Already answered — do not re-ask', [
+    // the answer itself, where it is a term on record, so an agent sees there is nothing left to ask or confirm
+    const answerOf = (issue: string | null | undefined) => {
+      if (!issue) return '';
+      const now = ctx.current_terms.filter((t) => t.term === issue && t.status === 'active');
+      return now.length ? ` (now: ${now.map((t) => `${t.party} ${t.value}`).join('; ')})` : '';
+    };
+    section('answered', false, 'Already answered — do not ask again or ask them to confirm', [
       ...olderOmitted(omitted.answered_questions, 'answered questions', stateDrill),
-      ...ctx.already_answered_do_not_reask.map((q) => bullet(`${q.asked_by} asked: "${q.asked}"${'issue' in q && q.issue ? ` [${q.issue}]` : ''} → ${q.status}: ${q.resolution}${evidenceTag([q.resolved_in])}`)),
+      ...ctx.already_answered_do_not_reask.map((q) => {
+        const issue = 'issue' in q ? q.issue : null;
+        // the term the question was about: its issue, else its single topic
+        const about = issue ?? (q.topics?.length === 1 ? q.topics[0] : null);
+        return bullet(`${q.asked_by} asked: "${q.asked}"${issue ? ` [${issue}]` : ''} → ${q.status}: ${q.resolution}${answerOf(about)}${evidenceTag([q.resolved_in])}`);
+      }),
     ]);
   }
   if (ctx.resolved_commitments.length) {

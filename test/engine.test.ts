@@ -366,3 +366,28 @@ test('a dispute we have raised waits for their answer', async () => {
   assert.ok(!ctx.suggested_actions.some((a) => a.kind === 'resolve_contested'));
   assert.ok(ctx.suggested_actions.some((a) => a.kind === 'awaiting_response' && /settle delivery\.schedule/.test(a.action)));
 });
+
+test('a schedule that dates fewer units than required cannot pass the all-units deadline', async () => {
+  const h = new Harness(procurementTask(addr));
+  const rfq = await h.out(addr.supplier, 'RFQ — PO-4817', 'Hi Dana, can you deliver all 500 units by Friday, Oct 23, and what is your unit price?', '2026-10-19T09:00:00Z');
+  await h.in({ from: addr.supplier, fromName: 'Dana', to: addr.self, subject: 'Re: RFQ — PO-4817', body: 'We can deliver 400 units Friday (Oct 23) at $11.40 each.', at: '2026-10-19T10:00:00Z', threadKey: 's', inReplyTo: rfq.messageId });
+
+  assert.deepEqual(h.active('delivery.schedule')[0].value, [{ qty: 400, date: '2026-10-23' }]);
+  const check = (kind: string) => h.checks().find((c) => c.id.startsWith(`${kind}:`))!;
+  assert.equal(check('quantity').status, 'fail');
+  // every dated lot is on time, but 100 units have no date: not a pass (the briefing used to say "PASS All units")
+  assert.equal(check('delivery_deadline').status, 'unknown');
+  assert.match(check('delivery_deadline').detail, /400 of 500 units; no date yet for the other 100/);
+});
+
+test('a known party writing about another deal of the same kind, or a stranger naming our part number, stays unlinked', async () => {
+  const tasks = [{ id: 'task_po', alias: 'PO-8228', goal: 'Buy 300 R-12 relay assemblies (part AX-200) for PO-8228.', participants: ['rosa@brightline.example', 'owen@acme-buyer.example'] }];
+  const store = { taskForThread: async () => null, eventByPrimitiveEmailId: async () => null, eventByMessageId: async () => null, tasks: async () => tasks };
+  const link = (from: string, subject: string, body = '') => resolveTask(store, { from, direction: 'inbound', subject, body_text: body, references: [] } as unknown as EventInput).then((r) => r?.task_id ?? null);
+  assert.equal(await link('rosa@brightline.example', 'Quote for PO-8539', 'Pricing for your other order.'), null, 'another PO from the same supplier');
+  assert.equal(await link('owen@acme-buyer.example', 'Budget for PO-8539'), null);
+  assert.equal(await link('rosa@brightline.example', 'Quick question', 'Can we ship from the Reno warehouse?'), 'task_po', 'no other deal named: still routed by sender');
+  assert.equal(await link('rosa@brightline.example', 'PO-8539 and PO-8228', 'Both orders ship Friday.'), 'task_po', 'names ours too');
+  assert.equal(await link('deals@bulk-electronics.example', 'Flash sale: AX-200 boards from $24.56!'), null, 'a stranger naming our part number');
+  assert.equal(await link('billing@brightline.example', 'Statement', 'Covers AX-200 for your order.'), 'task_po', 'same supplier domain naming a reference the task names');
+});

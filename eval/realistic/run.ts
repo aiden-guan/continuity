@@ -1,7 +1,7 @@
 // Score Continuity on the realistic threads.
 //
 //   node eval/realistic/run.ts                   # offline (rule-based extractor + offline policy agent)
-//   node eval/realistic/run.ts --extractor llm   # Claude extractor (needs ANTHROPIC_API_KEY)
+//   node eval/realistic/run.ts --extractor llm   # Claude extractor (needs ANTHROPIC_API_KEY; cached, --refresh to re-ask)
 //   node eval/realistic/run.ts --only P01,R03 --verbose
 //
 // Every thread is played through the real engine (Harness: signed Primitive-shaped webhooks, the
@@ -9,7 +9,8 @@
 // gold: active terms, contested pairs, superseded values, statements that must NOT be applied,
 // obligations, documents, checks, who acts next, and — for checkpoints with a handoff — what the
 // offline policy agent would write. Results go to eval/realistic/results/latest.json.
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -19,18 +20,50 @@ import { setSimTime } from '../../src/clock.ts';
 import { labelOf } from '../../src/engine/resolver.ts';
 import { heuristicExtractor } from '../../src/extract/heuristic.ts';
 import { llmExtractor } from '../../src/extract/llm.ts';
+import { routeFromEnv, routedExtractor } from '../../src/extract/routed.ts';
 import { policyDecide } from '../../src/agent/policy.ts';
 import type { Claim } from '../../src/types.ts';
+import type { Extractor, Proposal } from '../../src/extract/types.ts';
 import { TERM_KEYS, validateThread, type GoldCheckpoint, type GoldTerm, type Thread } from './schema.ts';
 
-const { values: args } = parseArgs({ options: { extractor: { type: 'string', default: 'heuristic' }, only: { type: 'string' }, verbose: { type: 'boolean', default: false } } });
+const { values: args } = parseArgs({ options: { extractor: { type: 'string', default: 'heuristic' }, only: { type: 'string' }, verbose: { type: 'boolean', default: false }, refresh: { type: 'boolean', default: false } } });
 const here = fileURLToPath(new URL('.', import.meta.url));
 const only = args.only?.split(',').map((s) => s.trim());
 const threads: Thread[] = readdirSync(join(here, 'threads')).filter((f) => f.endsWith('.json')).sort()
   .map((f) => JSON.parse(readFileSync(join(here, 'threads', f), 'utf8')) as Thread)
   .filter((t) => !only || only.includes(t.id));
 if (args.extractor === 'llm' && !process.env.ANTHROPIC_API_KEY) { console.error('--extractor llm needs ANTHROPIC_API_KEY'); process.exit(1); }
-const extractor = args.extractor === 'llm' ? llmExtractor() : heuristicExtractor;
+
+/** Claude's reading of each email is cached on disk (keyed by model and input), so a re-run after an engine change
+ *  measures the engine, not run-to-run model variation. --refresh asks Claude again (and rewrites the cache). */
+function cached(inner: Extractor, dir = '.scratch/realistic-extractions'): Extractor {
+  mkdirSync(dir, { recursive: true });
+  let hits = 0, calls = 0;
+  const tok = { input: 0, cache_read: 0, cache_write: 0, output: 0 };
+  const count = (p: Proposal) => {
+    const u = (p.meta?.usage ?? {}) as Record<string, number>;
+    tok.input += u.input_tokens ?? 0; tok.cache_read += u.cache_read_input_tokens ?? 0; tok.cache_write += u.cache_creation_input_tokens ?? 0; tok.output += u.output_tokens ?? 0;
+  };
+  process.on('exit', () => {
+    const n = Math.max(hits + calls, 1);
+    console.log(`(Claude extractions: ${hits} cached, ${calls} new; cache in ${dir})`);
+    console.log(`(tokens per email: input ${Math.round(tok.input / n)} · cache read ${Math.round(tok.cache_read / n)} · cache write ${Math.round(tok.cache_write / n)} · output ${Math.round(tok.output / n)})`);
+  });
+  return {
+    name: inner.name,
+    async extract(input) {
+      const key = createHash('sha256').update(JSON.stringify({ x: inner.name, fp: inner.fingerprint ?? null, input: { ...input, claimQuotes: undefined, event: { ...input.event, id: undefined, seq: undefined } } })).digest('hex');
+      const file = join(dir, `extract-${key}.json`);
+      if (!args.refresh && existsSync(file)) { hits++; const saved = JSON.parse(readFileSync(file, 'utf8')) as Proposal; count(saved); return saved; }
+      calls++;
+      const proposal = await inner.extract(input);
+      count(proposal);
+      writeFileSync(file, JSON.stringify(proposal));
+      return proposal;
+    },
+  };
+}
+const extractor = args.extractor === 'llm' ? cached(routedExtractor(llmExtractor(), routeFromEnv())) : heuristicExtractor;
 
 // ---- value comparison (Continuity's normalized forms)
 const norm = (s: unknown) => String(s ?? '').toLowerCase().replace(/[^a-z0-9.]+/g, ' ').trim();

@@ -53,7 +53,7 @@ export const optionsFor = (kind: ApprovalKind) => (kind === 'send' ? SEND_OPTION
 
 /** Transitions that tell the story of a deal (answered questions are bookkeeping). */
 const IMPORTANT = new Set([
-  'claim_added', 'claim_superseded', 'claim_contested', 'claim_tentative', 'claim_retracted', 'claim_held_for_verification', 'claim_verified', 'claim_rejected',
+  'claim_added', 'claim_superseded', 'claim_contested', 'claim_settled', 'claim_tentative', 'claim_retracted', 'claim_held_for_verification', 'claim_verified', 'claim_rejected',
   'stale_evidence', 'conflict_detected', 'conflict_resolved', 'obligation_resolved', 'artifact_superseded', 'offer_withdrawn', 'injection_quarantined',
 ]);
 const SUSPICIOUS_FLAGS = ['sender_unauthenticated', 'sender_impersonates_us', 'prompt_injection_suspected'];

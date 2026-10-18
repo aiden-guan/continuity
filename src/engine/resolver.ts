@@ -241,6 +241,17 @@ export function applyProposal(inp: ApplyInput) {
     log('claim_contested', `Conflicting ${claim.key}: ${theirs} vs ${who} says ${display} — unresolved`, claim.id,
       { claims: [...conflicting.map((d) => d.id), claim.id] });
   };
+  /** A contest ends once nobody in the group says anything different: the other side revised its value to agree,
+   *  or withdrew it. Each contested claim on the key that no live peer contradicts any more is applied again. */
+  const settle = (key: string, how: string) => {
+    const group = groupOf(task, speaker);
+    const onKey = liveClaims().filter((c) => c.key === key && groupOf(task, c.speaker) === group);
+    for (const c of onKey) {
+      if (c.status !== 'contested' || onKey.some((d) => d.id !== c.id && !sameValue(d.value, c.value))) continue;
+      store.updateClaim(c.id, { status: 'active', supersede_reason: null });
+      log('claim_settled', `${nameOf(c.speaker)}'s ${key} (${c.display}) is no longer disputed: ${who} ${how}`, c.id, { key, by: event.id });
+    }
+  };
 
   for (const pc of claimsInOrder) {
     if (!vocabulary.has(pc.key)) continue;
@@ -329,6 +340,7 @@ export function applyProposal(inp: ApplyInput) {
       for (const term of ownOffers.filter((x) => withdrawable(x.key) && cameBefore(x.source_event_id))) {
         store.updateClaim(term.id, { status: 'retracted', supersede_reason: `offer withdrawn by ${who} in ${event.id}` });
         retracted.push(`${term.key} (${term.display})`);
+        settle(term.key, 'withdrew its offer');
       }
       const promises = store.obligationsForTask(task.id).filter((x) => isOpen(x) && x.debtor === speaker && x.kind === 'commitment' && cameBefore(x.source_event_id));
       for (const ob of promises) {
@@ -382,6 +394,7 @@ export function applyProposal(inp: ApplyInput) {
         const note = own.length ? 'older than the current value, which is kept' : 'nothing current to withdraw';
         log('claim_retracted', `${who} withdrew ${pc.key} (${note})`, null, { key: pc.key });
       }
+      if (retractable.length) settle(pc.key, `withdrew its ${pc.key}`);
       const newerOwn = own.find((c) => (occurredAt(c.source_event_id) ?? '') > event.occurred_at);
       if (!forwarded && newerOwn) flagSkew(newerOwn.source_event_id, occurredAt(newerOwn.source_event_id)!);
       answeredKeys.add(pc.key);
@@ -422,6 +435,7 @@ export function applyProposal(inp: ApplyInput) {
       log('claim_superseded', `${who} changed ${pc.key}: ${latest.display} → ${display} (${why})`, revised.id,
         { from: latest.id, to: revised.id, from_display: latest.display, to_display: display, mode: pc.mode });
       if (stillDisputed.length) contest(revised, stillDisputed, display);
+      else settle(pc.key, `now says ${display} too`);
       answeredKeys.add(pc.key);
       continue;
     }

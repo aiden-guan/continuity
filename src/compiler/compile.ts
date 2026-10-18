@@ -42,7 +42,7 @@ export const TOKEN_UNIT = 'estimated_tokens (characters / 4)';
 
 // Transition types worth reporting as "changes"; bookkeeping transitions are left out.
 const REPORTABLE_TRANSITIONS = new Set([
-  'event_ingested', 'claim_added', 'claim_superseded', 'claim_contested', 'claim_retracted', 'claim_tentative', 'stale_evidence',
+  'event_ingested', 'claim_added', 'claim_superseded', 'claim_contested', 'claim_settled', 'claim_retracted', 'claim_tentative', 'stale_evidence',
   'obligation_opened', 'obligation_resolved', 'obligation_unverified', 'obligation_partially_fulfilled', 'obligation_condition_met', 'obligation_overdue',
   'artifact_added', 'artifact_status', 'artifact_superseded', 'offer_withdrawn', 'offer_reinstated', 'delivery_reported',
   'conflict_detected', 'conflict_resolved', 'injection_quarantined', 'interpretation_failed',
@@ -211,7 +211,7 @@ export function compileContext(store: StateStore, taskId: string, opts: CompileO
     obligations
       .filter((o) => o.kind !== 'commitment' && !isOpen(o) && inFocus(o.debtor))
       .map((o) => ({
-        id: o.id, asked_by: label(o.creditor), asked: o.text, ...(o.issue_key ? { issue: o.issue_key } : {}),
+        id: o.id, asked_by: label(o.creditor), asked: o.text, ...(o.issue_key ? { issue: o.issue_key } : {}), topics: o.topic_keys,
         status: o.status, resolution: o.resolution_note, resolved_in: o.resolved_by_event_id,
       })),
     histMax,

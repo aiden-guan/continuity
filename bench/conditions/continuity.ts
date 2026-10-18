@@ -19,11 +19,13 @@ import { compileContext } from '../../src/compiler/compile.ts';
 import { renderBriefing } from '../../src/compiler/render.ts';
 import { heuristicExtractor } from '../../src/extract/heuristic.ts';
 import { llmExtractor } from '../../src/extract/llm.ts';
+import { routeFromEnv, routedExtractor } from '../../src/extract/routed.ts';
 import { domainFor, registeredDomains } from '../../src/domain/index.ts';
 import type { EventInput, TaskSpec } from '../../src/types.ts';
 import { isOpenStatus } from '../../src/types.ts';
 import type { AgentOutput, ConflictKind } from '../core/types.ts';
 import type { Extractor } from '../../src/extract/types.ts';
+import { liveEventInputs } from '../live/view.ts';
 
 function taskSpec(mb: Mailbox, domain: string): TaskSpec {
   const t = mb.case.task;
@@ -92,7 +94,7 @@ function metered(inner: Extractor, cacheDir: string, trial: number, calls: CallR
     name: inner.name,
     async extract(input) {
       // claimQuotes is derived from the same state as activeClaims; leaving it out keeps earlier cache entries valid
-      const key = createHash('sha256').update(JSON.stringify({ x: inner.name, trial, input: { ...input, claimQuotes: undefined, event: { ...input.event, id: undefined, seq: undefined } } })).digest('hex');
+      const key = createHash('sha256').update(JSON.stringify({ x: inner.name, fp: inner.fingerprint ?? null, trial, input: { ...input, claimQuotes: undefined, event: { ...input.event, id: undefined, seq: undefined } } })).digest('hex');
       const file = join(cacheDir, `extract-${key}.json`);
       const started = Date.now();
       let proposal;
@@ -104,9 +106,9 @@ function metered(inner: Extractor, cacheDir: string, trial: number, calls: CallR
         proposal = await inner.extract(input);
         writeFileSync(file, JSON.stringify(proposal));
       }
-      const u = proposal.meta?.usage as { input_tokens?: number; output_tokens?: number } | undefined;
+      const u = proposal.meta?.usage as { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number } | undefined;
       if (u && proposal.meta?.model) {
-        const usage = { input_tokens: u.input_tokens ?? 0, output_tokens: u.output_tokens ?? 0 };
+        const usage = { input_tokens: u.input_tokens ?? 0, output_tokens: u.output_tokens ?? 0, cache_read_input_tokens: u.cache_read_input_tokens ?? 0, cache_creation_input_tokens: u.cache_creation_input_tokens ?? 0 };
         calls.push({ purpose: 'extractor', model: proposal.meta.model, usage, cost_usd: costUsd(proposal.meta.model, usage), cached, ms: Date.now() - started });
       }
       return proposal;
@@ -209,10 +211,13 @@ async function replay(mb: Mailbox, ctx: ConditionCtx, extractor: Extractor) {
   const h = new Harness(spec, extractor, created);
   await h.ready;
   const idOf = new Map<string, string>(); // ev_N -> m07
-  for (const m of mb.messages) {
-    const input = m.event.direction === 'outbound' ? outboundInput(m, spec.id) : fromPrimitiveWebhook(webhookPayload(m));
+  // a live case is ingested from real Primitive rows (GET /emails/{id}, attachment bytes, our sent rows)
+  const inputs = mb.live
+    ? await liveEventInputs(mb, spec.id)
+    : mb.messages.map((m) => ({ m: m.id, input: m.event.direction === 'outbound' ? outboundInput(m, spec.id) : fromPrimitiveWebhook(webhookPayload(m)) }));
+  for (const { m, input } of inputs) {
     const res = await h.ingest(input);
-    idOf.set(res.event.id, m.id);
+    idOf.set(res.event.id, m);
   }
   const context = compileContext(h.store, spec.id, { agentId: 'bench-fresh-agent', now: mb.now });
   const rewrite = (s: string) => s.replace(/\bev_\d+\b/g, (id) => idOf.get(id) ?? id);
@@ -248,7 +253,7 @@ export const continuity = continuityCondition(
   'continuity',
   'Continuity (model extractor)',
   'The whole inbox replayed through the engine (model extractor → deterministic resolver → compiler); the actor gets the compiled briefing.',
-  (ctx) => (ctx.mock ? heuristicExtractor : llmExtractor({ model: ctx.llm.model })),
+  (ctx) => (ctx.mock ? heuristicExtractor : routedExtractor(llmExtractor({ model: ctx.llm.model }), routeFromEnv())),
 );
 
 export const continuityRules = continuityCondition(

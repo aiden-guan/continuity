@@ -2,8 +2,10 @@
 // referents such as "the remaining 200", corrections — and returns a Proposal. It never writes
 // state; the resolver validates every proposed change and applies or refuses it.
 import type Anthropic from '@anthropic-ai/sdk';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { anthropicClient, responseText, serverFallback } from '../anthropic.ts';
-import { domainFor, type TermDef } from '../domain/pack.ts';
+import { domainFor, registeredDomains, type TermDef } from '../domain/pack.ts';
 import '../domain/index.ts';
 import { classifyArtifact, stripQuoted } from './heuristic.ts';
 import type { ExtractInput, Extractor, Proposal } from './types.ts';
@@ -33,7 +35,7 @@ function schemaFor(TERMS: TermDef[], documentKinds: string[] = []) {
       value_json: { type: 'string', description: 'JSON-encoded value in the format the vocabulary gives for the term. money/number/percent: 11.4 ; date: "2026-10-23" ; datetime: "2026-10-23T14:00" ; window: {"start":"2026-10-23T08:00","end":"2026-10-23T12:00"} ; schedule: [{"qty":300,"date":"2026-10-23"}] ; text: "Net 30"' },
       kind: { type: 'string', enum: ['offer', 'decision', 'info'] },
       mode: { type: 'string', enum: ['assert', 'correction', 'retraction'] },
-      evidence: { type: 'string', description: 'verbatim sentence from the message/document' },
+      evidence: { type: 'string', description: 'the shortest verbatim phrase from the message/document that states it (a few words, at most one sentence)' },
       confidence: { type: 'number' },
       hedged: { type: 'boolean' },
       from_attachment: { type: ['string', 'null'], description: 'attachment filename if the claim comes from a document, else null' },
@@ -104,6 +106,7 @@ Rules:
 - Obligations: questions/requests from the sender create obligations on the recipient (debtor=recipient); promises by the sender ("I'll send...") create commitments (debtor=sender). Set expects_artifact when the promise/request is to send a document. Skip pleasantries ("let me know if you have questions").
 - Questions: one obligation per distinct issue. "What is your price, and can you deliver by Friday?" is two questions.
 - Resolutions: if this message answers, fulfils, declines or cancels one of the listed OPEN obligations, reference its id. An answer to one issue does not resolve a different issue. A promised document is fulfilled only if it is actually attached.
+- Every evidence field is the shortest verbatim phrase that states the item (a few words), never a whole paragraph.
 - Output only the JSON object.`;
 
 /** The raw shape the schema above asks the model for. */
@@ -115,14 +118,24 @@ interface RawOutput {
   fulfillments?: any[];
 }
 
-/** Build the user turn: task context, vocabulary, current state, then the untrusted message. */
-function userPrompt(input: ExtractInput, terms: TermDef[]): string {
-  const { task, event } = input;
-  const name = (a: string) => labelOf(task, a);
+/** The domain's term vocabulary: the same for every email of every task in the domain, so it sits in the cached system prompt. */
+function vocabularyOf(terms: TermDef[]): string {
+  return terms.map((t) => `- ${t.key} (${t.type}${t.values ? `: ${t.values.join('|')}` : ''}): ${t.description}. value_json = ${VALUE_FORMAT[t.type]}`).join('\n');
+}
+
+/** The task and its parties: the same for every email of the task, so it is cached after the system prompt. */
+function taskBlock(input: ExtractInput): string {
+  const { task } = input;
   const parties = task.participants
     .map((p) => `${p.label} <${p.address}> role=${p.role} speaks_for=${p.authority.join(',')}`)
     .join('; ');
-  const vocabulary = terms.map((t) => `- ${t.key} (${t.type}${t.values ? `: ${t.values.join('|')}` : ''}): ${t.description}. value_json = ${VALUE_FORMAT[t.type]}`).join('\n');
+  return [`Task ${task.alias}: ${task.goal}`, `Parties: ${parties}`].join('\n\n');
+}
+
+/** What changes from email to email: the current state, then the untrusted message. */
+function messageBlock(input: ExtractInput): string {
+  const { task, event } = input;
+  const name = (a: string) => labelOf(task, a);
   const currentTerms = input.activeClaims
     .map((c) => `- ${c.id} ${name(c.speaker)} ${c.key} = ${JSON.stringify(c.value)}`)
     .join('\n') || '(none)';
@@ -135,9 +148,6 @@ function userPrompt(input: ExtractInput, terms: TermDef[]): string {
     })
     .join('\n') || '(none)';
   return [
-    `Task ${task.alias}: ${task.goal}`,
-    `Parties: ${parties}`,
-    `Vocabulary:\n${vocabulary}`,
     `Current terms:\n${currentTerms}`,
     `OPEN obligations:\n${openObligations}`,
     `Message ${event.id}: ${event.direction} from ${name(event.from)} <${event.from}> (role ${input.senderRole}) to ${event.to.map(name).join(', ')} at ${event.occurred_at}. Subject: ${event.subject}`,
@@ -146,14 +156,29 @@ function userPrompt(input: ExtractInput, terms: TermDef[]): string {
   ].join('\n\n');
 }
 
+/** This file's text (prompt, schema, request settings), the stripper that shapes the email, every domain pack's guidance
+ *  and vocabulary, and the effort: a cached reading made by other code or other instructions is never reused. */
+const fingerprintOf = (effort: string) => createHash('sha256')
+  .update(readFileSync(new URL(import.meta.url)))
+  .update(readFileSync(new URL('./heuristic.ts', import.meta.url)))
+  // every pack's guidance, vocabulary and document kinds are part of the prompt too
+  .update(JSON.stringify(registeredDomains().sort().map((id) => { const p = domainFor(id); return [id, p.llmGuidance, p.terms, p.documentKinds ?? null]; })))
+  .update(effort)
+  .digest('hex').slice(0, 12);
+
 // one attempt; the engine's overall deadline (CONTINUITY_EXTRACT_DEADLINE_MS) bounds attempt + retry
 const ATTEMPT_MS = Number(process.env.CONTINUITY_EXTRACT_ATTEMPT_MS || 90_000);
 
-export function llmExtractor(opts: { apiKey?: string; model?: string } = {}): Extractor {
+export function llmExtractor(opts: { apiKey?: string; model?: string; effort?: 'low' | 'medium' | 'high' } = {}): Extractor {
   const client = anthropicClient(opts.apiKey ?? process.env.ANTHROPIC_API_KEY);
   const model = opts.model ?? (process.env.CONTINUITY_EXTRACTOR_MODEL || 'claude-haiku-5-5');
+  // reasoning depth per email: most mail is routine, and output (mostly reasoning) is the larger part of a read's cost
+  const effort = opts.effort ?? ((process.env.CONTINUITY_EXTRACTOR_EFFORT as 'low' | 'medium' | 'high' | undefined) || 'medium');
+  // CONTINUITY_EXTRACTOR_THINKING=off: no reasoning before the JSON (accepted at effort high or below)
+  const thinkingOff = process.env.CONTINUITY_EXTRACTOR_THINKING === 'off';
   return {
     name: `llm:${model}`,
+    fingerprint: fingerprintOf(`${effort}${thinkingOff ? ':no-thinking' : ''}`),
     async extract(input: ExtractInput, callOpts: { signal?: AbortSignal } = {}): Promise<Proposal> {
       const pack = domainFor(input.task);
       const terms = pack.terms;
@@ -161,9 +186,15 @@ export function llmExtractor(opts: { apiKey?: string; model?: string } = {}): Ex
       const res = await client.beta.messages.create({
         model,
         max_tokens: 16000,
-        system: `${SYSTEM}\n\nDomain conventions:\n${pack.llmGuidance}`,
-        messages: [{ role: 'user', content: userPrompt(input, terms) }],
-        output_config: { effort: 'medium', format: { type: 'json_schema', schema: schemaFor(terms, pack.documentKinds?.map((d) => d.kind)) } },
+        // cached prefix, most stable first: instructions + the domain's conventions and vocabulary (every email in the
+        // domain), then the task and its parties (every email of the task); only the state and the email vary
+        system: [{ type: 'text', text: `${SYSTEM}\n\nDomain conventions:\n${pack.llmGuidance}\n\nVocabulary:\n${vocabularyOf(terms)}`, cache_control: { type: 'ephemeral' } }],
+        messages: [{ role: 'user', content: [
+          { type: 'text', text: taskBlock(input), cache_control: { type: 'ephemeral' } },
+          { type: 'text', text: messageBlock(input) },
+        ] }],
+        ...(thinkingOff ? { thinking: { type: 'disabled' } } : {}),
+        output_config: { effort, format: { type: 'json_schema', schema: schemaFor(terms, pack.documentKinds?.map((d) => d.kind)) } },
         ...serverFallback(model),
       } as never, { timeout: ATTEMPT_MS, maxRetries: 1, signal: callOpts.signal }) as unknown as Anthropic.Message;
       if (res.stop_reason === 'refusal') throw new Error('model refused extraction');
