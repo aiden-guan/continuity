@@ -14,10 +14,51 @@ function bareAddress(v: string | null | undefined): string {
   return (angle ? angle[1] : v).trim().toLowerCase();
 }
 
-/** `"Name" <a@b.com>` → `Name`; null when there is no display name. */
+/** `"Name" <a@b.com>` → `Name`; null when there is no display name. An encoded name is decoded (the address never is). */
 function displayName(v: string | null | undefined): string | null {
   const m = v?.match(/^\s*"?([^"<]+?)"?\s*</);
-  return m ? m[1].trim() : null;
+  return m ? decodeMimeWords(m[1]).trim() : null;
+}
+
+const ENCODED_WORD = /=\?([^?\s]+)\?([bBqQ])\?([^?\s]*)\?=/g;
+
+function charsetText(charset: string, bytes: Buffer): string {
+  try {
+    return new TextDecoder(charset).decode(bytes);
+  } catch {
+    return bytes.toString('latin1'); // unknown charset label
+  }
+}
+
+/**
+ * RFC 2047 encoded-words in a header value (`=?UTF-8?Q?Re=3A_RFQ_=E2=80=94_PO-4?= =?UTF-8?Q?817?=`) → text.
+ * Seen live: Primitive sometimes stores a non-ASCII subject this way (messages sent with a Cc). Adjacent words are
+ * joined before their bytes are decoded, so a character split across two words survives; the whitespace between
+ * them is dropped, as the RFC says.
+ */
+export function decodeMimeWords(value: string): string {
+  if (!value.includes('=?')) return value;
+  const s = value.replace(/\r?\n[ \t]+/g, ' ');
+  let out = '';
+  let last = 0;
+  let run: { charset: string; bytes: Buffer[] } | null = null;
+  const flush = () => {
+    if (run) out += charsetText(run.charset, Buffer.concat(run.bytes));
+    run = null;
+  };
+  for (const m of s.matchAll(ENCODED_WORD)) {
+    const between = s.slice(last, m.index);
+    const charset = m[1].split('*')[0].toLowerCase();
+    if (!run || !/^\s*$/.test(between)) { flush(); out += between; } else if (run.charset !== charset) flush();
+    const bytes = m[2].toUpperCase() === 'B'
+      ? Buffer.from(m[3], 'base64')
+      : Buffer.from(m[3].replace(/_/g, ' ').replace(/=([0-9A-Fa-f]{2})/g, (_, h: string) => String.fromCharCode(parseInt(h, 16))), 'latin1');
+    run ??= { charset, bytes: [] };
+    run.bytes.push(bytes);
+    last = m.index + m[0].length;
+  }
+  flush();
+  return out + s.slice(last);
 }
 
 function asList(v: unknown): string[] {
@@ -61,7 +102,7 @@ export function fromPrimitiveWebhook(evt: Record<string, any>): EventInput {
     from_name: displayName(headers.from),
     to: toAddrs.length ? toAddrs : asList(email.smtp?.rcpt_to).map((a) => a.toLowerCase()),
     cc: lowerAddresses(parsed.cc),
-    subject: headers.subject ?? '',
+    subject: decodeMimeWords(headers.subject ?? ''),
     body_text: parsed.body_text ?? '',
     occurred_at: times.occurred_at,
     received_at: times.received_at,
@@ -92,7 +133,7 @@ export function fromPrimitiveEmailDetail(d: Record<string, any>): EventInput {
     from_name: displayName(d.from_header),
     to: [String(d.to_email ?? d.recipient ?? '').toLowerCase()],
     cc: lowerAddresses(parsed.cc),
-    subject: d.subject ?? '',
+    subject: decodeMimeWords(d.subject ?? ''),
     body_text: d.body_text ?? parsed.body_text ?? '',
     occurred_at: times.occurred_at,
     received_at: times.received_at,

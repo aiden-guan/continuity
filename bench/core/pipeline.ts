@@ -1,6 +1,6 @@
 // One benchmark cell: (case, condition, trial) → prepared memory → fresh actor → scores → row.
 import type { BenchCase, VerticalModule, AgentOutput } from './types.ts';
-import { materialize } from './mailbox.ts';
+import { materialize, type Mailbox } from './mailbox.ts';
 import { act, actorInput } from './actor.ts';
 import { judge } from './judge.ts';
 import { scoreAction, scoreState, judgeConditions, type ActionScore, type StateScore } from './score.ts';
@@ -48,10 +48,11 @@ export interface Row {
   ms: number;
 }
 
-export async function runCell(opts: { mod: VerticalModule; c: BenchCase; condition: Condition; trial: number; llm: Llm; judgeLlm: Llm; cacheDir: string; mock: boolean; refresh?: boolean; effort?: Effort }): Promise<Row> {
+export async function runCell(opts: { mod: VerticalModule; c: BenchCase; condition: Condition; trial: number; llm: Llm; judgeLlm: Llm; cacheDir: string; mock: boolean; refresh?: boolean; effort?: Effort; mailbox?: (c: BenchCase) => Mailbox }): Promise<Row> {
   const { mod, c, condition, trial, llm, judgeLlm } = opts;
   const started = Date.now();
-  const mb = materialize(c);
+  // live runs hand in a mailbox backed by real Primitive mail (bench/live); otherwise the replay
+  const mb = opts.mailbox ? opts.mailbox(c) : materialize(c);
   const base = {
     key: `${c.id}|${condition.id}|${trial}`, case_id: c.id, vertical: c.vertical, archetype: c.archetype, variant: c.variant, split: c.split,
     backlog: c.backlog ?? 0, mess: Number(c.params.mess ?? 0), capabilities: c.capabilities, condition: condition.id, trial, model: llm.model,

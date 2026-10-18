@@ -19,11 +19,13 @@ import { compileContext } from '../../src/compiler/compile.ts';
 import { renderBriefing } from '../../src/compiler/render.ts';
 import { heuristicExtractor } from '../../src/extract/heuristic.ts';
 import { llmExtractor } from '../../src/extract/llm.ts';
+import { routeFromEnv, routedExtractor } from '../../src/extract/routed.ts';
 import { domainFor, registeredDomains } from '../../src/domain/index.ts';
 import type { EventInput, TaskSpec } from '../../src/types.ts';
 import { isOpenStatus } from '../../src/types.ts';
 import type { AgentOutput, ConflictKind } from '../core/types.ts';
 import type { Extractor } from '../../src/extract/types.ts';
+import { liveEventInputs } from '../live/view.ts';
 
 function taskSpec(mb: Mailbox, domain: string): TaskSpec {
   const t = mb.case.task;
@@ -85,14 +87,14 @@ function outboundInput(m: MailMessage, taskId: string): EventInput {
 /** Wraps an extractor: caches proposals on disk (per trial) and records provider usage as ingestion cost.
  *  The rule extractor is free and deterministic, so it is never cached (a cache keyed by its name would
  *  serve stale proposals after its rules change). */
-function metered(inner: Extractor, cacheDir: string, trial: number, calls: CallRecord[], refresh = false): Extractor {
+function metered(inner: Extractor, cacheDir: string, trial: number, calls: CallRecord[], refresh = false, failures?: { n: number }): Extractor {
   if (inner.name.startsWith('heuristic')) return inner;
   mkdirSync(cacheDir, { recursive: true });
   return {
     name: inner.name,
     async extract(input) {
       // claimQuotes is derived from the same state as activeClaims; leaving it out keeps earlier cache entries valid
-      const key = createHash('sha256').update(JSON.stringify({ x: inner.name, trial, input: { ...input, claimQuotes: undefined, event: { ...input.event, id: undefined, seq: undefined } } })).digest('hex');
+      const key = createHash('sha256').update(JSON.stringify({ x: inner.name, fp: inner.fingerprint ?? null, trial, input: { ...input, claimQuotes: undefined, event: { ...input.event, id: undefined, seq: undefined } } })).digest('hex');
       const file = join(cacheDir, `extract-${key}.json`);
       const started = Date.now();
       let proposal;
@@ -101,12 +103,18 @@ function metered(inner: Extractor, cacheDir: string, trial: number, calls: CallR
         proposal = JSON.parse(readFileSync(file, 'utf8'));
         cached = true;
       } else {
-        proposal = await inner.extract(input);
+        // a failed read falls back to the rule extractor inside the engine: count it, or the run looks cheaper than it was
+        try {
+          proposal = await inner.extract(input);
+        } catch (err) {
+          if (failures) failures.n++;
+          throw err;
+        }
         writeFileSync(file, JSON.stringify(proposal));
       }
-      const u = proposal.meta?.usage as { input_tokens?: number; output_tokens?: number } | undefined;
+      const u = proposal.meta?.usage as { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number } | undefined;
       if (u && proposal.meta?.model) {
-        const usage = { input_tokens: u.input_tokens ?? 0, output_tokens: u.output_tokens ?? 0 };
+        const usage = { input_tokens: u.input_tokens ?? 0, output_tokens: u.output_tokens ?? 0, cache_read_input_tokens: u.cache_read_input_tokens ?? 0, cache_creation_input_tokens: u.cache_creation_input_tokens ?? 0 };
         calls.push({ purpose: 'extractor', model: proposal.meta.model, usage, cost_usd: costUsd(proposal.meta.model, usage), cached, ms: Date.now() - started });
       }
       return proposal;
@@ -209,15 +217,20 @@ async function replay(mb: Mailbox, ctx: ConditionCtx, extractor: Extractor) {
   const h = new Harness(spec, extractor, created);
   await h.ready;
   const idOf = new Map<string, string>(); // ev_N -> m07
-  for (const m of mb.messages) {
-    const input = m.event.direction === 'outbound' ? outboundInput(m, spec.id) : fromPrimitiveWebhook(webhookPayload(m));
+  // a live case is ingested from real Primitive rows (GET /emails/{id}, attachment bytes, our sent rows)
+  const inputs = mb.live
+    ? await liveEventInputs(mb, spec.id)
+    : mb.messages.map((m) => ({ m: m.id, input: m.event.direction === 'outbound' ? outboundInput(m, spec.id) : fromPrimitiveWebhook(webhookPayload(m)) }));
+  for (const { m, input } of inputs) {
     const res = await h.ingest(input);
-    idOf.set(res.event.id, m.id);
+    idOf.set(res.event.id, m);
   }
   const context = compileContext(h.store, spec.id, { agentId: 'bench-fresh-agent', now: mb.now });
   const rewrite = (s: string) => s.replace(/\bev_\d+\b/g, (id) => idOf.get(id) ?? id);
   const briefing = rewrite(renderBriefing(context));
   const engineState = engineReport(h, context, idOf, domain!);
+  // emails the engine read with the rule extractor because the model call failed or its circuit was open
+  const fallbackReads = h.store.flagsForTask(spec.id).filter((f) => f.kind === 'extractor_fallback').length;
   const linked = new Set(h.store.eventsForTask(spec.id).map((e) => idOf.get(e.id)));
   const linkage = {
     task_linked: mb.messages.filter((m) => m.task && linked.has(m.id)).length,
@@ -225,7 +238,7 @@ async function replay(mb: Mailbox, ctx: ConditionCtx, extractor: Extractor) {
     background_linked: mb.messages.filter((m) => !m.task && linked.has(m.id)).length,
     background_total: mb.messages.filter((m) => !m.task).length,
   };
-  return { briefing, engineState, linkage };
+  return { briefing, engineState, linkage, fallbackReads };
 }
 
 function continuityCondition(id: string, label: string, description: string, pick: (ctx: ConditionCtx) => Extractor): Condition {
@@ -237,9 +250,10 @@ function continuityCondition(id: string, label: string, description: string, pic
         return { label: 'briefing', memory: '', ingestion: [], retrieval: [], unsupported: `no Continuity domain pack "${domain}" for vertical ${ctx.vertical.id}` };
       }
       const calls: CallRecord[] = [];
-      const extractor = metered(pick(ctx), join(ctx.cacheDir, 'extractions'), ctx.trial, calls, ctx.refresh);
-      const { briefing, engineState, linkage } = await replay(mb, ctx, extractor);
-      return { label: 'briefing', memory: briefing, ingestion: calls, retrieval: [], engineState, diag: { extractor: extractor.name, linkage } };
+      const failures = { n: 0 };
+      const extractor = metered(pick(ctx), join(ctx.cacheDir, 'extractions'), ctx.trial, calls, ctx.refresh, failures);
+      const { briefing, engineState, linkage, fallbackReads } = await replay(mb, ctx, extractor);
+      return { label: 'briefing', memory: briefing, ingestion: calls, retrieval: [], engineState, diag: { extractor: extractor.name, linkage, failed_reads: failures.n, fallback_reads: fallbackReads } };
     },
   };
 }
@@ -248,7 +262,7 @@ export const continuity = continuityCondition(
   'continuity',
   'Continuity (model extractor)',
   'The whole inbox replayed through the engine (model extractor → deterministic resolver → compiler); the actor gets the compiled briefing.',
-  (ctx) => (ctx.mock ? heuristicExtractor : llmExtractor({ model: ctx.llm.model })),
+  (ctx) => (ctx.mock ? heuristicExtractor : routedExtractor(llmExtractor({ model: ctx.llm.model }), routeFromEnv())),
 );
 
 export const continuityRules = continuityCondition(

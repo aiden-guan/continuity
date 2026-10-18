@@ -83,6 +83,8 @@ export interface ExtractInput {
 
 export interface Extractor {
   name: string;
+  /** Changes whenever the way this extractor reads mail changes (prompt, schema, settings): caches of its output key on it. */
+  fingerprint?: string;
   /** `signal` aborts when the engine's deadline passes; extractors doing I/O should pass it on. */
   extract(input: ExtractInput, opts?: { signal?: AbortSignal }): Promise<Proposal>;
 }

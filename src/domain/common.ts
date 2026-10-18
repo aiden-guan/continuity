@@ -62,7 +62,7 @@ export function standardActions(ctx: ActionContext, o: {
     const party = task.participants.find((p) => p.address === c.party);
     actions.push({
       priority: 1, kind: 'offer_withdrawn', to: null, to_address: null, check_id: c.id,
-      action: `${party?.label ?? c.party} withdrew its offer — do not accept or rely on its earlier terms; find another option or escalate`,
+      action: `${party?.label ?? c.party} withdrew its offer — acknowledge the withdrawal to them, do not accept or rely on its earlier terms, and find another option or escalate`,
       why: c.detail,
       evidence: c.evidence.map((id) => live.find((l) => l.id === id)?.source_event_id).filter((x): x is string => !!x),
     });

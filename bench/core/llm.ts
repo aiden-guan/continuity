@@ -40,6 +40,10 @@ export interface Request {
   maxTokens?: number;
   /** Trial number: trial 2 of the same request must not hit trial 1's cache. */
   trial?: number;
+  /** Prompt caching, as any production caller would use it: 'conversation' caches the whole prefix (a tool loop
+   *  re-sends its growing history every turn); 'system' caches only the system prompt (a one-off call whose system
+   *  prompt every case shares). Cache writes cost 1.25x, so a unique prompt is never cached whole. */
+  promptCache?: 'conversation' | 'system';
 }
 
 export interface Response { text: string; content: { type: string; [k: string]: unknown }[]; stop_reason: string; usage: Usage; record: CallRecord }
@@ -93,9 +97,10 @@ export class Llm {
     return {
       model: this.model,
       max_tokens: req.maxTokens ?? 16000,
-      system: req.system,
+      system: req.promptCache === 'system' ? [{ type: 'text', text: req.system, cache_control: { type: 'ephemeral' } }] : req.system,
       messages: req.messages,
       ...(req.tools ? { tools: req.tools } : {}),
+      ...(req.promptCache === 'conversation' ? { cache_control: { type: 'ephemeral' } } : {}),
       output_config: {
         effort: req.effort ?? 'medium',
         ...(req.schema ? { format: { type: 'json_schema', schema: req.schema } } : {}),
