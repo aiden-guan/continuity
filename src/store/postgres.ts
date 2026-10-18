@@ -34,7 +34,7 @@ const day = (v: unknown): string | null => {
 const numOrNull = (v: unknown): number | null => (v == null ? null : Number(v));
 const httpError = (message: string, status: number) => Object.assign(new Error(message), { status });
 
-const SCHEMA_VERSION = '20261017220000_continuity_signals';
+const SCHEMA_VERSION = '20261017233100_approval_notify_job';
 const EPOCH = new Date(0).toISOString();
 const ITEM_TABLES: Record<string, string> = { ev: 'events', cl: 'claims', ob: 'obligations', ar: 'artifacts' };
 

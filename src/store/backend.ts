@@ -16,7 +16,7 @@ export interface TaskSnapshot {
   store: MemoryStore;
 }
 
-export type JobKind = 'interpret_event' | 'deadline' | 'reconcile_action';
+export type JobKind = 'interpret_event' | 'deadline' | 'reconcile_action' | 'notify_approval';
 export type JobStatus = 'pending' | 'running' | 'done' | 'dead';
 
 export interface JobInput {
