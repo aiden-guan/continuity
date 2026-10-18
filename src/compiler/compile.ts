@@ -42,7 +42,7 @@ export const TOKEN_UNIT = 'estimated_tokens (characters / 4)';
 
 // Transition types worth reporting as "changes"; bookkeeping transitions are left out.
 const REPORTABLE_TRANSITIONS = new Set([
-  'event_ingested', 'claim_added', 'claim_superseded', 'claim_contested', 'claim_retracted', 'claim_tentative', 'stale_evidence',
+  'event_ingested', 'claim_added', 'claim_superseded', 'claim_contested', 'claim_settled', 'claim_retracted', 'claim_tentative', 'stale_evidence',
   'obligation_opened', 'obligation_resolved', 'obligation_unverified', 'obligation_partially_fulfilled', 'obligation_condition_met', 'obligation_overdue',
   'artifact_added', 'artifact_status', 'artifact_superseded', 'offer_withdrawn', 'offer_reinstated', 'delivery_reported',
   'conflict_detected', 'conflict_resolved', 'injection_quarantined', 'interpretation_failed',
@@ -145,8 +145,11 @@ export function compileContext(store: StateStore, taskId: string, opts: CompileO
     cite(s.old_source);
     cite(s.changed_in);
   }
+  // our own mention of a term only another party sets ("could you approve up to $30.60?") is a request, not a
+  // statement about the deal: listing it as a tentative term made agents doubt the figure finance actually approved
+  const ownEcho = (c: Claim | null | undefined) => !!c && c.speaker === self && /is not authoritative for/.test(c.supersede_reason ?? '');
   const proposedTerms = claims
-    .filter((c) => c.status === 'proposed' && inFocus(c.speaker))
+    .filter((c) => c.status === 'proposed' && inFocus(c.speaker) && !ownEcho(c))
     .map((c) => ({ claim_id: c.id, party: label(c.speaker), term: c.key, value: c.display, why_not_applied: c.supersede_reason, source: c.source_event_id }));
   const tentative = capNewest(proposedTerms, histMax);
   for (const t of tentative.items) cite(t.source);
@@ -211,7 +214,7 @@ export function compileContext(store: StateStore, taskId: string, opts: CompileO
     obligations
       .filter((o) => o.kind !== 'commitment' && !isOpen(o) && inFocus(o.debtor))
       .map((o) => ({
-        id: o.id, asked_by: label(o.creditor), asked: o.text, ...(o.issue_key ? { issue: o.issue_key } : {}),
+        id: o.id, asked_by: label(o.creditor), asked: o.text, ...(o.issue_key ? { issue: o.issue_key } : {}), topics: o.topic_keys,
         status: o.status, resolution: o.resolution_note, resolved_in: o.resolved_by_event_id,
       })),
     histMax,
@@ -237,6 +240,7 @@ export function compileContext(store: StateStore, taskId: string, opts: CompileO
   const changeList = transitions
     .filter((t) => t.seq > cursor && REPORTABLE_TRANSITIONS.has(t.type))
     .filter((t) => !(t.type === 'event_ingested' && (t.detail as { direction?: string }).direction === 'outbound'))
+    .filter((t) => !(t.type === 'claim_tentative' && ownEcho(t.subject_id ? store.getClaim(t.subject_id) : null)))
     .map((t) => ({ seq: t.seq, at: t.at, type: t.type, summary: t.summary, event: t.event_id }));
   const changes = capNewest(changeList, 30);
 
@@ -374,6 +378,8 @@ function byKey(list: Claim[]) {
   return [...groups].map(([key, claims]) => ({ key, claims }));
 }
 
+const multipartKind = (task: TaskSpec, kind: string | null) => !!domainFor(task).documentKinds?.find((d) => d.kind === kind)?.multipart;
+
 export function artifactSummary(store: StateStore, task: TaskSpec, a: Artifact, cite: (id: string | null | undefined) => string | null = (x) => x ?? null) {
   const backed = store.claimsSupportedByArtifact(a.id);
   return {
@@ -387,11 +393,15 @@ export function artifactSummary(store: StateStore, task: TaskSpec, a: Artifact, 
     sha256: a.sha256,
     superseded_by: a.superseded_by ? store.getArtifact(a.superseded_by)?.filename ?? a.superseded_by : null,
     still_current_terms: backed.filter((c) => c.status === 'active').map((c) => `${c.key}: ${c.display}`),
-    stale_terms: backed
+    // the same rules as the document's status: a value that came back is current again, one part of a set is not
+    // made stale by the next part, and "now" is the speaker's value today, not the first value that replaced it
+    stale_terms: (multipartKind(task, a.kind) ? [] : backed)
       .filter((c) => c.status === 'superseded' || c.status === 'retracted')
-      .map((c) => {
-        const replacement = c.superseded_by ? store.getClaim(c.superseded_by) : null;
-        return { term: c.key, document_says: c.display, now: replacement?.display ?? '(withdrawn)', changed_by: cite(replacement?.source_event_id ?? null) };
+      .map((c) => ({ c, now: store.claimsForTask(task.id).find((x) => x.status === 'active' && x.key === c.key && x.speaker === c.speaker) ?? null }))
+      .filter(({ c, now }) => c.status === 'retracted' || !now || now.display !== c.display)
+      .map(({ c, now }) => {
+        const replacement = now ?? (c.superseded_by ? store.getClaim(c.superseded_by) : null);
+        return { term: c.key, document_says: c.display, now: c.status === 'retracted' ? '(withdrawn)' : replacement?.display ?? '(withdrawn)', changed_by: cite(replacement?.source_event_id ?? null) };
       }),
   };
 }

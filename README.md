@@ -174,6 +174,9 @@ differently. Importing the same file twice changes nothing the second time. Coll
 | `ANTHROPIC_WORKSPACE_ID` | unset | Only for keys without a workspace scope (`wrkspc_…`); sent as `anthropic-workspace-id`. |
 | `CONTINUITY_EXTRACTOR` | `auto` | `auto` \| `llm` \| `heuristic` |
 | `CONTINUITY_EXTRACTOR_MODEL` / `CONTINUITY_AGENT_MODEL` | `claude-haiku-5-5` | Model ids. |
+| `CONTINUITY_EXTRACTOR_EFFORT` | `medium` | Reasoning effort for each email read (`low` \| `medium` \| `high`). |
+| `CONTINUITY_EXTRACTOR_THINKING` | `off` | Each email is read with no reasoning before the structured answer: about a third less output per email, with accuracy unchanged on the realistic set and the bench. `on` brings reasoning back. |
+| `CONTINUITY_EXTRACT_ROUTE` | `skip-empty,outbound-plain-rules` | Which mail skips the model call and is read by the rule extractor. `skip-empty`: inbound mail with no attachment and no question, from which the rules extract nothing, and which has no figure or names nothing the deal is about. `outbound-plain-rules`: our own outbound mail that asks, offers, promises and accepts nothing. `outbound-rules`: all of our outbound mail (not recommended: it drops our offers, questions and acceptances). `none`: every email goes to the model. |
 | `CONTINUITY_SEND_CHECK` | on with `ANTHROPIC_API_KEY` | Claude's second opinion on whether an outgoing draft commits us; `off` leaves the tripwire and declared intent only. |
 | `CONTINUITY_SEND_CHECK_MODEL` | `claude-haiku-5-5` | Model id for the send check. |
 | `CONTINUITY_ASK_MODEL` | `claude-haiku-5-5` | Model id for `POST /ask`. |

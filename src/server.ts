@@ -11,6 +11,7 @@ import { resolve as resolvePath } from 'node:path';
 import { Continuity, HttpError } from './service.ts';
 import { heuristicExtractor } from './extract/heuristic.ts';
 import { llmExtractor } from './extract/llm.ts';
+import { routeFromEnv, routedExtractor } from './extract/routed.ts';
 import { LocalSimTransport, makeTransport, type Transport } from './transport/transport.ts';
 import { setSimTime, nowIso } from './clock.ts';
 import type { SimEmail } from './sim/scenario.ts';
@@ -97,7 +98,7 @@ export async function buildApp(opts: AppOptions = {}) {
   // extractor: CONTINUITY_EXTRACTOR=llm|heuristic|auto (auto = LLM when an Anthropic key is present)
   const extractorMode = process.env.CONTINUITY_EXTRACTOR || 'auto';
   const useLlm = extractorMode === 'llm' || (extractorMode === 'auto' && !!process.env.ANTHROPIC_API_KEY);
-  const extractor = useLlm ? llmExtractor() : heuristicExtractor;
+  const extractor = useLlm ? routedExtractor(llmExtractor(), routeFromEnv()) : heuristicExtractor;
   const sim = transport.mode === 'local-sim';
 
   const cfg = opts.backend ? null : (opts.storage ?? storageConfig());

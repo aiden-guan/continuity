@@ -98,6 +98,7 @@ export async function act(llm: Llm, v: VerticalSpec, mb: Mailbox, memoryLabel: s
     schema: outputSchema(v, parties),
     effort,
     trial,
+    promptCache: 'system',
   });
   return { output: Llm.json<AgentOutput>(res), input_tokens: res.usage.input_tokens + (res.usage.cache_read_input_tokens ?? 0), output_tokens: res.usage.output_tokens, record: res.record, prompt_chars: content.length };
 }
