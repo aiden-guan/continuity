@@ -80,9 +80,10 @@ const CUES = [
   {
     running: 'Agent B starts with zero memory.',
     retrieve: 'One call. The facts flow in.',
+    writing: 'Agent B writes from memory alone.',
     done: [
       ['g:agent', () => `${tok()} of state. Not the inbox.`],
-      ['#mail-open', 'It writes the right email. Never saw the thread.'],
+      ['#mail-open', 'The right email. It never saw the thread.'],
     ],
   },
   {
@@ -94,6 +95,7 @@ const CUES = [
   },
   {
     running: 'Agent C, another fresh process, drafts the order.',
+    writing: 'Agent C drafts the order.',
     human: ['#en-now', 'Committing money waits for a human.'],
     answered: ['#mail-open', () => (app.health?.transport === 'primitive' ? 'Approved. Sent through Primitive.' : 'Approved. Sent.')],
     done: [],
@@ -212,7 +214,7 @@ const STREAM_HANDLERS = {
         pause(el('#flashover').classList.contains('on') ? 1700 : 300).then(() => {
           // shown without cancelling the beat's own captions, which wait for the retrieval to finish
           showCue(CUES[beat]?.retrieve);
-          graph?.retrieve();
+          retrieveNow();
         });
       }
     }
@@ -246,6 +248,7 @@ const STREAM_HANDLERS = {
     app.answered = null;
     askedFor = null;
     app.finaleDue = false;
+    resetReveal();
     cue(null);
     shownRows.clear();
     app.waitCtl?.abort();
@@ -349,7 +352,8 @@ function ingest(data) {
   const freshEvents = data.timeline.events.filter((e) => !app.seenEvents.has(e.id));
   const freshStrays = (data.timeline.unlinked ?? []).filter((u) => !app.seenEvents.has(u.id));
   const freshRuns = data.runs.filter((r) => !app.seenRuns.has(r.id));
-  const firstLoad = app.seenEvents.size === 0 && app.seenRuns.size === 0;
+  // only the page's first look is "already there"; after that (a reset included) everything new is news
+  const firstLoad = !app.warm;
 
   app.prevCtx = app.ctx;
   Object.assign(app, data);
@@ -360,11 +364,13 @@ function ingest(data) {
     if (app.mode === 'engine') app.freshMail = new Set();
     freshMail.forEach((id) => app.freshMail.add(id));
     app.openMail = null;
+    enqueueReveal(freshMail);
   }
   freshEvents.forEach((e) => app.seenEvents.add(e.id));
   freshStrays.forEach((u) => app.seenEvents.add(u.id));
   freshRuns.forEach((r) => app.seenRuns.add(r.id));
   render();
+  app.warm = true;
   if (firstLoad) return;
 
   // replay what just happened through the pipeline, in causal order
@@ -711,6 +717,136 @@ function cleanBody(text) {
   return { main, quoted: cut >= 0 };
 }
 
+// ---------------------------------------------------------------- the reveal: mail appears the way it happened
+// New mail is shown one message at a time, in order. An agent's email is typed out in a compose window and
+// sent; an incoming one lands and its text runs in (both sped up). The graph waits until the inbox has
+// caught up, so "it arrived" is always seen before "Continuity read it".
+const reveal = { pending: new Set(), queue: [], busy: false, idle: [], heldSeen: new Set() };
+const isShown = (item) => !reveal.pending.has(item.id);
+const revealing = () => reveal.busy || reveal.queue.length > 0;
+const mailIdle = () => (revealing() ? new Promise((done) => reveal.idle.push(done)) : Promise.resolve());
+
+function enqueueReveal(ids) {
+  for (const id of ids) {
+    if (reveal.pending.has(id)) continue;
+    reveal.pending.add(id);
+    reveal.queue.push(id);
+  }
+  pumpReveal();
+}
+
+async function pumpReveal() {
+  if (reveal.busy) return;
+  reveal.busy = true;
+  while (reveal.queue.length) {
+    const id = reveal.queue.shift();
+    const item = mailFeed().find((i) => i.id === id);
+    if (item?.out && !item.stray) await composeAndSend(item);
+    reveal.pending.delete(id);
+    app.typeIn = item && !item.out && !item.stray ? id : null;
+    renderPresenter();
+    await pause(app.typeIn ? typeMs(cleanBody(item.body).main, 'in') + 300 : 250);
+  }
+  reveal.busy = false;
+  app.typeIn = null;
+  renderPresenter();
+  reveal.idle.splice(0).forEach((done) => done());
+}
+
+function resetReveal() {
+  reveal.pending.clear();
+  reveal.queue.length = 0;
+  reveal.heldSeen.clear();
+  const box = el('#compose');
+  box.className = 'gm-compose';
+  box.dataset.body = '';
+}
+
+/** An email held for approval shows up through the approvals, not the timeline: reveal it as a draft. */
+function noticeHeld(feed) {
+  for (const item of feed.filter((i) => i.held)) {
+    if (reveal.heldSeen.has(item.id)) continue;
+    reveal.heldSeen.add(item.id);
+    if (app.warm) enqueueReveal([item.id]); // on page load a waiting draft is simply there
+  }
+}
+
+/** Retrieval on the graph; the agent's writing (the compose window) waits for it to finish. */
+function retrieveNow() {
+  graph?.retrieve();
+  app.retrievedUntil = Date.now() + (noMotion ? 0 : 2400);
+}
+
+async function waitFor(test, timeoutMs) {
+  const began = Date.now();
+  while (!test() && Date.now() - began < timeoutMs) await pause(150);
+}
+
+const typeMs = (text, kind) => (noMotion ? 0 : Math.min(kind === 'in' ? 1600 : 3200, Math.max(kind === 'in' ? 700 : 1400, text.length * (kind === 'in' ? 2.2 : 3.4))));
+
+/** Type `text` into `node` over `ms`, with a caret while it runs. */
+function typeText(node, text, ms) {
+  if (!ms) {
+    node.textContent = text;
+    return Promise.resolve();
+  }
+  // timer-driven and measured by elapsed time, so it always finishes on schedule (animation frames stop in
+  // a hidden tab, and the story must not wait on them)
+  return new Promise((done) => {
+    const began = performance.now();
+    const caret = '<span class="caret"></span>';
+    const tick = () => {
+      const k = Math.min(1, (performance.now() - began) / ms);
+      node.innerHTML = `${esc(text.slice(0, Math.round(text.length * k)))}${k < 1 ? caret : ''}`;
+      if (k < 1 && node.isConnected) setTimeout(tick, 16);
+      else done();
+    };
+    tick();
+  });
+}
+
+/** The agent writes its email in a Gmail compose window, then presses Send (a held draft waits instead). */
+async function composeAndSend(item) {
+  const box = el('#compose');
+  const body = cleanBody(item.body).main;
+  const sig = body.replace(/\s+/g, ' ').trim().slice(0, 80);
+  const sameDraft = box.classList.contains('held') && box.dataset.body === sig;
+  if (!sameDraft) {
+    // an agent reads its memory before it writes
+    await pause(Math.max(0, (app.retrievedUntil ?? 0) - Date.now()));
+    const writer = item.run?.agent_id ?? item.asker ?? [...app.procs.values()].filter((p) => p.state !== 'killed').at(-1)?.name ?? 'agent';
+    const to = item.who.replace(/^To: /, '');
+    box.dataset.body = sig;
+    box.querySelector('.gc-who').textContent = `${writer} is writing`;
+    // a held draft carries no subject of its own: it answers the latest email in that conversation
+    const thread = mailFeed().filter((x) => !x.held && !x.stray && (x.addr === item.to[0] || x.to.includes(item.to[0]))).at(-1);
+    const subject = item.subject || (thread ? `Re: ${baseSubject(thread.subject)}` : 'New Message');
+    box.querySelector('.gc-title').textContent = subject;
+    box.querySelector('.gc-to').textContent = to;
+    box.querySelector('.gc-subj').textContent = subject;
+    box.querySelector('.gc-body').textContent = '';
+    box.querySelector('.gc-note').textContent = '';
+    box.className = 'gm-compose open';
+    const writing = CUES[app.running ?? -1]?.writing;
+    if (writing) showCue(writing);
+    await pause(noMotion ? 0 : 380);
+    await typeText(box.querySelector('.gc-body'), body, typeMs(body, 'out'));
+    await pause(noMotion ? 0 : 350);
+  }
+  if (item.held) {
+    box.className = 'gm-compose open held';
+    box.querySelector('.gc-note').textContent = 'Needs your OK';
+    return;
+  }
+  // press Send: the button dips, the window drops into the thread
+  box.className = 'gm-compose open sending';
+  await pause(noMotion ? 0 : 260);
+  box.className = 'gm-compose sent';
+  await pause(noMotion ? 0 : 420);
+  box.className = 'gm-compose';
+  box.dataset.body = '';
+}
+
 // ---------------------------------------------------------------- A: the inbox, as Gmail shows it
 // Conversations, not messages: one row per thread, newest first; the open thread below the list (Gmail's
 // horizontal reading pane), older messages collapsed to one line and the one that matters expanded.
@@ -758,7 +894,8 @@ const avatar = (item, size = '') => {
   return `<span class="gm-av ${size}" style="--c:${GM_COLORS[label] ?? '#5f6368'}">${esc((item.out ? 'A' : personName(item.who)[0] ?? '?').toUpperCase())}</span>`;
 };
 
-function renderMail(feed) {
+function renderMail(all) {
+  const feed = all.filter(isShown);
   const threads = mailThreads(feed);
   el('#mail-addr').textContent = app.ctx?.task?.you_are?.match(/<(.*)>/)?.[1] ?? '';
   el('#mail-unread').textContent = threads.length ? `1–${threads.length} of ${threads.length}` : '';
@@ -815,7 +952,14 @@ function renderOpenMail(thread, focus) {
     </div>`;
   };
   box.innerHTML = `<h2 class="gm-subj">${esc(thread.subject)} <span class="gm-label">Inbox</span></h2>${thread.items.map(msg).join('')}`;
-  box.querySelector('.gm-msg:not(.min)')?.scrollIntoView({ block: 'nearest' });
+  const open = box.querySelector('.gm-msg:not(.min)');
+  open?.scrollIntoView({ block: 'nearest' });
+  // a message that just landed runs its text in, quickly
+  const landed = thread.items.find((x) => x.id === expandId && x.id === app.typeIn);
+  if (landed && open) {
+    const text = cleanBody(landed.body).main;
+    typeText(open.querySelector('.gm-body'), text, typeMs(text, 'in'));
+  }
 }
 
 // ---------------------------------------------------------------- B: Continuity, as a graph
@@ -896,7 +1040,7 @@ function graphAgent() {
 
 /** The one card the right side ever shows: a person being asked (and their answer, until it lands). */
 function nowCard(feed) {
-  const asks = openHuman();
+  const asks = openHuman().filter((r) => !reveal.pending.has(r.id));
   const head = (k, b = '') => `<div class="nk"><span>${k}</span><b>${b}</b></div>`;
   if (asks.length) return humanCard(asks[0], head);
   const a = app.answered;
@@ -953,9 +1097,15 @@ async function answerHuman(id, option) {
     if (option === 'approve') {
       const [selector, text] = CUES.find((c) => c.answered)?.answered ?? [];
       // the email shows up in the inbox once the engine has sent it
-      setTimeout(() => cue(text, selector), 900);
-      setTimeout(maybeFinale, 4200);
+      // once the draft has gone out (Send pressed, the email in the thread), say so, then close the story
+      waitFor(() => !el('#compose').className.includes('open') && !revealing(), 20000).then(async () => {
+        cue(text, selector);
+        await pause(3200);
+        maybeFinale();
+      });
     } else {
+      // rejected: the draft is discarded, nothing goes out
+      el('#compose').className = 'gm-compose';
       cue(null);
     }
   } catch (err) {
@@ -974,7 +1124,7 @@ function renderEngine(feed) {
     card.innerHTML = html;
     card.className = `en-now ${cls}`;
   }
-  graph?.update(graphModel());
+  if (!revealing()) graph?.update(graphModel());
 }
 
 function renderPresenter() {
@@ -997,6 +1147,7 @@ function renderPresenter() {
   el('#p-hint').innerHTML = hint;
 
   const feed = mailFeed();
+  noticeHeld(feed);
   renderMail(feed);
   renderEngine(feed);
   cueHuman();
@@ -1224,7 +1375,7 @@ function showCue(text, selector) {
   } else {
     graph?.unfocus();
   }
-  el('#cap-t').textContent = line;
+  el('#cap-t').innerHTML = line.split(' ').map((w, i) => `<span style="--i:${i}">${esc(w)}</span>`).join(' ');
   cap.classList.remove('on');
   void cap.offsetWidth;
   cap.classList.add('on');
@@ -1236,6 +1387,8 @@ async function playCues(index) {
   if (!steps.length) return;
   const mine = ++cueToken;
   await pause(CUES[index].retrieve ? 2800 : 700);
+  await mailIdle();
+  await pause(300);
   for (const [selector, text] of steps) {
     if (mine !== cueToken) return;
     // a cue about something that is not on screen this run is skipped
@@ -1274,7 +1427,7 @@ window.stageCue = cue;
 // the person in the loop: say so when an agent hands over, and again once they answered
 let askedFor = null;
 function cueHuman() {
-  const ask = openHuman()[0];
+  const ask = openHuman().filter((r) => !reveal.pending.has(r.id))[0];
   if (!ask && askedFor && !app.answered) {
     askedFor = null;
     cue(null);
@@ -1302,6 +1455,7 @@ async function startReplay() {
 
 function replayRestart() {
   app.replayBeat = 0;
+  resetReveal();
   cue(null);
   app.running = null;
   app.procs.clear();
@@ -1360,7 +1514,7 @@ async function replayAdvance() {
     await pause(900);
     if (CUES[i]?.retrieve) {
       cue(CUES[i].retrieve);
-      graph?.retrieve();
+      retrieveNow();
       await pause(2200);
     }
     app.procs.get(step.moment).state = step.procs[step.moment];

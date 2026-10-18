@@ -280,15 +280,18 @@ body.details .pres { display: none; }
 .n.agent .body { fill: var(--bg); stroke: var(--ink); stroke-width: 2; }
 .n.agent.running .body { fill: var(--ink); }
 .n.agent.killed .body { stroke: var(--signal); }
-.n.agent .x { stroke: var(--signal); stroke-width: 3; stroke-linecap: round; }
+.n.agent .x { display: none; stroke: var(--signal); stroke-width: 3; stroke-linecap: round; }
+.n.agent.killed .x { display: inline; }
 .n.agent.killed text { fill: var(--muted); }
 .n.agent .value { font-size: 16px; fill: var(--muted); }
-.n.pulse .dot, .n.pulse .core, .n.pulse .body { animation: pop 0.7s var(--ease); }
-@keyframes pop { 0% { transform: scale(1.8); } }
 @keyframes ring { from { r: 10px; stroke-opacity: 0.7; } to { r: 30px; stroke-opacity: 0; } }
-.graph:has(.n.focus) .n:not(.focus) { opacity: 0.35; transition: opacity 0.5s; }
-.graph:has(.n.focus) .e { opacity: 0.4; transition: opacity 0.5s; }
-.graph .n { transition: opacity 0.5s; }
+.graph.focusing .n:not(.focus) { opacity: 0.3; }
+.graph.focusing .e { opacity: 0.35; }
+.graph .n, .graph .e { transition: opacity 0.6s var(--ease), stroke 0.4s; }
+.graph .spark { fill: var(--signal); }
+.n .ripple { fill: none; stroke: var(--signal); stroke-width: 2; }
+.n text { transform-box: fill-box; paint-order: stroke; stroke: var(--bg); stroke-width: 6px; stroke-linejoin: round; }
+.n.hub .hub-t { stroke: none; }
 
 /* the only card on the right: a person being asked */
 .en-now { flex: none; padding: 14px 16px; border: 1px solid var(--line-2); border-radius: var(--r); background: var(--surface); box-shadow: var(--shadow); }
@@ -909,3 +912,48 @@ body.no-cap .cap, body.details .cap { display: none; }
 .pres .side { padding-bottom: 84px; } /* room for the caption */
 .en-now.empty { display: none; }
 .ib-agents:empty { display: none; }
+
+/* ---------- an agent writing: Gmail's compose window */
+.gm { position: relative; }
+.gm-compose {
+  position: absolute;
+  right: 18px;
+  bottom: 0;
+  z-index: 3;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  width: min(560px, calc(100% - 36px));
+  height: min(420px, 72%);
+  border-radius: 10px 10px 0 0;
+  background: #fff;
+  box-shadow: 0 8px 10px 1px rgba(0, 0, 0, 0.14), 0 3px 14px 2px rgba(0, 0, 0, 0.12), 0 5px 5px -3px rgba(0, 0, 0, 0.2);
+  font-family: Roboto, Arial, sans-serif;
+  color: #1f1f1f;
+  opacity: 0;
+  transform: translateY(40px);
+  pointer-events: none;
+  transition: opacity 0.35s var(--ease), transform 0.45s var(--ease);
+}
+.gm-compose.open { opacity: 1; transform: none; }
+.gm-compose.sent { opacity: 0; transform: translate(-30%, -60%) scale(0.4); transition: opacity 0.42s ease-in, transform 0.42s cubic-bezier(0.55, 0, 0.75, 0.2); }
+.gc-head { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 14px; border-radius: 10px 10px 0 0; background: #f2f6fc; font-size: 14px; }
+.gc-who { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 4px; background: var(--ink); font: 500 11px var(--mono); color: var(--on-ink); white-space: nowrap; }
+.gc-who::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--signal); animation: blink 0.9s steps(2) infinite; }
+.gc-title { flex: 1; min-width: 0; overflow: hidden; font-weight: 500; white-space: nowrap; text-overflow: ellipsis; }
+.gc-ctl { font-size: 13px; color: #444746; }
+.gc-field { display: flex; gap: 10px; margin: 0 14px; padding: 9px 0; border-bottom: 1px solid #eceff1; font-size: 14px; color: #1f1f1f; }
+.gc-field span { color: #5e5e5e; }
+.gc-field b { padding: 0 8px; border-radius: 12px; background: #e8eaed; font-weight: 400; }
+.gc-body { margin: 0; padding: 12px 14px; overflow: hidden; font: 14px/1.55 Roboto, Arial, sans-serif; white-space: pre-wrap; }
+.gc-foot { display: flex; align-items: center; gap: 12px; padding: 10px 14px 14px; }
+.gc-send { padding: 9px 24px; border-radius: 18px; background: #0b57d0; font-size: 14px; font-weight: 500; color: #fff; transition: transform 0.15s, background 0.15s; }
+.gm-compose.sending .gc-send { background: #0842a0; transform: scale(0.92); }
+.gm-compose.held .gc-send { background: #c4c7c5; }
+.gc-note { font-size: 13px; font-weight: 500; color: var(--signal-ink); }
+.gm-compose.held .gc-note::before { content: "● "; animation: blink 0.9s steps(2) infinite; }
+.caret { display: inline-block; width: 2px; height: 1.05em; margin-left: 1px; background: #0b57d0; vertical-align: -0.15em; animation: blink 0.8s steps(2) infinite; }
+
+/* captions rise in a word at a time */
+.cap.on #cap-t span { display: inline-block; animation: word-in 0.45s var(--ease) backwards; animation-delay: calc(var(--i) * 45ms); }
+@keyframes word-in { from { opacity: 0; transform: translateY(6px); filter: blur(3px); } }
+@media (prefers-reduced-motion: reduce) { .gm-compose, .cap.on #cap-t span { transition: none; animation: none; } }
