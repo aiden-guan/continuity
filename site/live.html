@@ -17,7 +17,7 @@
 </head>
 <body>
 
-  <!-- ============ presenter view (default): one thing at a time -->
+  <!-- ============ presenter view (default): the inbox on the left, Continuity on the right -->
   <div id="pres" class="pres">
     <header class="p-top">
       <a class="logo" href="index.html" aria-label="Back to the story">
@@ -29,24 +29,56 @@
         Continuity
       </a>
       <span id="p-count" class="p-count"></span>
+      <div class="p-beat">
+        <h1 id="p-title">Agents forget.</h1>
+        <p id="p-sub"></p>
+      </div>
+      <div id="p-hint" class="p-hint"></div>
       <button id="p-details" class="p-details" title="Show the full engine view">Details <span class="kbd">D</span></button>
       <button class="theme-btn" type="button" data-theme-toggle>Dark</button>
     </header>
 
-    <section class="p-head">
-      <h1 id="p-title">Agents forget.</h1>
-      <p id="p-sub"></p>
-    </section>
+    <main id="split" class="split">
+      <!-- left: what a plain inbox gives an agent -->
+      <section class="side inbox-side">
+        <div class="side-h">
+          <span class="side-k"><b>A</b>The inbox</span>
+          <span class="side-q">What an agent sees: messages.</span>
+          <span id="ib-agents" class="ib-agents"></span>
+        </div>
+        <div id="mail" class="mail">
+          <div class="mail-bar">
+            <span class="mail-box">Inbox</span>
+            <span id="mail-addr" class="mail-addr"></span>
+            <span id="mail-unread" class="mail-unread"></span>
+          </div>
+          <div id="mail-dead" class="mail-dead" hidden>No agent is running. Nobody is reading this inbox.</div>
+          <ol id="mail-list" class="mail-list"></ol>
+          <article id="mail-open" class="mail-open"></article>
+        </div>
+      </section>
+
+      <div class="seam" aria-hidden="true"><span>Primitive</span></div>
+
+      <!-- right: what Continuity turns that mail into -->
+      <section class="side engine-side">
+        <div class="side-h">
+          <span class="side-k"><b>B</b>Continuity</span>
+          <span class="side-q">What it knows: the state of the deal.</span>
+          <span id="en-ver" class="en-ver"></span>
+        </div>
+        <ol id="en-pipe" class="en-pipe"></ol>
+        <div id="en-now" class="en-now"></div>
+        <div class="en-grid">
+          <div id="en-next" class="en-card"></div>
+          <div id="en-checks" class="en-card"></div>
+          <div id="en-terms" class="en-card"></div>
+          <div id="en-loops" class="en-card"></div>
+        </div>
+      </section>
+    </main>
 
     <section id="p-thread" class="p-thread"></section>
-
-    <section class="p-tiles">
-      <div id="p-actor" class="p-tile"></div>
-      <div id="p-checks" class="p-tile"></div>
-      <div id="p-now" class="p-tile wide"></div>
-    </section>
-
-    <footer id="p-hint" class="p-foot"></footer>
   </div>
 
   <!-- ============ details console (press D) -->

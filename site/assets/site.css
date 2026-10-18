@@ -273,6 +273,7 @@ code { font-family: var(--mono); font-size: 0.92em; }
   color: var(--ink);
 }
 .actor.us   { color: var(--signal); }
+.actor.human { color: var(--signal); }
 .actor.none { color: var(--ok); }
 .actor-why { font-size: 12.5px; line-height: 1.45; color: var(--ink-2); }
 
@@ -309,6 +310,8 @@ code { font-family: var(--mono); font-size: 0.92em; }
 
 .light { display: flex; align-items: flex-start; gap: 9px; line-height: 1.35; color: var(--ink-2); }
 .light.fail { color: var(--signal-ink); }
+.light.waived i { background: transparent; box-shadow: inset 0 0 0 1.5px var(--ok); }
+.light small { font: 11px var(--mono); color: var(--muted); }
 
 .conflict-line {
   margin-top: 10px;

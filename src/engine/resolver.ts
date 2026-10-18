@@ -205,7 +205,12 @@ export function applyProposal(inp: ApplyInput) {
 
     let authoritative = false;
     if (whoParty && verified) {
-      if (whoParty.role === 'self') authoritative = pc.kind === 'decision';
+      // our own decisions count, except on a term someone on our side decides (a ceiling we quote is not finance's
+      // approval); a counterparty owning the same term (a price both sides negotiate) does not take it away from us
+      if (whoParty.role === 'self') {
+        authoritative = pc.kind === 'decision'
+          && !task.participants.some((p) => p.role === 'internal' && p.authority.some((prefix) => pc.key.startsWith(prefix)));
+      }
       else if (isLifecycle) authoritative = whoParty.role === 'counterparty'; // any counterparty may withdraw its own offer
       else authoritative = whoParty.authority.some((prefix) => pc.key.startsWith(prefix));
     }

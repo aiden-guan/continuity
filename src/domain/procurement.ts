@@ -337,9 +337,14 @@ function procurementEnd(state: ProcurementState, claim: HeuristicSentence['claim
 }
 
 export const BINDING_PATTERNS = [
-  /\b((?:we|i)\s+(?:hereby\s+)?accepts?\b|accept(?:s|ed)?\s+(?:it|your|the|this)\b(?:\s+(?:offer|quote|proposal|order|terms))?|confirm the order|place the order|we are placing|purchase order is confirmed|approve (?:the )?payment|authori[sz]e (?:the )?payment|wire (?:the )?funds)/gi,
+  /\b((?:we|i)\s+(?:hereby\s+)?accepts?\b|accept(?:s|ed)?\s+(?:it|your|the|this)\b(?:\s+(?:offer|quote|proposal|order|terms))?|place the order|we are placing|purchase order is confirmed|approve (?:the )?payment|authori[sz]e (?:the )?payment|wire (?:the )?funds)/gi,
   // "<Company> accepts …" (case-sensitive: a capitalised name as the subject)
   /\b[A-Z][A-Za-z]+\s+(?:hereby\s+)?accepts\b/g,
+  // confirming or approving an order ourselves; "please confirm the order" asks *them*, so it does not count
+  /\b(?<!(?:please|you|to|can|could|would|will)\s)confirm(?:s|ed|ing)?\s+(?:the|this|our)\s+(?:order|purchase)\b/gi,
+  /\b(?:our|as (?:an?|our)|this is (?:our|the))\s+(?:formal\s+)?order confirmation\b/gi,
+  /\bproceed with (?:the|this|our) (?:order|purchase)\b/gi,
+  /\b(?<!(?:please|you|to|can|could|would|will)\s)approve(?:s|d)? (?:the|this|our) (?:order|purchase)\b/gi,
 ];
 
 export const procurement: DomainPack = {

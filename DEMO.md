@@ -85,7 +85,10 @@ npm run stage        # then open http://localhost:4000 full-screen
 2. **Live engine (Live engine →).** Press **→** (or Space) once per beat. Beats 3, 6 and 8 take over the full screen:
    SIGKILL, a new process with zero memory, and the closing card. The tabs are **1** evidence & transitions, **2** agent
    handoff (it opens by itself when B and C write), and **3** the live briefing. **Shift+R** resets the engine.
-3. With Claude keys a beat takes ~5–15 s ("Claude is working…"); keep talking through it. `npm run stage -- --offline`
+3. **You are in the loop.** At beat 6 Agent B asks how to handle the late 200 units: press **1** hold firm (the
+   scripted path), **2** accept the delay, or **3** walk away (2 and 3 end the story early). At beat 8 Agent C's order
+   confirmation is held until you press **A** to approve (or **R** to reject). Agents can't answer these themselves.
+4. With Claude keys a beat takes ~5–15 s ("Claude is working…"); keep talking through it. `npm run stage -- --offline`
    makes each beat instant and deterministic.
-4. If the laptop can't run the stage, any static copy of `site/` still works, because the console falls back to
+5. If the laptop can't run the stage, any static copy of `site/` still works, because the console falls back to
    replaying the recorded run.

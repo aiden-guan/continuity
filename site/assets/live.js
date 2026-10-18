@@ -2,7 +2,8 @@
 //   stage  — served by `npm run stage`: drives the story (POST /stage/next) and streams process output over SSE
 //   engine — pointed at a plain Continuity server: read-only, follows state through the /wait long-poll
 //   replay — nothing reachable: steps through the recorded run in assets/snapshot.json
-// Two faces render the same state: the presenter view (default) and the details console (D).
+// Two faces render the same state: the presenter view (default: the inbox beside what Continuity knows)
+// and the details console (D).
 import { renderBoard, threadSVG, eventLabel, esc } from './board.js';
 import { setupTheme } from './theme.js';
 
@@ -33,6 +34,10 @@ const app = {
   running: null,       // index of the beat in flight
   // bookkeeping for "what is new"
   seenEvents: new Set(), seenRuns: new Set(), newEvents: new Set(),
+  // presenter inbox: mail that just arrived, the message the viewer opened, where Agent A died in the feed
+  freshMail: new Set(), openMail: null, killFeedLen: null,
+  // the last answer given from this page, shown until the agent's next email lands
+  answered: null, answering: false,
   tab: 'evidence',
   waitCtl: null,
   // replay
@@ -68,7 +73,7 @@ const STAGE = { PRIMITIVE: 0, LOG: 1, READER: 2, STATE: 4, COMPILER: 5, AGENT: 6
 
 // ============================================================ derived helpers
 const usesClaude = () => app.health?.agent_llm || /^llm/.test(app.health?.extractor ?? '');
-const actorWord = (who) => (who === 'us' ? 'Us' : who === 'them' ? 'Them' : 'Nobody');
+const actorWord = (who) => ({ us: 'Us', them: 'Them', human: 'You' })[who] ?? 'Nobody';
 
 /** Beat list, cursor and busy flag, regardless of mode. */
 function storyPosition() {
@@ -137,6 +142,7 @@ const STREAM_HANDLERS = {
   },
   beat(e) {
     app.running = e.status === 'running' ? e.index : null;
+    if (e.status === 'running' && !e.replay) app.freshMail = new Set();
     if (app.stage) app.stage.busy = e.status === 'running';
     if (e.status === 'error') log('stage', `beat ${e.index + 1} failed: ${e.error}`, 'l-kill');
     else if (!e.replay) log('stage', `${e.status === 'running' ? '▶' : '✓'} ${e.index + 1}. ${e.title}`);
@@ -156,6 +162,7 @@ const STREAM_HANDLERS = {
     Object.assign(proc, { pid: e.pid, state: e.state, started: proc.started ?? e.t });
     if (e.state === 'killed' && !e.replay && app.timeline && proc.killedAt == null) {
       proc.killedAt = Math.max(0, (app.timeline?.events?.length ?? 1) - 1) + 0.45;
+      if (e.name === 'agent-a') app.killFeedLen = mailFeed().length;
     }
     app.procs.set(e.name, proc);
     renderProcs();
@@ -171,6 +178,11 @@ const STREAM_HANDLERS = {
     app.version = -1;
     app.task = null;
     app.prevCtx = null;
+    app.freshMail = new Set();
+    app.openMail = null;
+    app.killFeedLen = null;
+    app.answered = null;
+    shownRows.clear();
     app.waitCtl?.abort();
     el('#term').innerHTML = '';
     log('stage', 'engine reset — fresh database, task PO-4817 created');
@@ -220,6 +232,19 @@ async function restart() {
 
 function onKey(e) {
   if (e.target.closest?.('input,textarea')) return;
+  // while a person is being asked, the keys answer (presenter view only)
+  const ask = !document.body.classList.contains('details') && openHuman()[0];
+  if (ask && !e.metaKey && !e.ctrlKey) {
+    const k = e.key.toLowerCase();
+    let option = null;
+    if (ask.kind === 'approval') option = k === 'a' ? 'approve' : k === 'r' && !e.shiftKey ? 'reject' : null;
+    else if (/^[1-9]$/.test(k)) option = ask.options[Number(k) - 1]?.id ?? null;
+    if (option) {
+      e.preventDefault();
+      answerHuman(ask.id, option);
+      return;
+    }
+  }
   switch (e.key) {
     case 'ArrowRight':
     case ' ':
@@ -252,16 +277,26 @@ function ingest(data) {
     return;
   }
   const freshEvents = data.timeline.events.filter((e) => !app.seenEvents.has(e.id));
+  const freshStrays = (data.timeline.unlinked ?? []).filter((u) => !app.seenEvents.has(u.id));
   const freshRuns = data.runs.filter((r) => !app.seenRuns.has(r.id));
   const firstLoad = app.seenEvents.size === 0 && app.seenRuns.size === 0;
 
   app.prevCtx = app.ctx;
   Object.assign(app, data);
   app.newEvents = new Set(firstLoad ? [] : freshEvents.map((e) => e.id));
+  const freshMail = firstLoad ? [] : [...freshEvents.map((e) => e.id), ...freshStrays.map((u) => u.id)];
+  // "fresh" means new in the current beat (a beat can bring several refreshes); following a plain engine, new in this refresh
+  if (freshMail.length) {
+    if (app.mode === 'engine') app.freshMail = new Set();
+    freshMail.forEach((id) => app.freshMail.add(id));
+    app.openMail = null;
+  }
   freshEvents.forEach((e) => app.seenEvents.add(e.id));
+  freshStrays.forEach((u) => app.seenEvents.add(u.id));
   freshRuns.forEach((r) => app.seenRuns.add(r.id));
   render();
   if (firstLoad) return;
+  animateArrivals(mailFeed().filter((item) => app.freshMail.has(item.id) && freshMail.includes(item.id)));
 
   // replay what just happened through the pipeline, in causal order
   (async () => {
@@ -439,13 +474,16 @@ function renderThread() {
       : `<div class="empty" style="height:${height}px;display:grid;place-items:center">the thread is empty</div>`;
   };
   paint(el('#thread'), 140);
-  paint(el('#p-thread'), 200);
+  paint(el('#p-thread'), 118);
   el('#thread-meta').textContent = count
     ? `${count} emails · ${app.timeline?.threads?.length ?? 0} threads · ${alive ? `${alive} agent running` : 'no agent running'}`
     : '';
 }
 
-// ============================================================ presenter view
+// ============================================================ presenter view: the inbox | what Continuity knows
+// Left: the agent's mailbox as any mail client would show it. Right: the state Continuity compiled from that mail.
+// The contrast is the pitch: after Agent A dies, mail piles up unread on the left, while the right side keeps
+// up, and a new agent acts from the right side alone.
 function showDetails(on) {
   document.body.classList.toggle('details', on);
   renderThread();
@@ -462,16 +500,16 @@ function sayPlainly(t) {
       return ['ok', '✓ The deadline is met again.'];
     case 'claim_superseded': {
       const hit = grab(/changed ([\w.]+): (.*?) → (.*?)(?: \(|$)/);
-      return hit ? ['', `${esc(hit[1].split('.')[0])}: <s>${esc(hit[2])}</s> → ${esc(hit[3])}`] : ['', esc(text)];
+      return hit ? ['', `${esc(TERM_NAMES[hit[1]] ?? hit[1])}: <s>${esc(hit[2])}</s> → ${esc(hit[3])}`] : ['', esc(text)];
     }
     case 'injection_quarantined':
-      return ['bad', 'Hidden instruction in the PDF: quarantined.'];
+      return ['bad', 'Hidden instruction in the PDF: quarantined, never obeyed.'];
     case 'obligation_opened':
-      return /committed to/.test(text) ? ['', `Owed to us: ${esc(text.split('committed to:')[1]?.trim() ?? text)}`] : null;
-    case 'artifact_added':
-      return ['', `Received ${esc(grab(/sent (.*?) \(/)?.[1] ?? 'a document')}`];
-    case 'check_passed':
-      return ['ok', `✓ ${esc(text.split(':')[0])}`];
+      return /committed to/.test(text) ? ['', `They now owe us: ${esc(text.split('committed to:')[1]?.trim() ?? text)}`] : null;
+    case 'artifact_status':
+      return /partially stale/.test(text) ? ['', `${esc(grab(/^(\S+)/)?.[1] ?? 'The quote')} is now partly stale (delivery only).`] : ['', esc(text)];
+    case 'artifact_superseded':
+      return ['', esc(text)];
     case 'obligation_resolved':
       return /fulfilled/.test(text) ? ['ok', `✓ Promise kept: ${esc(grab(/"(.*?)"/)?.[1] ?? '')}`] : null;
     case 'claim_added':
@@ -480,8 +518,18 @@ function sayPlainly(t) {
       return null;
   }
 }
-const PLAIN_PRIORITY = ['conflict_detected', 'conflict_resolved', 'claim_superseded', 'injection_quarantined', 'obligation_opened', 'artifact_added', 'claim_added', 'obligation_resolved', 'check_passed'];
+const PLAIN_PRIORITY = ['conflict_detected', 'conflict_resolved', 'claim_superseded', 'injection_quarantined', 'obligation_opened', 'artifact_status', 'artifact_superseded', 'claim_added', 'obligation_resolved'];
 const priorityOf = (type) => (PLAIN_PRIORITY.indexOf(type) + 99) % 99; // unknown types sort last
+
+const TERM_NAMES = {
+  'price.unit': 'price',
+  'delivery.schedule': 'delivery',
+  'order.quantity': 'quantity',
+  'payment.terms': 'payment',
+  'quote.valid_until': 'valid until',
+  'budget.max_unit_price': 'budget',
+  'decision.order': 'order',
+};
 
 const presenterCheck = (label) => label
   .replace('All units by ', 'All by ')
@@ -489,7 +537,9 @@ const presenterCheck = (label) => label
   .replace('Quantity 500 units', '500 units');
 
 // greetings and sign-offs are not what the presenter wants to show
-const isPleasantry = (line) => /^(hi|hello|dear|thanks,?|thank you,?|best|regards|best regards,?)\b/i.test(line) || /^(acme|\(po-)/i.test(line);
+const isPleasantry = (line) => /^(hi|hello|dear|best|regards|best regards,?)\b/i.test(line)
+  || (/^(thanks|thank you)\b/i.test(line) && line.length < 48)
+  || /^(acme|\(po-)/i.test(line);
 
 function restartAnimation(node) {
   node.style.animation = 'none';
@@ -497,50 +547,469 @@ function restartAnimation(node) {
   node.style.animation = '';
 }
 
-function justHappened() {
-  const events = app.timeline?.events ?? [];
-  const last = events.at(-1);
-  const lastRun = app.runs.at(-1);
-  const freshlyKilled = [...app.procs.values()].find((p) => p.state === 'killed' && p.killedAt != null && p.killedAt > events.length - 1);
+// ---------------------------------------------------------------- the mailbox model
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const mailTime = (iso) => {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : `${DAYS[d.getUTCDay()]} ${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}`;
+};
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const dueDay = (day) => {
+  const d = new Date(`${day}T12:00:00Z`);
+  return Number.isNaN(d.getTime()) ? day : `${DAYS[d.getUTCDay()]} ${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
+};
+const partyOf = (label) => (app.ctx?.task?.parties ?? []).find((p) => p.label === label);
+const personName = (name) => String(name ?? '').replace(/\s*\(.*\)\s*$/, '');
+const initials = (name) => personName(name).split(/[\s@._-]+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
+const clip = (text, max) => (text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text);
+const firstSentences = (body, n = 2) => {
+  const prose = String(body ?? '').split('\n').map((l) => l.trim()).filter((l) => l && !isPleasantry(l) && !/^>/.test(l)).join(' ');
+  // a sentence ends at . ? ! followed by a space or the end ("$11.48" does not end one)
+  return (prose.match(/.+?[.?!]+(?=\s|$)/g) ?? [prose]).slice(0, n).join(' ').trim();
+};
 
-  if (freshlyKilled) {
+/** Every message the inbox holds, oldest first: the task's mail plus anything that was never linked to it. */
+function mailFeed() {
+  const events = app.timeline?.events ?? [];
+  const writer = new Map();
+  for (const run of app.runs) for (const id of run.decision?.sent ?? []) writer.set(id, run);
+  const items = events.map((e, index) => {
+    const out = e.direction === 'outbound';
+    const to = partyOf(e.to_labels?.[0]);
+    const from = e.from_name ?? personName(partyOf(e.from_label)?.name) ?? e.from;
+    return {
+      id: e.id, index, at: e.occurred_at, out, stray: false,
+      who: out ? `To: ${personName(to?.name) || e.to?.[0] || ''}` : from,
+      face: out ? 'Acme' : from,
+      addr: e.from, to: e.to ?? [], subject: e.subject ?? '', body: e.body_text ?? '',
+      files: e.attachments ?? [], run: writer.get(e.id), event: e,
+    };
+  });
+  for (const u of app.timeline?.unlinked ?? []) {
+    items.push({ id: u.id, index: -1, at: u.at, out: false, stray: true, who: u.from, face: u.from, addr: u.from, to: [], subject: u.subject ?? '', body: '', files: [] });
+  }
+  // an email Continuity is holding for a person sits in the outbox, unsent
+  for (const r of openHuman().filter((x) => x.kind === 'approval' && x.draft)) {
+    const to = partyOf(r.draft.to);
+    items.push({
+      id: r.id, index: events.length, at: r.since, out: true, stray: false, held: true, asker: r.asked_by,
+      who: `To: ${personName(to?.name) || r.draft.to}`, face: 'Acme', addr: app.ctx?.task?.you_are?.match(/<(.*)>/)?.[1] ?? '',
+      to: [to?.address ?? r.draft.to], subject: r.draft.subject, body: r.draft.body, files: [], run: null, event: null,
+    });
+  }
+  return items.sort((a, b) => String(a.at).localeCompare(String(b.at)) || a.index - b.index);
+}
+
+/** Position in the feed from which nobody was running to read the mail (null while Agent A lives). */
+function killPoint(feed) {
+  if (app.killFeedLen != null) return app.killFeedLen;
+  // after a page reload the kill moment is gone; Agent A's last run says how far into the mail it got
+  if (app.procs.get('agent-a')?.state !== 'killed') return null;
+  const seen = Math.max(0, ...app.runs.filter((r) => r.agent_id === 'agent-a').map((r) => r.context?.meta?.events_total ?? 0));
+  const at = feed.findIndex((item) => !item.stray && item.index >= seen);
+  return at < 0 ? feed.length : at;
+}
+
+const isCold = (run) => run && run.agent_id !== 'agent-a';
+
+/** What waits on a person right now (approvals of held sends, directions on broken requirements). */
+const openHuman = () => app.ctx?.human?.waiting_on_human ?? [];
+
+/** The message the beat is about: the newest task mail that just arrived (a stray promo never steals focus). */
+function focusItem(feed) {
+  const held = feed.find((i) => i.held);
+  if (held) return held;
+  const fresh = feed.filter((i) => app.freshMail.has(i.id));
+  const pool = fresh.length ? fresh : feed;
+  return pool.filter((i) => !i.stray).at(-1) ?? pool.at(-1);
+}
+
+const shownRows = new Set(); // rows that already played their arrival animation
+
+function cleanBody(text) {
+  const cut = text.search(/\n\s*On [^\n]+wrote:\s*\n/);
+  const main = (cut >= 0 ? text.slice(0, cut) : text).split('\n').filter((l) => !/^\s*>/.test(l)).join('\n').trim();
+  return { main, quoted: cut >= 0 };
+}
+
+// ---------------------------------------------------------------- A: the inbox
+function renderMail(feed) {
+  const cut = killPoint(feed);
+  const unread = (item, i) => !item.out && cut != null && i >= cut;
+  const alive = [...app.procs.values()].some((p) => p.state === 'running');
+  const orphaned = !alive && [...app.procs.values()].some((p) => p.state === 'killed');
+
+  el('#mail-addr').textContent = app.ctx?.task?.you_are?.match(/<(.*)>/)?.[1] ?? '';
+  const unreadCount = feed.filter(unread).length;
+  const counter = el('#mail-unread');
+  counter.textContent = feed.length ? `${unreadCount ? `${unreadCount} unread · ` : ''}${feed.length} messages` : '';
+  counter.classList.toggle('some', unreadCount > 0);
+  el('#mail').classList.toggle('orphaned', orphaned);
+  el('#mail-dead').hidden = !orphaned;
+
+  const openId = feed.some((i) => i.id === app.openMail) ? app.openMail : focusItem(feed)?.id;
+  const rows = feed.map((item, i) => {
+    const run = item.run;
+    let by = item.out && run ? `<span class="by ${isCold(run) ? 'cold' : ''}">${esc(run.agent_id)}</span>` : '';
+    if (item.held) by = `<span class="by held">held · ${esc(item.asker)}</span>`;
+    const clip = item.files.length ? '📎' : '';
+    const snippet = item.stray ? '' : firstSentences(cleanBody(item.body).main, 1);
+    const cls = [
+      'mrow',
+      item.out ? 'out' : '',
+      item.stray ? 'stray' : '',
+      item.held ? 'held' : '',
+      unread(item, i) ? 'unread' : '',
+      item.id === openId ? 'open' : '',
+      app.freshMail.has(item.id) && !shownRows.has(item.id) ? 'fresh' : '',
+    ].join(' ');
+    shownRows.add(item.id);
+    return `<li class="${cls}" data-id="${esc(item.id)}">
+      <span class="dot"></span><span class="av">${esc(initials(item.face))}</span>
+      <span class="who">${esc(item.who)}</span>
+      <span class="line"><span class="subj">${esc(item.subject)}</span>${snippet ? `<span class="snip"> — ${esc(snippet)}</span>` : ''}</span>
+      <span class="meta">${by}${clip}<span>${esc(mailTime(item.at))}</span></span>
+    </li>`;
+  }).reverse().join('');
+  const list = el('#mail-list');
+  list.innerHTML = rows || `<li class="mail-empty">${app.mode === 'engine' ? 'No mail yet.' : 'Empty inbox. Press → to start.'}</li>`;
+  list.scrollTop = 0;
+
+  renderOpenMail(feed.find((i) => i.id === openId));
+}
+
+function renderOpenMail(item) {
+  const box = el('#mail-open');
+  if (!item) {
+    box.innerHTML = '';
+    return;
+  }
+  if (box.dataset.id === item.id && box.dataset.v === String(app.runs.length) && !item.held === !box.dataset.held) return;
+  box.dataset.held = item.held ? '1' : '';
+  box.dataset.id = item.id;
+  box.dataset.v = String(app.runs.length);
+
+  const { main, quoted } = cleanBody(item.body);
+  const from = item.out ? 'Acme Procurement' : item.who;
+  const to = item.out ? item.who.replace(/^To: /, '') : 'me';
+  const files = item.files.map((f) => `<span class="mo-file"><i>PDF</i>${esc(f.filename)}</span>`).join('');
+  const run = item.run;
+  const held = item.held
+    ? `<div class="mo-held"><b>Not sent yet.</b> Waiting for your OK.</div>`
+    : '';
+  const cold = isCold(run)
+    ? `<div class="mo-by">Written by <b>${esc(run.agent_id)}</b>, which never opened this inbox.</div>`
+    : '';
+  box.innerHTML = `
+    ${held}
+    <h2 class="mo-subj">${esc(item.subject)}</h2>
+    <div class="mo-from"><b>${esc(from)}</b><span>&lt;${esc(item.addr)}&gt; to ${esc(to)}</span><span class="when">${esc(mailTime(item.at))}</span></div>
+    ${item.stray
+      ? '<div class="mo-stray">A promo from a sender this task has never written to. Same topic, different thread.</div>'
+      : `<pre class="mo-body">${esc(main)}</pre>${quoted ? '<div class="mo-quoted">··· quoted text hidden</div>' : ''}`}
+    ${files ? `<div class="mo-files">${files}</div>` : ''}
+    ${cold}`;
+  box.scrollTop = 0;
+}
+
+// ---------------------------------------------------------------- B: Continuity
+const PRES_PIPE = ['Primitive', 'Read', 'Resolve', 'State', 'Brief'];
+
+function buildPresPipe() {
+  el('#en-pipe').innerHTML = PRES_PIPE.map((name) => `<li><b>${name}</b><span></span></li>`).join('');
+}
+
+function renderPresPipe() {
+  const steps = [...el('#en-pipe').children];
+  if (!steps.length) return;
+  const extractor = app.health?.extractor ?? '';
+  const version = app.state?.state_version ?? app.ctx?.meta?.state_version;
+  const notes = [
+    app.health?.transport === 'primitive' ? 'live mail' : app.mode === 'replay' ? 'recorded' : 'local sim',
+    /^llm/.test(extractor) ? 'Claude reads' : 'rules read',
+    'claims → facts',
+    version != null ? `v${version}` : 'empty',
+    app.briefingTokens ? `~${app.briefingTokens.toLocaleString()} tok` : '—',
+  ];
+  steps.forEach((li, i) => { li.querySelector('span').textContent = notes[i]; });
+  const pending = app.ctx?.processing?.pending_events?.length > 0;
+  steps[1].classList.toggle('busy', pending);
+  const agentBeat = app.running != null && AGENT_BEATS.includes(app.running);
+  steps[4].classList.toggle('busy', agentBeat && !pending);
+}
+
+/** Light the steps one after another: inbound mail goes left to right, an agent's send right to left. */
+async function lightPresPipe(outbound) {
+  const steps = [...el('#en-pipe').children];
+  const order = outbound ? [4, 3, 0] : [0, 1, 2, 3];
+  for (const i of order) {
+    steps[i]?.classList.add('lit');
+    setTimeout(() => steps[i]?.classList.remove('lit'), 1400);
+    await pause(noMotion ? 0 : 160);
+  }
+}
+
+/** A packet crosses the seam between a row in the inbox and the Continuity side. */
+async function crossSeam(id, outbound) {
+  const split = el('#split');
+  const row = split.querySelector(`.mrow[data-id="${CSS.escape(id)}"]`);
+  if (!row || noMotion || !split.clientWidth) return;
+  const origin = split.getBoundingClientRect();
+  const rowBox = row.getBoundingClientRect();
+  const engineBox = split.querySelector('.engine-side').getBoundingClientRect();
+  const y = rowBox.top - origin.top + rowBox.height / 2;
+  const left = rowBox.right - origin.left - 6;
+  const right = engineBox.left - origin.left + 6;
+  const pipeY = el('#en-pipe').getBoundingClientRect().top - origin.top + 4;
+  const packet = document.createElement('div');
+  packet.className = `pkt-x ${outbound ? 'out' : ''}`;
+  split.appendChild(packet);
+  const path = outbound
+    ? [{ left: `${right}px`, top: `${pipeY}px` }, { left: `${left}px`, top: `${y}px` }]
+    : [{ left: `${left}px`, top: `${y}px` }, { left: `${right}px`, top: `${pipeY}px` }];
+  await packet.animate(path, { duration: 520, easing: 'cubic-bezier(.65,0,.35,1)', fill: 'forwards' }).finished;
+  packet.remove();
+}
+
+let presQueue = Promise.resolve();
+function animateArrivals(items) {
+  for (const item of items) {
+    presQueue = presQueue.then(async () => {
+      if (item.out) {
+        await lightPresPipe(true);
+        await crossSeam(item.id, true);
+      } else {
+        await crossSeam(item.id, false);
+        if (!item.stray) await lightPresPipe(false);
+      }
+    });
+  }
+}
+
+function claimChips(event) {
+  const transitions = event.transitions ?? [];
+  const backed = new Set(transitions.filter((t) => t.type === 'claim_corroborated').map((t) => t.summary.match(/^\S+ ([\w.]+) =/)?.[1]));
+  return transitions.filter((t) => t.type === 'claim_added').map((t, i) => {
+    const hit = t.summary.match(/^[^:]+: ([\w.]+) = (.*?)(?: \(from (.*)\))?$/);
+    if (!hit || hit[1] === 'decision.order') return '';
+    const [, key, value, file] = hit;
+    const source = backed.has(key) ? 'email + PDF' : file ? 'PDF' : 'email';
+    return `<span class="chip ${file ? 'pdf' : ''}" style="--i:${i}">${esc(TERM_NAMES[key] ?? key)} <b>${esc(value)}</b><small>${source}</small></span>`;
+  }).join('');
+}
+
+function nowCard(feed) {
+  const head = (k, b = '') => `<div class="nk"><span>${k}</span><b>${b}</b></div>`;
+  const line = (cls, html, i) => `<div class="ln ${cls}" style="--i:${i}">${html}</div>`;
+  const events = app.timeline?.events ?? [];
+  const killed = [...app.procs.values()].find((p) => p.state === 'killed' && p.killedAt != null && p.killedAt > events.length - 1);
+  if (killed) {
     return {
       cls: 'bad',
-      html: `<div class="p-k">Just happened</div><div class="bad" style="--i:0">${esc(freshlyKilled.name)} · pid ${esc(freshlyKilled.pid ?? '')} · SIGKILL</div><div style="--i:1">Agents running: 0. The thread keeps going.</div>`,
+      html: head('Just now', `${esc(killed.name)} · pid ${esc(killed.pid ?? '')}`)
+        + line('bad', 'Agent A is gone, memory and all.', 0)
+        + line('', 'Continuity keeps reading the mail.', 1),
     };
   }
 
-  if (lastRun && last && lastRun.agent_id !== 'agent-a' && lastRun.decision?.sent?.includes(last.id)) {
-    const body = lastRun.decision.messages?.[0]?.body ?? '';
-    const prose = body.split('\n').map((l) => l.trim()).filter((l) => l && !isPleasantry(l)).join(' ');
-    const firstTwo = (prose.match(/[^.?!]+[.?!]+/g) ?? [prose]).slice(0, 2).join(' ').trim();
-    const memory = lastRun.decision.prior_messages_in_process_memory ?? 0;
-    const tokens = (lastRun.context_tokens ?? 0).toLocaleString();
+  const asks = openHuman();
+  if (asks.length) return humanCard(asks[0], head);
+
+  // the answer just given from this page, until the agent's next email shows up
+  const a = app.answered;
+  if (a && feed.filter((i) => !i.held).length <= a.feedLen && !openHuman().length) {
+    let next = `${esc(a.asker)} is acting on it…`;
+    if (a.kind === 'approval') next = a.option === 'approve' ? 'Sending it now.' : 'Nothing was sent.';
+    return { cls: 'human done', html: head('You decided', esc(a.asker)) + line('', esc(a.label), 0) + line('quiet', next, 1) };
+  }
+
+  const pending = app.ctx?.processing?.pending_events ?? [];
+  if (pending.length) {
+    return { cls: 'quiet', html: head('Reading', esc(pending.join(', '))) + line('quiet', `${usesClaude() ? 'Claude' : 'The rule extractor'} is reading the new email…`, 0) };
+  }
+
+  const last = focusItem(feed);
+  if (!last) {
+    return { cls: 'quiet', html: head('Waiting') + line('quiet', 'No mail yet. Continuity starts empty.', 0) };
+  }
+
+  if (last.stray) {
+    return {
+      cls: 'quiet',
+      html: head('Just arrived', esc(last.addr))
+        + line('', 'Not part of this deal. Ignored.', 0),
+    };
+  }
+
+  if (last.out && isCold(last.run)) {
+    const run = last.run;
+    const d = run.decision ?? {};
     return {
       cls: 'agent',
-      html: `<div class="p-k">${esc(lastRun.agent_id)} wrote <b>${memory} messages in memory · ${tokens}-token briefing</b></div><div class="mail" style="--i:0">${esc(firstTwo)}</div>`,
+      html: head(`${esc(run.agent_id)} · a brand-new process`, `pid ${esc(d.pid ?? '?')}`)
+        + `<div class="ho-n"><div class="zero"><b>${d.prior_messages_in_process_memory ?? 0}</b><span>messages in memory</span></div><div><b>${(run.context_tokens ?? 0).toLocaleString()}</b><span>briefing tokens</span></div></div>`
+        + `<div class="ho-wrote">${esc(clip(firstSentences(d.messages?.[0]?.body ?? '', 1), 120))}</div>`,
     };
   }
 
-  if (last) {
-    const said = [...(last.transitions ?? [])]
-      .sort((a, b) => priorityOf(a.type) - priorityOf(b.type))
-      .map(sayPlainly)
-      .filter(Boolean);
-    const seen = new Set();
-    const lines = said.filter(([, html]) => !seen.has(html) && seen.add(html)).slice(0, 3);
-    if (!lines.length) {
-      lines.push(['', last.direction === 'outbound'
-        ? `${esc(last.from_label)} → ${esc((last.to_labels ?? []).join(', '))}: ${esc(last.subject)}`
-        : `Email from ${esc(last.from_label)}`]);
-    }
+  if (last.out) {
+    const sent = feed.filter((i) => i.out && app.freshMail.has(i.id));
+    const batch = sent.length ? sent : [last];
+    const asks = [...new Set(batch.flatMap((i) => (i.event.transitions ?? [])
+      .filter((t) => t.type === 'obligation_opened')
+      .map((t) => t.summary.replace(/ \[issue: .*\]$/, '').replace(/^Acme \(us\) (asked|requested) (\w+): /, (_, __, who) => `${who}: `))))];
     return {
-      cls: lines.some(([k]) => k === 'bad') ? 'bad' : 'hot',
-      html: `<div class="p-k">Just happened <b>${esc(last.id)} · ${esc(last.from_label)}</b></div>${lines.map(([k, h], i) => `<div class="${k}" style="--i:${i}">${h}</div>`).join('')}`,
+      cls: '',
+      html: head(`${esc(last.run?.agent_id ?? 'Acme')} sent ${batch.length} email${batch.length === 1 ? '' : 's'}`, esc(batch.map((i) => i.id).join(', ')))
+        + asks.slice(0, 2).map((a, i) => line('quiet', `→ ${esc(clip(a, 80))}`, i)).join(''),
     };
   }
 
-  return { cls: '', html: '<div class="p-k">Just happened</div><div class="quiet" style="--i:0">Nothing yet.</div>' };
+  const said = [...(last.event.transitions ?? [])]
+    .sort((a, b) => priorityOf(a.type) - priorityOf(b.type))
+    .map(sayPlainly)
+    .filter(Boolean);
+  const seen = new Set();
+  const lines = said.filter(([, html]) => !seen.has(html) && seen.add(html)).slice(0, 3);
+  const passed = (last.event.transitions ?? []).filter((t) => t.type === 'check_passed').length;
+  if (passed && lines.length < 4) lines.push(['ok', `✓ ${passed} requirement${passed === 1 ? '' : 's'} now pass${passed === 1 ? 'es' : ''}`]);
+  const chips = claimChips(last.event);
+  const stray = feed.find((i) => i.stray && app.freshMail.has(i.id));
+  if (stray) lines.push(['quiet', 'A promo also arrived. Ignored: not part of this deal.']);
+  return {
+    cls: lines.some(([k]) => k === 'bad') ? 'bad' : '',
+    html: head(`Read ${esc(last.id)} from ${esc(last.who)}`, esc(last.event.link_reason?.replace(/^Primitive thread \S+ belongs to task$/, 'linked by Primitive thread') ?? ''))
+      + (chips ? `<div class="chips">${chips}</div>` : '')
+      + lines.map(([k, h], i) => line(k, h, i + 1)).join(''),
+  };
+}
+
+/** The moment an agent hands over to a person: one question, what is at stake, and the choices as buttons. */
+function humanCard(r, head) {
+  const c = app.ctx;
+  const term = (key) => c?.current_terms?.find((t) => t.term === key)?.value;
+  const name = (personName(partyOf(r.party ?? r.draft?.to)?.name) || r.party || 'them').split(' ')[0];
+  let question;
+  let facts = '';
+  let options;
+  if (r.kind === 'approval') {
+    question = `Send this order to ${name}?`;
+    const price = parseFloat(String(term('price.unit') ?? '').replace(/[$,]/g, ''));
+    const qty = parseFloat(String(term('order.quantity') ?? ''));
+    const total = price && qty ? `$${(price * qty).toLocaleString('en-US', { maximumFractionDigits: 2 })}` : null;
+    const checks = c?.checks ?? [];
+    const met = checks.filter((x) => x.status === 'pass' || x.status === 'waived').length;
+    facts = `<div class="hfacts">${total ? `<span><b>${esc(total)}</b><small>${esc(term('order.quantity'))} × ${esc(term('price.unit'))}</small></span>` : ''}<span><b>${met}/${checks.length}</b><small>requirements met</small></span></div>`;
+    options = [{ id: 'approve', lead: 'Approve and send', key: 'A' }, { id: 'reject', lead: 'Reject', key: 'R' }];
+  } else {
+    const broken = c?.checks?.find((x) => x.status === 'fail' && r.question.startsWith(x.check));
+    question = `${(broken?.detail ?? r.question).split(' — ')[0]}. What now?`;
+    const SHORT = {
+      hold_firm: ['Hold firm', `Ask ${name} to make the deadline`],
+      accept_deviation: ['Accept the delay', 'Take the late units'],
+      walk_away: ['Walk away', `Cancel with ${name}`],
+    };
+    options = r.options.map((o, i) => ({ id: o.id, lead: SHORT[o.id]?.[0] ?? o.label, sub: SHORT[o.id]?.[1] ?? '', key: String(i + 1) }));
+  }
+  const buttons = options.map((o, i) => `<button class="hopt ${i === 0 ? 'primary' : ''}" data-req="${esc(r.id)}" data-opt="${esc(o.id)}"${app.answering ? ' disabled' : ''}>
+      <span class="kbd">${o.key}</span><span><b>${esc(o.lead)}</b>${o.sub ? `<small>${esc(o.sub)}</small>` : ''}</span></button>`).join('');
+  return {
+    cls: 'human',
+    html: head(r.kind === 'approval' ? `${esc(r.asked_by)} needs your OK` : `${esc(r.asked_by)} is asking you`, 'paused')
+      + `<div class="hq">${esc(question)}</div>${facts}<div class="hopts ${r.kind}">${buttons}</div>`,
+  };
+}
+
+/** Answer a request from the page; the agent waiting on it carries on by itself. */
+async function answerHuman(id, option) {
+  const req = openHuman().find((r) => r.id === id);
+  if (!req || app.answering || !app.task) return;
+  app.answering = true;
+  document.querySelectorAll('.hopt').forEach((b) => { b.disabled = true; });
+  const label = req.kind === 'approval' ? (option === 'approve' ? 'Approved and sent.' : 'Rejected.') : req.options.find((o) => o.id === option)?.label ?? option;
+  // measured before answering: an approval sends right away, so the email may land before the reply
+  const feedLen = mailFeed().filter((i) => !i.held).length;
+  try {
+    await getJSON(`/tasks/${encodeURIComponent(app.task)}/human/${encodeURIComponent(id)}`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ option, by: 'the procurement lead' }),
+    });
+    app.answered = { id, kind: req.kind, option, label, asker: req.asked_by, feedLen };
+    log('stage', `you answered ${req.asked_by}: ${label}`);
+  } catch (err) {
+    log('stage', `answer failed: ${err.message}`, 'l-kill');
+  } finally {
+    app.answering = false;
+    await refresh();
+  }
+}
+
+/** Write a card only when its content changes, and flash it when that happens mid-story. */
+function setCard(node, html, cls = '') {
+  if (node.dataset.key === html) return;
+  const changed = node.dataset.key != null;
+  node.dataset.key = html;
+  node.innerHTML = html;
+  node.className = `${node.id === 'en-now' ? 'en-now' : 'en-card'} ${cls}`;
+  if (changed && node.id !== 'en-now') {
+    node.classList.add('chg');
+    restartAnimation(node);
+  }
+}
+
+function renderEngine(feed) {
+  const c = app.ctx;
+  const version = app.state?.state_version ?? c?.meta?.state_version;
+  el('#en-ver').textContent = version != null ? `state v${version}` : '';
+  renderPresPipe();
+
+  const { cls, html } = nowCard(feed);
+  setCard(el('#en-now'), html, cls);
+
+  const k = (label, right = '') => `<div class="nk"><span>${label}</span><b>${right}</b></div>`;
+  if (!c) {
+    for (const id of ['#en-next', '#en-checks', '#en-terms', '#en-loops']) setCard(el(id), '');
+    return;
+  }
+
+  const why = c.next_actor === 'human'
+    ? 'An agent is paused until you decide.'
+    : String(c.next_actor_reason ?? '').replace(/^Waiting on: (\w+) \((.*)\)$/, 'Waiting on $1.').replace(/^We need to act: /, '');
+  setCard(el('#en-next'), `${k('Next move')}<div class="actor ${esc(c.next_actor ?? '')}">${actorWord(c.next_actor)}</div><div class="why">${esc(why)}</div>`);
+
+  const checks = c.checks ?? [];
+  const passing = checks.filter((x) => x.status === 'pass').length;
+  const lights = checks.map((x) => `<div class="light ${esc(x.status)}"><i></i>${esc(presenterCheck(x.check))}${x.status === 'waived' ? ' <small>waived by a person</small>' : ''}</div>`).join('')
+    || '<div class="light"><i></i>no offer yet</div>';
+  setCard(el('#en-checks'), `${k('Requirements', checks.length ? `${passing}/${checks.length} pass` : '')}<div class="lights">${lights}</div>`,
+    checks.some((x) => x.status === 'fail') ? 'bad' : '');
+
+  const terms = c.current_terms ?? [];
+  const term = (key) => terms.find((t) => t.term === key);
+  const superseded = (key) => (c.superseded_terms_do_not_use ?? []).filter((s) => s.term === key).at(-1);
+  const late = (c.conflicts ?? []).length > 0;
+  const rows = [];
+  for (const key of ['price.unit', 'delivery.schedule', 'order.quantity', 'budget.max_unit_price']) {
+    const now = term(key);
+    if (!now) continue;
+    const old = superseded(key);
+    const flag = key === 'delivery.schedule' && late ? ' <span class="tag fail">late</span>' : '';
+    rows.push(`<div><dt>${esc(TERM_NAMES[key])}</dt><dd>${old ? `<s>${esc(old.old_value)}</s> → ` : ''}${esc(now.value)}${flag}</dd></div>`);
+  }
+  const doc = (c.documents ?? []).filter((d) => d.kind === 'quote').at(-1);
+  if (doc) {
+    const status = { partially_stale: 'partly stale', current: 'current', superseded: 'superseded' }[doc.status] ?? doc.status;
+    rows.push(`<div><dt>quote</dt><dd>${esc(doc.filename.match(/Q-[\w-]+?(?=\.pdf$)/i)?.[0] ?? doc.filename)} <span class="tag ${esc(doc.status)}">${esc(status)}</span></dd></div>`);
+  }
+  const order = term('decision.order');
+  if (order) rows.unshift(`<div><dt>order</dt><dd><span class="tag ok">accepted</span></dd></div>`);
+  setCard(el('#en-terms'), `${k('The deal right now')}${rows.length ? `<dl class="terms">${rows.join('')}</dl>` : '<div class="none">Nothing offered yet.</div>'}`);
+
+  const open = [
+    ...[...new Map((c.waiting_on_them ?? []).map((o) => [`${o.owed_by}|${o.what}`, o])).values()].map((o) => `<div class="oloop">${o.kind === 'commitment' ? `${esc(o.owed_by)} promised` : `Asked ${esc(o.owed_by)}`}: ${esc(clip(o.what, 70))}${o.due ? `<small>due ${esc(dueDay(o.due))}</small>` : ''}</div>`),
+    ...(c.we_owe ?? []).map((o) => `<div class="oloop">We owe ${esc(o.owed_to)}: ${esc(o.what)}</div>`),
+  ];
+  const kept = (c.resolved_commitments ?? []).slice(-1).map((o) => `<div class="oloop done">${esc(o.by ?? o.owed_by ?? 'They')} kept their promise: ${esc(o.what ?? '')}</div>`);
+  setCard(el('#en-loops'), `${k('Open loops', String(open.length))}<div class="oloops">${[...open, ...kept].join('') || '<div class="none">Nobody owes anybody anything.</div>'}</div>`);
 }
 
 function renderPresenter() {
@@ -548,9 +1017,14 @@ function renderPresenter() {
   const busy = app.mode === 'replay' ? app.running != null : Boolean(app.stage?.busy);
   const current = busy ? beats[app.running ?? cursor] : beats[cursor - 1];
 
-  // headline: the beat in flight or the last one finished
-  const title = current?.title ?? (app.mode === 'engine' ? 'Following the engine.' : 'Agents forget.');
-  const sub = current?.caption ?? (app.mode === 'engine' ? (app.state?.task?.goal ?? '') : 'Watch the thread.');
+  // headline: the beat in flight or the last one finished — or the ending a person's choice led to
+  const ENDINGS = {
+    walk_away: ['You walked away from the deal.', 'Your call. An agent told the supplier.'],
+    accept_deviation: ['You accepted the late delivery.', 'Your call. Every agent follows it.'],
+  };
+  const ending = !busy && cursor >= beats.length ? ENDINGS[app.stage?.ending?.option] : null;
+  const title = ending?.[0] ?? current?.title ?? (app.mode === 'engine' ? 'Following the engine.' : 'Agents forget.');
+  const sub = ending?.[1] ?? current?.caption ?? (app.mode === 'engine' ? (app.state?.task?.goal ?? '') : 'Continuity remembers for them.');
   const titleEl = el('#p-title');
   const subEl = el('#p-sub');
   if (titleEl.textContent !== title) {
@@ -565,29 +1039,23 @@ function renderPresenter() {
     : '';
 
   let hint = '';
-  if (busy) hint = `<span class="spin"></span>${usesClaude() && app.mode !== 'replay' ? 'Claude is working' : 'working'}`;
-  else if (cursor < beats.length && app.mode !== 'engine') hint = `press <span class="kbd">→</span> ${cursor ? 'for the next beat' : 'to start'}`;
+  const ask = openHuman()[0];
+  if (ask) hint = `<span class="you">Your call</span> ${ask.kind === 'approval' ? 'press <span class="kbd">A</span> or <span class="kbd">R</span>' : `press <span class="kbd">1</span>–<span class="kbd">${ask.options.length}</span>`}`;
+  else if (busy) hint = `<span class="spin"></span>${usesClaude() && app.mode !== 'replay' ? 'Claude is working' : 'working'}`;
+  else if (cursor < beats.length && app.mode !== 'engine') hint = `press <span class="kbd">→</span> ${cursor ? 'next' : 'to start'}`;
   el('#p-hint').innerHTML = hint;
 
-  // tiles
-  const c = app.ctx;
-  el('#p-actor').innerHTML = `<div class="p-k">Next move</div><div class="actor ${esc(c?.next_actor ?? '')}">${c ? actorWord(c.next_actor) : '—'}</div>`;
+  const askers = new Set(openHuman().map((r) => r.asked_by));
+  el('#ib-agents').innerHTML = [...app.procs.values()].map((p) => {
+    const waiting = p.state === 'running' && askers.has(p.name);
+    let note = p.state === 'killed' ? 'killed' : p.state === 'running' ? 'running' : 'done';
+    if (waiting) note = 'waiting on you';
+    return `<span class="ag ${esc(p.state)} ${waiting ? 'wait' : ''}"><i></i>${esc(p.name)} · ${note}</span>`;
+  }).join('') || '<span class="ag"><i></i>no agent yet</span>';
 
-  const checks = c?.checks ?? [];
-  const checksEl = el('#p-checks');
-  checksEl.className = `p-tile ${checks.some((x) => x.status === 'fail') ? 'bad' : ''}`;
-  const lights = checks.map((x) => `<div class="light ${esc(x.status)}"><i></i>${esc(presenterCheck(x.check))}</div>`).join('')
-    || '<div class="light"><i></i>no offer yet</div>';
-  checksEl.innerHTML = `<div class="p-k">Requirements</div><div class="p-lights">${lights}</div>`;
-
-  // only re-render (and re-animate) the "just happened" tile when its content changes
-  const nowEl = el('#p-now');
-  const { cls, html } = justHappened();
-  if (nowEl.dataset.key !== html) {
-    nowEl.dataset.key = html;
-    nowEl.className = `p-tile p-now ${cls}`;
-    nowEl.innerHTML = html;
-  }
+  const feed = mailFeed();
+  renderMail(feed);
+  renderEngine(feed);
 }
 
 // ============================================================ pipeline
@@ -800,6 +1268,10 @@ function replayRestart() {
   app.seenRuns.clear();
   app.prevCtx = null;
   app.ctx = null;
+  app.freshMail = new Set();
+  app.openMail = null;
+  app.killFeedLen = null;
+  shownRows.clear();
   ingest({
     health: app.snap.health, state: null,
     timeline: { events: [], threads: [], unlinked: [] },
@@ -814,6 +1286,7 @@ async function replayAdvance() {
   const step = REPLAY_SCRIPT[i];
   const snap = app.snap;
   app.running = i;
+  app.freshMail = new Set();
   renderBeats();
   renderPipeBusy();
   log('stage', `▶ ${i + 1}. ${step.title}`);
@@ -827,7 +1300,10 @@ async function replayAdvance() {
     const firstRun = snap.runs.find((r) => r.agent_id === name);
     const before = app.procs.get(name)?.state;
     const proc = { ...(app.procs.get(name) ?? {}), name, pid: firstRun?.decision?.pid, state };
-    if (state === 'killed' && proc.killedAt == null) proc.killedAt = cut + 0.45;
+    if (state === 'killed' && proc.killedAt == null) {
+      proc.killedAt = cut + 0.45;
+      if (name === 'agent-a') app.killFeedLen = mailFeed().length;
+    }
     app.procs.set(name, proc);
     if (before !== state && state === 'killed') moment('kill', 'SIGKILL', `${name} · pid ${firstRun?.decision?.pid ?? ''}`, 'agents running: 0 · the thread keeps going');
   }
@@ -868,6 +1344,18 @@ el('#next').onclick = advance;
 el('#reset').onclick = restart;
 el('#p-details').onclick = () => showDetails(true);
 el('#flashover').addEventListener('click', () => el('#flashover').classList.remove('on'));
+// the "needs you" card answers on click
+el('#en-now').addEventListener('click', (e) => {
+  const button = e.target.closest('[data-opt]');
+  if (button && !button.disabled) answerHuman(button.dataset.req, button.dataset.opt);
+});
+// any message in the presenter inbox opens on click
+el('#mail-list').addEventListener('click', (e) => {
+  const row = e.target.closest('.mrow');
+  if (!row) return;
+  app.openMail = row.dataset.id;
+  renderPresenter();
+});
 document.querySelectorAll('.tabs button').forEach((b) => { b.onclick = () => selectTab(b.dataset.t); });
 // linked evidence bodies expand on click
 el('#v-evidence').addEventListener('click', (e) => e.target.closest('.ev:not(.unlinked) > .ev-s')?.classList.toggle('open'));
@@ -896,6 +1384,7 @@ async function detectMode() {
   tag.textContent = MODE_LABEL[app.mode];
   tag.className = `tag ${app.mode === 'replay' ? 'open' : 'ok'}`;
   buildPipe();
+  buildPresPipe();
   if (app.mode === 'replay') return startReplay();
   if (app.mode === 'stage') {
     openStream();

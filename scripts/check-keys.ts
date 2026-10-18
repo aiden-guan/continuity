@@ -14,7 +14,7 @@ async function checkAnthropic() {
     fail('ANTHROPIC_API_KEY not set (offline rule-based extractor + policy agent will be used)');
     return;
   }
-  const model = process.env.CONTINUITY_AGENT_MODEL || 'claude-opus-5-5';
+  const model = process.env.CONTINUITY_AGENT_MODEL || 'claude-haiku-5-5';
   try {
     const reply = await anthropicClient().messages.create({ model, max_tokens: 16, messages: [{ role: 'user', content: 'Reply with OK.' }] });
     pass(`key works — ${model} replied (stop_reason=${reply.stop_reason})`);

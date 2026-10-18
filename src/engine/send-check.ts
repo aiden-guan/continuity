@@ -9,7 +9,7 @@
 //   CONTINUITY_SEND_CHECK_MODEL      model id (defaults like the extractor)
 import { createHash } from 'node:crypto';
 import type Anthropic from '@anthropic-ai/sdk';
-import { anthropicClient, responseText } from '../anthropic.ts';
+import { anthropicClient, responseText, serverFallback } from '../anthropic.ts';
 import { canonicalText } from './guard.ts';
 
 export interface SendCheck { binding: boolean; spans: string[]; rationale: string; error?: string }
@@ -42,7 +42,7 @@ export function sendClassifierFromEnv(): (SendClassifier & { model: string }) | 
 
 export function llmSendClassifier(opts: { apiKey?: string; model?: string } = {}): SendClassifier & { model: string } {
   const client = anthropicClient(opts.apiKey ?? process.env.ANTHROPIC_API_KEY);
-  const model = opts.model ?? (process.env.CONTINUITY_SEND_CHECK_MODEL || 'claude-opus-5-5');
+  const model = opts.model ?? (process.env.CONTINUITY_SEND_CHECK_MODEL || 'claude-haiku-5-5');
   const classify = async (body: string): Promise<SendCheck> => {
     const res = await client.beta.messages.create({
       model,
@@ -50,8 +50,7 @@ export function llmSendClassifier(opts: { apiKey?: string; model?: string } = {}
       system: SYSTEM,
       messages: [{ role: 'user', content: `<draft_email>\n${body.replace(/<\/?draft_email>/gi, '')}\n</draft_email>` }],
       output_config: { effort: 'low', format: { type: 'json_schema', schema: SCHEMA } },
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
+      ...serverFallback(model),
     } as never, { timeout: 20_000, maxRetries: 1, signal: AbortSignal.timeout(30_000) }) as unknown as Anthropic.Message;
     if (res.stop_reason === 'refusal') throw new Error('send check refused');
     const out = JSON.parse(responseText(res)) as { label: 'binding' | 'not_binding'; spans: string[]; rationale: string };

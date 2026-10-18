@@ -13,6 +13,14 @@ export function anthropicClient(apiKey = process.env.ANTHROPIC_API_KEY): Anthrop
   return new Anthropic({ apiKey, defaultHeaders, timeout: 120_000, maxRetries: 1 });
 }
 
+/**
+ * Server-side refusal fallback (a declined request is re-run on another model inside the same call).
+ * Claude Haiku 5.5 has none, so nothing is sent for Haiku models.
+ */
+export function serverFallback(model: string): { betas?: string[]; fallbacks?: 'default' } {
+  return model.startsWith('claude-haiku') ? {} : { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' };
+}
+
 /** Concatenated text blocks of a response. */
 export function responseText(res: { content: { type: string; text?: string }[] }): string {
   return res.content

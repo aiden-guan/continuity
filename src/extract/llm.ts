@@ -2,7 +2,7 @@
 // referents such as "the remaining 200", corrections — and returns a Proposal. It never writes
 // state; the resolver validates every proposed change and applies or refuses it.
 import type Anthropic from '@anthropic-ai/sdk';
-import { anthropicClient, responseText } from '../anthropic.ts';
+import { anthropicClient, responseText, serverFallback } from '../anthropic.ts';
 import { domainFor, type TermDef } from '../domain/pack.ts';
 import '../domain/index.ts';
 import { classifyArtifact, stripQuoted } from './heuristic.ts';
@@ -138,7 +138,7 @@ const ATTEMPT_MS = Number(process.env.CONTINUITY_EXTRACT_ATTEMPT_MS || 90_000);
 
 export function llmExtractor(opts: { apiKey?: string; model?: string } = {}): Extractor {
   const client = anthropicClient(opts.apiKey ?? process.env.ANTHROPIC_API_KEY);
-  const model = opts.model ?? (process.env.CONTINUITY_EXTRACTOR_MODEL || 'claude-opus-5-5');
+  const model = opts.model ?? (process.env.CONTINUITY_EXTRACTOR_MODEL || 'claude-haiku-5-5');
   return {
     name: `llm:${model}`,
     async extract(input: ExtractInput, callOpts: { signal?: AbortSignal } = {}): Promise<Proposal> {
@@ -151,8 +151,7 @@ export function llmExtractor(opts: { apiKey?: string; model?: string } = {}): Ex
         system: `${SYSTEM}\n\nDomain conventions:\n${pack.llmGuidance}`,
         messages: [{ role: 'user', content: userPrompt(input, terms) }],
         output_config: { effort: 'medium', format: { type: 'json_schema', schema: schemaFor(terms, pack.documentKinds?.map((d) => d.kind)) } },
-        betas: ['server-side-fallback-2026-07-01'],
-        fallbacks: 'default',
+        ...serverFallback(model),
       } as never, { timeout: ATTEMPT_MS, maxRetries: 1, signal: callOpts.signal }) as unknown as Anthropic.Message;
       if (res.stop_reason === 'refusal') throw new Error('model refused extraction');
 

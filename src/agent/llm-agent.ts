@@ -1,6 +1,6 @@
 // LLM agent policy: one fresh Claude call whose only input is the compiled briefing.
 import type Anthropic from '@anthropic-ai/sdk';
-import { anthropicClient } from '../anthropic.ts';
+import { anthropicClient, serverFallback } from '../anthropic.ts';
 import type { Decision, OutMessage } from './policy.ts';
 import { domainFor } from '../domain/pack.ts';
 import '../domain/index.ts';
@@ -48,7 +48,7 @@ export const agentSystem = (domain = 'procurement') => AGENT_SYSTEM.replace(PROC
 
 type RawDecision = Decision & { messages: { to: string; subject: string | null; body: string; intent: OutMessage['intent'] }[] };
 
-export async function llmDecide(briefing: string, model = process.env.CONTINUITY_AGENT_MODEL || 'claude-opus-5-5', domain = 'procurement'): Promise<Decision> {
+export async function llmDecide(briefing: string, model = process.env.CONTINUITY_AGENT_MODEL || 'claude-haiku-5-5', domain = 'procurement'): Promise<Decision> {
   const client = anthropicClient();
   const request = {
     model,
@@ -56,8 +56,7 @@ export async function llmDecide(briefing: string, model = process.env.CONTINUITY
     system: agentSystem(domain),
     messages: [{ role: 'user', content: `<briefing>\n${briefing}\n</briefing>\n\nWhat do you do next? Respond with the JSON decision.` }],
     output_config: { effort: 'medium', format: { type: 'json_schema', schema: DECISION_SCHEMA } },
-    betas: ['server-side-fallback-2026-07-01'],
-    fallbacks: 'default',
+    ...serverFallback(model),
   };
   const res = (await client.beta.messages.create(request as never)) as unknown as Anthropic.Message;
   if (res.stop_reason === 'refusal') throw new Error('agent model refused');
