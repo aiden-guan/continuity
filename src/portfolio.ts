@@ -20,7 +20,7 @@ import { domainFor, outcomeOf } from './domain/index.ts';
 import { deriveTimeline, type TimelineEvent } from './engine/timeline.ts';
 import { approvalsForTask } from './engine/approval-log.ts';
 import { labelOf } from './engine/resolver.ts';
-import { nowIso } from './clock.ts';
+import { compareIso, nowIso } from './clock.ts';
 
 export const MAX_ROWS = 500;
 
@@ -67,7 +67,7 @@ async function visibleTasks(backend: Backend, scope: PortfolioScope) {
 async function load(backend: Backend, scope: PortfolioScope): Promise<Built> {
   const tasks = await visibleTasks(backend, scope);
   const signals = await backend.listSignals(scope.org, { includeResolved: true });
-  const lastSignal = signals.reduce((m, s) => (s.last_seen > m ? s.last_seen : m), '');
+  const lastSignal = signals.reduce((m, s) => (!m || compareIso(s.last_seen, m) > 0 ? s.last_seen : m), '');
   const version = `${tasks.map((t) => `${t.spec.id}:${t.state_version}`).join(',')}|${signals.length}.${lastSignal}.${signals.filter((s) => s.resolved_at).length}|${nowIso().slice(0, 10)}`;
   let byScope = cache.get(backend);
   if (!byScope) cache.set(backend, (byScope = new Map()));

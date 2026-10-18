@@ -19,7 +19,7 @@ import { heuristicExtractor, classifyArtifact } from '../extract/heuristic.ts';
 import { attachmentText } from '../ingest/attachments.ts';
 import { resolveTask } from '../ingest/link.ts';
 import { applyProposal, isOpen, labelOf, partyOf, refreshDerived } from './resolver.ts';
-import { nowIso } from '../clock.ts';
+import { canonicalIso, nowIso } from '../clock.ts';
 import { parseSenderAuth, senderAuthMode } from '../ingest/sender-auth.ts';
 import { Breaker, isTransient, limiter, withDeadline } from './limit.ts';
 
@@ -96,7 +96,8 @@ export class Engine {
     this.breaker = opts.breaker ?? new Breaker();
   }
 
-  async createTask(org: string, spec: TaskSpec, at: string) {
+  async createTask(org: string, spec: TaskSpec, createdAt: string) {
+    const at = canonicalIso(createdAt);
     await this.backend.createTask(org, spec, at, (s) => {
       s.addTransition({
         task_id: spec.id, event_id: null, at, type: 'task_created', subject_id: spec.id,
@@ -114,7 +115,9 @@ export class Engine {
   }
 
   /** Durable receipt: by the time this resolves the event is stored and its interpretation queued. */
-  async receive(org: string, input: EventInput): Promise<ReceiveResult> {
+  async receive(org: string, raw: EventInput): Promise<ReceiveResult> {
+    // every way in (webhook, REST, MCP, sends, the sim) stores its times in the one canonical form
+    const input: EventInput = { ...raw, occurred_at: canonicalIso(raw.occurred_at), received_at: canonicalIso(raw.received_at) };
     const blobs = input.attachments
       .filter((a) => a.content_base64)
       .map((a) => {

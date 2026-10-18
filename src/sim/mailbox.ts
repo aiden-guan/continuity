@@ -5,6 +5,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { signWebhookPayload } from '@primitivedotdev/sdk';
 import type { SimEmail } from './scenario.ts';
+import { canonicalIso } from '../clock.ts';
 
 /**
  * EmailAuth as Primitive reports it: 'pass' (DKIM-aligned DMARC pass), 'spoofed' (DMARC fail, p=reject),
@@ -62,8 +63,9 @@ export class SimMailbox {
     const messageId = this.newMessageId();
     const threadId = this.threadFor(s.inReplyTo);
     this.threads.set(messageId, threadId);
-    this.bodies.set(messageId, { from: s.from ?? 'procurement', at: s.at, body: s.body });
-    const record: SentRecord = { messageId, threadId, subject: s.subject, references: s.references, at: s.at, to: s.to, body: s.body };
+    const at = canonicalIso(s.at);
+    this.bodies.set(messageId, { from: s.from ?? 'procurement', at, body: s.body });
+    const record: SentRecord = { messageId, threadId, subject: s.subject, references: s.references, at, to: s.to, body: s.body };
     this.sent.push(record);
     return record;
   }
@@ -99,7 +101,7 @@ export class SimMailbox {
       delivery: { endpoint_id: 'ep_local_sim', attempt: e.deliveryAttempt ?? 1, attempted_at: new Date().toISOString() },
       email: {
         id: emailId,
-        received_at: e.receivedAt ?? e.at,
+        received_at: canonicalIso(e.receivedAt ?? e.at),
         smtp: { helo: senderDomain, mail_from: e.from, rcpt_to: [e.to] },
         headers: { message_id: messageId, subject: e.subject, from: fromHeader, to: e.to, date: e.dateHeader ?? new Date(e.at).toUTCString() },
         content: {

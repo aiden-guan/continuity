@@ -9,6 +9,7 @@ import { fromPrimitiveWebhook } from '../src/ingest/normalize.ts';
 import { SimMailbox } from '../src/sim/mailbox.ts';
 import { SqliteBackend } from '../src/store/sqlite.ts';
 import { backendCases, closeAll, uniqueOrg } from './backends.ts';
+import { canonicalIso, compareIso } from '../src/clock.ts';
 
 const a = defaultAddresses();
 const NEW_SCHEDULE = [{ qty: 300, date: '2026-10-23' }, { qty: 200, date: '2026-10-28' }];
@@ -67,6 +68,44 @@ for (const bc of matrix) {
     // an ordinary email carries no time flags
     const ok = await h.in({ from: a.supplier, fromName: 'Dana', to: a.self, subject: 'Re: PO-4817 offer', body: 'Thanks.', at: '2026-10-19T12:00:00Z', threadKey: 's' });
     assert.equal(ok.event.time_flags, undefined);
+  });
+}
+
+// '…:00Z' is 500 ms BEFORE '…:00.500Z' but compares greater as a string ('Z' > '.'). Times reach the
+// engine in either form (REST and MCP callers, older rows); they are stored canonically and ordered by instant.
+test('canonicalIso / compareIso: one stored form, ordered by instant', () => {
+  assert.equal(canonicalIso('2026-10-19T11:00:00Z'), '2026-10-19T11:00:00.000Z');
+  assert.equal(canonicalIso('2026-10-19T13:00:00.5+02:00'), '2026-10-19T11:00:00.500Z');
+  assert.equal(canonicalIso(new Date('2026-10-19T11:00:00Z')), '2026-10-19T11:00:00.000Z');
+  assert.equal(canonicalIso('not a time'), 'not a time');
+  assert.ok('2026-10-19T11:00:00Z' > '2026-10-19T11:00:00.500Z', 'the string trap this guards against');
+  assert.ok(compareIso('2026-10-19T11:00:00Z', '2026-10-19T11:00:00.500Z') < 0);
+  assert.equal(compareIso('2026-10-19T11:00:00Z', '2026-10-19T11:00:00.000Z'), 0);
+});
+
+for (const bc of matrix) {
+  test(`[${bc.name}] two events in the same second, in different ISO forms, are ordered by instant`, async () => {
+    const offer = async (h: Harness, subject: string, price: string, at: string, threadKey: string) => {
+      const d = h.mailbox.inbound({ from: a.supplier, fromName: 'Dana', to: a.self, subject, body: `We can deliver 500 units Friday (Oct 23) at $${price} each.`, at: '2026-10-19T11:00:00Z', threadKey }, 'k');
+      return h.ingest({ ...fromPrimitiveWebhook(JSON.parse(d.body)), occurred_at: at, received_at: at });
+    };
+    const fresh = async () => new Harness(procurementTask(a), undefined, undefined, { backend: await bc.make(), org: uniqueOrg('dates') });
+
+    // a forward written 500 ms before the current offer, but in the shorter form: stale evidence, offer kept
+    const h1 = await fresh();
+    await offer(h1, 'PO-4817 offer', '11.40', '2026-10-19T11:00:00.500Z', 's');
+    const late = await offer(h1, 'Fwd: PO-4817 original offer', '11.20', '2026-10-19T11:00:00Z', 'late');
+    assert.equal(h1.active('price.unit')[0].value, 11.4);
+    assert.ok(h1.transitions().some((t) => t.type === 'stale_evidence' && t.event_id === late.event.id));
+    assert.equal(late.event.occurred_at, '2026-10-19T11:00:00.000Z', 'stored in the canonical form on every backend');
+
+    // the mirror case: the current offer in the shorter form, a forward 500 ms after it — not stale, it revises
+    const h2 = await fresh();
+    await offer(h2, 'PO-4817 offer', '11.40', '2026-10-19T11:00:00Z', 's');
+    const newer = await offer(h2, 'Fwd: PO-4817 revised offer', '11.20', '2026-10-19T11:00:00.500Z', 'late');
+    assert.equal(h2.active('price.unit')[0].value, 11.2);
+    assert.ok(!h2.transitions().some((t) => t.type === 'stale_evidence'));
+    assert.ok(!h2.flags().some((f) => f.kind === 'date_skew' && f.event_id === newer.event.id));
   });
 }
 

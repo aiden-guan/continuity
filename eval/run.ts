@@ -26,6 +26,7 @@ import { parseArgs } from 'node:util';
 import { stripQuoted, heuristicExtractor } from '../src/extract/heuristic.ts';
 import { SCENARIOS, Harness, procurementTask, A, grade } from './scenarios.ts';
 import { estimateTokens } from '../src/compiler/compile.ts';
+import { compareIso } from '../src/clock.ts';
 import { policyDecide, type Decision } from '../src/agent/policy.ts';
 import { llmDecide, AGENT_SYSTEM } from '../src/agent/llm-agent.ts';
 import { llmExtractor } from '../src/extract/llm.ts';
@@ -82,7 +83,7 @@ function baselineInputs(h: Harness) {
   const goal = taskHeader(h);
   // The naive inbox view mixes task mail with unrelated mail, ordered by time.
   const inbox = [...h.store.eventsForTask(h.task.id), ...h.store.unlinkedEvents()]
-    .sort((x, y) => x.occurred_at.localeCompare(y.occurred_at));
+    .sort((x, y) => compareIso(x.occurred_at, y.occurred_at));
   const newestInbound = inbox
     .filter((e) => e.direction === 'inbound')
     .slice(-K)

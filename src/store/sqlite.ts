@@ -11,6 +11,7 @@ import type {
 } from './backend.ts';
 import type { Artifact, Claim, EventInput, Obligation, StoredEvent, TaskSpec } from '../types.ts';
 import { stripAttachmentBytes } from './rows.ts';
+import { canonicalIso } from '../clock.ts';
 
 export const SQLITE_SCHEMA = `
 CREATE TABLE IF NOT EXISTS counters (name TEXT PRIMARY KEY, value INTEGER NOT NULL);
@@ -103,6 +104,9 @@ function fromJson<T>(text: unknown, fallback: T): T {
 }
 const httpError = (message: string, status: number) => Object.assign(new Error(message), { status });
 const EPOCH = new Date(0).toISOString();
+/** A stored time in the canonical form (clock.ts). Rows written before it existed may hold '…:00Z'; they read back as '…:00.000Z'. */
+const iso = (v: unknown): string => canonicalIso(String(v));
+const isoOrNull = (v: unknown): string | null => (v == null ? null : iso(v));
 
 export class SqliteBackend implements Backend {
   readonly mode = 'sqlite' as const;
@@ -342,7 +346,7 @@ export class SqliteBackend implements Backend {
     if (!task) throw httpError(`unknown task ${taskId}`, 404);
     s.tasks.set(taskId, {
       spec: fromJson<TaskSpec>(task.spec_json, null as never),
-      created_at: String(task.created_at),
+      created_at: iso(task.created_at),
       state_version: (task.state_version as number | null) ?? this.#versionFromTransitions(taskId),
     });
 
@@ -362,7 +366,7 @@ export class SqliteBackend implements Backend {
     for (const r of this.#q('SELECT x.* FROM extractions x JOIN events e ON e.id = x.event_id WHERE e.task_id = ? ORDER BY x.rowid').all(taskId) as Row[]) {
       const eventId = String(r.event_id);
       s.extractions.push({
-        event_id: eventId, extractor: String(r.extractor), proposal: fromJson(r.proposal_json, null), created_at: String(r.created_at),
+        event_id: eventId, extractor: String(r.extractor), proposal: fromJson(r.proposal_json, null), created_at: iso(r.created_at),
         version: (r.version as number | null) ?? s.extractions.filter((x) => x.event_id === eventId).length + 1,
       });
     }
@@ -385,13 +389,13 @@ export class SqliteBackend implements Backend {
     }
     for (const r of this.#q('SELECT * FROM transitions WHERE task_id = ? ORDER BY seq').all(taskId) as Row[]) {
       s.transitions.push({
-        seq: Number(r.seq), task_id: String(r.task_id), event_id: (r.event_id as string | null) ?? null, at: String(r.at),
+        seq: Number(r.seq), task_id: String(r.task_id), event_id: (r.event_id as string | null) ?? null, at: iso(r.at),
         type: String(r.type), subject_id: (r.subject_id as string | null) ?? null, summary: String(r.summary), detail: fromJson(r.detail_json, {}),
       });
     }
     s.checks.set(taskId, (this.#q('SELECT json FROM checks WHERE task_id = ? ORDER BY rowid').all(taskId) as Row[]).map((r) => fromJson(r.json, null as never)));
     for (const r of this.#q('SELECT * FROM flags WHERE task_id = ?').all(taskId) as Row[]) {
-      s.flags.push({ id: String(r.id), task_id: String(r.task_id), event_id: String(r.event_id), kind: String(r.kind), detail: String(r.detail), at: String(r.at) });
+      s.flags.push({ id: String(r.id), task_id: String(r.task_id), event_id: String(r.event_id), kind: String(r.kind), detail: String(r.detail), at: iso(r.at) });
     }
     for (const r of this.#q('SELECT agent_id, last_seq FROM cursors WHERE task_id = ?').all(taskId) as Row[]) {
       s.setCursorLocal(String(r.agent_id), taskId, Number(r.last_seq));
@@ -504,13 +508,14 @@ export class SqliteBackend implements Backend {
     for (const j of jobs) {
       this.#q(`INSERT OR IGNORE INTO jobs(kind, task_id, event_id, seq, dedupe_key, payload_json, status, max_attempts, run_after, created_at)
         VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)`).run(
-        j.kind, j.task_id, j.event_id ?? null, j.seq ?? 0, j.dedupe_key, toJson(j.payload ?? {}), j.max_attempts ?? 5, j.run_after ?? EPOCH, new Date().toISOString(),
+        j.kind, j.task_id, j.event_id ?? null, j.seq ?? 0, j.dedupe_key, toJson(j.payload ?? {}), j.max_attempts ?? 5, j.run_after ? iso(j.run_after) : EPOCH, new Date().toISOString(),
       );
     }
   }
 
-  async claimJob(workerId: string, now: string, leaseMs: number, filter: { org?: string; taskId?: string } = {}) {
+  async claimJob(workerId: string, nowAt: string, leaseMs: number, filter: { org?: string; taskId?: string } = {}) {
     if (filter.org && this.org && filter.org !== this.org) return null;
+    const now = iso(nowAt); // run_after / locked_until are canonical TEXT, so SQL string order is time order
     return this.#tx(() => {
       const row = this.#q(`SELECT * FROM jobs j
         WHERE ((j.status = 'pending' AND j.run_after <= ?) OR (j.status = 'running' AND j.locked_until <= ?))
@@ -534,7 +539,7 @@ export class SqliteBackend implements Backend {
     if (outcome.status === 'done') {
       this.#q("UPDATE jobs SET status = 'done', locked_until = NULL, locked_by = NULL WHERE id = ? AND status <> 'done'").run(jobId);
     } else if (outcome.status === 'retry') {
-      this.#q("UPDATE jobs SET status = 'pending', last_error = ?, run_after = ?, locked_until = NULL, locked_by = NULL WHERE id = ? AND status <> 'done'").run(outcome.error, outcome.runAfter, jobId);
+      this.#q("UPDATE jobs SET status = 'pending', last_error = ?, run_after = ?, locked_until = NULL, locked_by = NULL WHERE id = ? AND status <> 'done'").run(outcome.error, iso(outcome.runAfter), jobId);
     } else {
       this.#tx(() => {
         this.#q("UPDATE jobs SET status = 'dead', last_error = ?, locked_until = NULL, locked_by = NULL WHERE id = ? AND status <> 'done'").run(outcome.error, jobId);
@@ -662,7 +667,7 @@ export function rowToEvent(r: Row): StoredEvent {
     primitive_event_id: str(r.primitive_event_id), primitive_email_id: str(r.primitive_email_id), reply_to_sent_email_id: str(r.reply_to_sent_email_id),
     thread_id: str(r.thread_id), message_id: str(r.message_id), in_reply_to: str(r.in_reply_to), references: fromJson(r.references_json, []),
     from: String(r.from_addr), from_name: str(r.from_name), to: fromJson(r.to_json, []), cc: fromJson(r.cc_json, []),
-    subject: String(r.subject), body_text: String(r.body_text), occurred_at: String(r.occurred_at), received_at: String(r.received_at),
+    subject: String(r.subject), body_text: String(r.body_text), occurred_at: iso(r.occurred_at), received_at: iso(r.received_at),
     auth_verdict: str(r.auth_verdict), attachments: fromJson(r.attachments_json, []),
     ...(r.time_flags_json ? { time_flags: fromJson(r.time_flags_json, []) } : {}),
   };
@@ -670,7 +675,7 @@ export function rowToEvent(r: Row): StoredEvent {
 
 export function rowToClaim(r: Row): Claim {
   const { value_json, ...columns } = r;
-  return { ...(columns as unknown as Claim), value: fromJson(value_json, null) };
+  return { ...(columns as unknown as Claim), learned_at: iso(r.learned_at), value: fromJson(value_json, null) };
 }
 
 export function rowToObligation(r: Row): Obligation {
@@ -678,6 +683,8 @@ export function rowToObligation(r: Row): Obligation {
   const ext = fromJson<Row>(ext_json, {});
   return {
     ...(columns as unknown as Obligation),
+    created_at: iso(r.created_at),
+    resolved_at: isoOrNull(r.resolved_at),
     due_at: str(r.due_at),
     topic_keys: fromJson(topic_keys_json, []),
     notes: fromJson(notes_json, []),

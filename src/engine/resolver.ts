@@ -296,14 +296,15 @@ export function applyProposal(inp: ApplyInput) {
     if (own.length) {
       const latest = own[own.length - 1];
       const latestEvent = store.getEvent(latest.source_event_id)!;
-      if (event.occurred_at < latestEvent.occurred_at && isForward(event)) {
+      const olderThanLatest = Date.parse(event.occurred_at) < Date.parse(latestEvent.occurred_at); // by instant, not string
+      if (olderThanLatest && isForward(event)) {
         const late = store.insertClaim({ ...base, status: 'superseded', superseded_by: latest.id, supersede_reason: `older than current claim ${latest.id} (evidence arrived late)` });
         attachEvidence(late.id);
         log('stale_evidence', `Older ${pc.key} from ${who} (${display}) arrived late; current value ${latest.display} kept`, late.id);
         continue;
       }
       // the Date header is sender-controlled and clocks drift: a non-forward that arrived later wins by arrival order
-      if (event.occurred_at < latestEvent.occurred_at && !skewFlagged) {
+      if (olderThanLatest && !skewFlagged) {
         skewFlagged = true;
         store.addFlag(task.id, event.id, 'date_skew', `${who}'s Date header (${event.occurred_at}) precedes ${latestEvent.id} (${latestEvent.occurred_at}), but it arrived later and is not a forward; applied in arrival order`, at);
       }

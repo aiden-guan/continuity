@@ -6,6 +6,7 @@
 // deterministic resolver on the working set and writes back exactly the rows it touched (the Delta).
 import { randomUUID } from 'node:crypto';
 import type { Artifact, CheckResult, Claim, Obligation, StoredEvent, TaskSpec, Transition } from '../types.ts';
+import { compareIso } from '../clock.ts';
 
 export interface ClaimEvidenceRow { claim_id: string; event_id: string; artifact_id: string | null; quote: string }
 export interface FlagRow { id: string; task_id: string | null; event_id: string; kind: string; detail: string; at: string }
@@ -154,7 +155,7 @@ export class MemoryStore {
   }
   taskCreatedAt(taskId: string): string | null { return this.tasks.get(taskId)?.created_at ?? null; }
   listTasks(): TaskSpec[] {
-    return [...this.tasks.values()].sort((a, b) => a.created_at.localeCompare(b.created_at)).map((t) => t.spec);
+    return [...this.tasks.values()].sort((a, b) => compareIso(a.created_at, b.created_at)).map((t) => t.spec);
   }
   stateVersion(taskId: string): number { return this.tasks.get(taskId)?.state_version ?? 0; }
   /** Swap a task definition in place (eval scenarios add participants; the service never does). */
@@ -322,7 +323,7 @@ export class MemoryStore {
   flagsForTask(taskId: string): { id: string; event_id: string; kind: string; detail: string; at: string }[] {
     return this.flags
       .filter((f) => f.task_id === taskId)
-      .sort((a, b) => a.at.localeCompare(b.at) || byIdNumber(a, b))
+      .sort((a, b) => compareIso(a.at, b.at) || byIdNumber(a, b))
       .map(({ id, event_id, kind, detail, at }) => ({ id, event_id, kind, detail, at }));
   }
 

@@ -127,7 +127,7 @@ export function approvalsForTask(store: StateStore, taskId: string, now = nowIso
   const list = [...byId.values()];
   for (const a of list) {
     if (!OPEN_STATUSES.includes(a.status)) continue;
-    if (a.expires_at < now) a.status = 'expired';
+    if (Date.parse(a.expires_at) < Date.parse(now)) a.status = 'expired';
     else if (a.kind === 'verify_change' && a.claim_id && store.getClaim(a.claim_id)?.status !== 'proposed') a.status = 'stale';
   }
   return list;

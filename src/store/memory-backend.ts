@@ -7,6 +7,7 @@ import type {
 } from './backend.ts';
 import type { EventInput, StoredEvent, TaskSpec } from '../types.ts';
 import { stripAttachmentBytes } from './rows.ts';
+import { compareIso } from '../clock.ts';
 
 const httpError = (message: string, status: number) => Object.assign(new Error(message), { status });
 const key = (...parts: (string | number)[]) => parts.join('\u0000');
@@ -187,8 +188,8 @@ export class MemoryBackend implements Backend {
   }
 
   async claimJob(workerId: string, now: string, leaseMs: number, filter: { org?: string; taskId?: string } = {}) {
-    const leased = (j: JobRow) => j.status === 'running' && j.locked_until! > now;
-    const ready = (j: JobRow) => (j.status === 'pending' && j.run_after <= now) || (j.status === 'running' && j.locked_until! <= now);
+    const leased = (j: JobRow) => j.status === 'running' && compareIso(j.locked_until!, now) > 0;
+    const ready = (j: JobRow) => (j.status === 'pending' && compareIso(j.run_after, now) <= 0) || (j.status === 'running' && compareIso(j.locked_until!, now) <= 0);
     // one job per task at a time; interpretation strictly in event order
     const blocked = (j: JobRow) => !!j.task_id && this.jobs.some((k) =>
       k !== j && k.org === j.org && k.task_id === j.task_id && (
@@ -196,7 +197,7 @@ export class MemoryBackend implements Backend {
         (j.kind === 'interpret_event' && k.kind === 'interpret_event' && k.status !== 'done' && k.status !== 'dead' && k.seq < j.seq)));
     const next = this.jobs
       .filter((j) => (!filter.org || j.org === filter.org) && (!filter.taskId || j.task_id === filter.taskId) && ready(j) && !blocked(j))
-      .sort((a, b) => a.run_after.localeCompare(b.run_after) || a.seq - b.seq || Number(a.id) - Number(b.id))[0];
+      .sort((a, b) => compareIso(a.run_after, b.run_after) || a.seq - b.seq || Number(a.id) - Number(b.id))[0];
     if (!next) return null;
     next.status = 'running';
     next.attempts++;
@@ -261,7 +262,7 @@ export class MemoryBackend implements Backend {
     return [...this.runs.entries()]
       .filter(([k, r]) => k.startsWith(key(org, '')) && r.task_id === taskId)
       .map(([, r]) => structuredClone(r))
-      .sort((a, b) => String(a.started_at).localeCompare(String(b.started_at)));
+      .sort((a, b) => compareIso(String(a.started_at), String(b.started_at)));
   }
 
   // ------------------------------------------------------------------ remembered Signal alerts
@@ -269,7 +270,7 @@ export class MemoryBackend implements Backend {
   async listSignals(org: string, opts: { includeResolved?: boolean } = {}) {
     return [...(this.signals.get(org)?.values() ?? [])]
       .filter((s) => opts.includeResolved || !s.resolved_at)
-      .sort((a, b) => a.first_seen.localeCompare(b.first_seen) || a.key.localeCompare(b.key))
+      .sort((a, b) => compareIso(a.first_seen, b.first_seen) || a.key.localeCompare(b.key))
       .map((s) => structuredClone(s));
   }
   async saveSignals(org: string, rows: SignalRow[]) {

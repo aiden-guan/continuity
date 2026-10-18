@@ -18,13 +18,14 @@ import type {
 import type { Artifact, Claim, EventInput, Obligation, StoredEvent, TaskSpec } from '../types.ts';
 import { stripAttachmentBytes } from './rows.ts';
 import { redactUrl } from './index.ts';
+import { canonicalIso } from '../clock.ts';
 
 type Sql = postgres.Sql | postgres.TransactionSql;
 type Row = Record<string, any>;
 type StoredBytes = { storage: 'supabase_storage' | 'postgres_inline'; path: string | null };
 
-/** ISO time; second precision is kept when there are no milliseconds, so '…:00Z' inputs round-trip exactly. */
-const ts = (v: unknown): string => (v instanceof Date ? v.toISOString().replace('.000Z', 'Z') : String(v));
+/** timestamptz → the canonical stored form (Date#toISOString, see clock.ts), the same string every backend returns. */
+const ts = (v: unknown): string => canonicalIso(v instanceof Date ? v : String(v));
 const tsOrNull = (v: unknown): string | null => (v == null ? null : ts(v));
 const two = (n: number) => String(n).padStart(2, '0');
 const day = (v: unknown): string | null => {
