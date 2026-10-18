@@ -148,9 +148,9 @@ export function stateFingerprint(store: StateStore, taskId: string): string {
   return createHash('sha256').update(JSON.stringify(state)).digest('hex').slice(0, 16);
 }
 
-/** Record a held send. Returns the new approval id. */
-export function requestApproval(store: StateStore, taskId: string, at: string, d: Omit<ApprovalRequestDetail, 'fingerprint' | 'expires_at'>): string {
-  const detail: ApprovalRequestDetail = { ...d, fingerprint: stateFingerprint(store, taskId), expires_at: expiresAfter(at) };
+/** Record a held send. Returns the new approval id. (Replay passes the original deadline along.) */
+export function requestApproval(store: StateStore, taskId: string, at: string, d: Omit<ApprovalRequestDetail, 'fingerprint' | 'expires_at'> & { expires_at?: string }): string {
+  const detail: ApprovalRequestDetail = { ...d, fingerprint: stateFingerprint(store, taskId), expires_at: d.expires_at ?? expiresAfter(at) };
   const seq = store.addTransition({
     task_id: taskId, event_id: null, at, type: APPROVAL_REQUESTED, subject_id: d.claim_id ?? null,
     summary: `Held for a human: ${d.title} (${d.reasons.join('; ').slice(0, 200)})`, detail: detail as unknown as Record<string, unknown>,
