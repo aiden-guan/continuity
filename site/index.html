@@ -21,6 +21,7 @@
 
   <link rel="stylesheet" href="assets/site.css">
   <link rel="stylesheet" href="assets/landing.css">
+  <link rel="stylesheet" href="assets/charts.css">
 </head>
 <body>
   <a class="skip" href="#problem">Skip to content</a>
@@ -39,6 +40,7 @@
         <a href="#idea">Mechanism</a>
         <a href="#story">Demo</a>
         <a href="#proof">Results</a>
+        <a href="#rivals">Competitors</a>
       </div>
       <div class="nav-end">
         <button class="theme-btn" type="button" data-theme-toggle>Dark</button>
@@ -299,6 +301,63 @@
             </div>
           </aside>
           <p class="source reveal">Held-out split · 650 cases · same Haiku agent · <code>bench/FINDINGS.md</code> · <code>bench/value</code></p>
+
+          <div class="lc-grid">
+            <figure class="lc reveal" data-chart="context">
+              <figcaption><b>Context stays flat</b><span>Fig. 3</span></figcaption>
+              <div class="lc-plot"></div>
+            </figure>
+            <figure class="lc reveal" data-chart="depth" style="--d:.08s">
+              <figcaption><b>Deep chains hold</b><span>Fig. 4</span></figcaption>
+              <div class="lc-plot"></div>
+            </figure>
+            <figure class="lc reveal" data-chart="cost">
+              <figcaption><b>Cost per right call</b><span>Fig. 5</span></figcaption>
+              <div class="lc-plot"></div>
+            </figure>
+            <figure class="lc reveal" data-chart="tokens" style="--d:.08s">
+              <figcaption><b>Tokens over a lifetime</b><span>Fig. 6</span></figcaption>
+              <div class="lc-plot"></div>
+            </figure>
+          </div>
+          <p class="source reveal">Same agent · <code>eval/scale.ts</code> · <code>bench/value</code></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 05 · competitors -->
+    <section id="rivals" class="sec">
+      <div class="wrap sec-grid">
+        <div class="sec-k reveal"><span class="n">05</span><span class="t">Competitors</span></div>
+        <div class="sec-body">
+          <h2 class="h2 reveal">Beats Mem0 and&nbsp;Zep.</h2>
+          <div class="stats">
+            <div class="stat win reveal"><b>+15</b><span>points vs Mem0</span></div>
+            <div class="stat win reveal" style="--d:.08s"><b>+22</b><span>points vs Zep</span></div>
+            <div class="stat reveal" style="--d:.16s"><b>13×</b><span>cheaper than Mem0</span></div>
+            <div class="stat reveal" style="--d:.24s"><b>33×</b><span>cheaper than Zep</span></div>
+          </div>
+          <div class="rk-grid">
+            <figure class="rk reveal">
+              <figcaption><b>Right calls</b><span>% of 130</span></figcaption>
+              <ol>
+                <li class="me"><div class="nm"><b>Continuity</b></div><div class="bar"><i style="--w:.708"></i></div><b class="v">70.8</b></li>
+                <li><div class="nm"><b>Mem0</b><span>open source</span></div><div class="bar"><i style="--w:.554"></i></div><b class="v">55.4</b></li>
+                <li><div class="nm"><b>Zep</b><span>Graphiti</span></div><div class="bar"><i style="--w:.485"></i></div><b class="v">48.5</b></li>
+                <li><div class="nm"><b>Primitive alone</b></div><div class="bar"><i style="--w:.415"></i></div><b class="v">41.5</b></li>
+              </ol>
+            </figure>
+            <figure class="rk reveal" style="--d:.1s">
+              <figcaption><b>Memory cost</b><span>$ / case</span></figcaption>
+              <ol>
+                <li class="me"><div class="nm"><b>Continuity</b></div><div class="bar"><i style="--w:.030"></i></div><b class="v">0.0017</b></li>
+                <li><div class="nm"><b>Mem0</b><span>open source</span></div><div class="bar"><i style="--w:.384"></i></div><b class="v">0.0221</b></li>
+                <li><div class="nm"><b>Zep</b><span>Graphiti</span></div><div class="bar"><i style="--w:1"></i></div><b class="v">0.0575</b></li>
+                <li><div class="nm"><b>Primitive alone</b><span>no memory</span></div><div class="bar none"></div><b class="v">n/a</b></li>
+              </ol>
+            </figure>
+          </div>
+          <p class="source reveal">130 held-out cases · same Haiku agent · open-source builds</p>
         </div>
       </div>
     </section>
@@ -318,5 +377,6 @@
   </main>
 
   <script type="module" src="assets/landing.js"></script>
+  <script type="module" src="assets/charts.js"></script>
 </body>
 </html>

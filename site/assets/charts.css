@@ -1,0 +1,117 @@
+/* ============================================================ 04 · results: line charts
+   Four small figures under the leaderboard. Same rules as the bars: Primitive alone in ink at low
+   weight, Continuity in signal; the line draws in, then the end value counts up. */
+.lc-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 56px;
+  border-top: 1px solid var(--ink);
+  border-left: 1px solid var(--line);
+}
+.lc {
+  position: relative;
+  margin: 0;
+  padding: 16px 16px 8px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  transition: background 0.25s;
+}
+.lc.reading { background: var(--surface); }
+.lc figcaption { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.lc figcaption b { font: 600 15px/1.2 var(--sans); letter-spacing: -0.02em; }
+.lc figcaption span { font: 500 10.5px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.lc-plot { position: relative; height: 210px; margin-top: 10px; touch-action: pan-y; cursor: crosshair; }
+.lc-plot svg { display: block; width: 100%; height: 100%; overflow: visible; }
+
+.lc .grid line { stroke: var(--line); }
+.lc .grid line.axis { stroke: var(--line-2); }
+.lc .tick { font: 500 10px var(--mono); font-variant-numeric: tabular-nums; fill: var(--faint); }
+.lc .tick.unit { fill: var(--muted); }
+
+.lc .s {
+  fill: none;
+  stroke: var(--faint);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 1.1s var(--ease) 0.15s;
+}
+.lc .s.me { stroke: var(--signal); stroke-width: 2.2; transition: stroke-dashoffset 1.4s var(--ease) 0.5s; }
+.lc.on .s { stroke-dashoffset: 0; }
+.lc .pt { fill: var(--bg); stroke: var(--faint); stroke-width: 1.4; opacity: 0; transition: opacity 0.3s var(--ease) 1.1s; }
+.lc .pt.me { stroke: var(--signal); stroke-width: 1.8; transition-delay: 1.5s; }
+.lc.on .pt { opacity: 1; }
+.lc .end,
+.lc .end-n { opacity: 0; transition: opacity 0.45s var(--ease) 1.35s; }
+.lc.on .end,
+.lc.on .end-n { opacity: 1; }
+.lc .end { font: 600 14px var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; fill: var(--muted); }
+.lc .end.me { fill: var(--signal-ink); }
+.lc .end-n { font: 500 9px var(--mono); letter-spacing: 0.03em; text-transform: uppercase; fill: var(--faint); }
+.lc .end-n.me { fill: var(--ink-2); }
+
+/* the reading line */
+.lc .hover { opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+.lc .hover.show { opacity: 1; }
+.lc .hover line { stroke: var(--ink); stroke-width: 1; stroke-dasharray: 2 3; }
+.lc .hover circle { fill: var(--bg); stroke: var(--faint); stroke-width: 2; }
+.lc .hover circle.me { stroke: var(--signal); }
+.lc .hv { font: 600 11.5px var(--mono); font-variant-numeric: tabular-nums; fill: var(--muted); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; }
+.lc .hv.me { fill: var(--signal-ink); }
+.lc .hv-x { fill: var(--ink); paint-order: stroke; stroke: var(--surface); stroke-width: 6px; }
+
+@media (max-width: 720px) {
+  .lc-grid { grid-template-columns: 1fr; }
+}
+
+/* ============================================================ 05 · competitors
+   Two ranked boards, leaderboard style: right calls and what the memory layer costs per case. */
+.rk-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; margin-top: 48px; }
+.rk { margin: 0; }
+.rk figcaption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ink);
+}
+.rk figcaption b { font: 600 15px/1.2 var(--sans); letter-spacing: -0.02em; }
+.rk figcaption span { font: 500 10.5px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.rk ol { margin: 0; padding: 0; list-style: none; }
+.rk li {
+  display: grid;
+  grid-template-columns: minmax(7.5em, 9em) minmax(0, 1fr) 4.6em;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line);
+}
+.rk .nm b { display: block; font: 600 14px/1.15 var(--sans); letter-spacing: -0.01em; }
+.rk .nm span { display: block; margin-top: 4px; font: 500 9.5px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+.rk .bar { height: 10px; background: var(--bg-2); }
+.rk .bar i {
+  display: block;
+  width: max(3px, calc(var(--w) * 100%));
+  height: 100%;
+  background: var(--line-2);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 1s var(--ease) calc(var(--d, 0s) + 0.2s);
+}
+.rk li.me .bar i { background: var(--signal); transition-duration: 1.3s; }
+.rk.in .bar i { transform: none; }
+.rk li:nth-child(2) .bar i { transition-delay: calc(var(--d, 0s) + 0.3s); }
+.rk li:nth-child(3) .bar i { transition-delay: calc(var(--d, 0s) + 0.4s); }
+.rk li:nth-child(4) .bar i { transition-delay: calc(var(--d, 0s) + 0.5s); }
+.rk .bar.none { background: none; border-top: 1px dashed var(--line-2); height: 0; }
+.rk .v { font: 500 13px/1 var(--mono); font-variant-numeric: tabular-nums; text-align: right; color: var(--muted); }
+.rk li.me .nm b { color: var(--ink); }
+.rk li.me .v { font-weight: 600; color: var(--signal-ink); }
+
+@media (max-width: 720px) {
+  .rk-grid { grid-template-columns: 1fr; }
+  .rk li { grid-template-columns: 7em minmax(0, 1fr) 4.4em; gap: 10px; }
+}
