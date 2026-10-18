@@ -758,7 +758,7 @@
 .metric-h span:last-child { letter-spacing: 0; text-transform: none; color: var(--faint); }
 .bar-row {
   display: grid;
-  grid-template-columns: 128px minmax(0, 1fr) 60px;
+  grid-template-columns: 112px minmax(0, 1fr) 88px;
   gap: 14px;
   align-items: center;
   padding: 9px 0;
@@ -783,20 +783,30 @@
 .bar i.me { background: var(--ink); }
 .metric:not(.in) .bar i { transform: scaleX(0); }
 
-.cells { display: flex; gap: 4px; }
-.cells i {
-  width: 100%;
-  max-width: 28px;
-  height: 14px;
-  border-radius: 2px;
-  background: var(--bg-2);
+/* cost per thread as more agents wake on it: a row of datasheet cells */
+.wakes { grid-column: 1 / -1; }
+.wake-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding-bottom: 6px; }
+.wake { padding-left: 18px; border-left: 1px solid var(--line); }
+.wake:first-child { padding-left: 0; border-left: 0; }
+.wake span {
+  display: block;
+  font: 500 11px/1.3 var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
-.cells i.on { background: var(--muted); }
-.bar-row.me .cells i.on { background: var(--ink); }
+.wake b {
+  display: block;
+  margin-top: 10px;
+  font: 500 clamp(26px, 2.8vw, 36px)/1 var(--sans);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+}
+.wake.even b { color: var(--muted); }
 
-.source { margin: 32px 0 0; font-size: 13px; color: var(--muted); }
+.source { max-width: 72ch; margin: 32px 0 0; font-size: 13px; line-height: 1.6; color: var(--muted); }
 
-/* Fig. 3 · the context bill, to scale (tokenfield.js) */
+/* Fig. 3 · every held-out case, to scale (casefield.js) */
 .field { margin: 48px 0 0; }
 .field-h {
   display: flex;
@@ -836,6 +846,25 @@
 .field.merged .field-me b { color: var(--ink); }
 .field.merged .field-me b::before { transform: none; }
 .field-c canvas { display: block; width: 100%; }
+
+/* the key: the two outcomes Continuity changes stay dim until the playhead has passed */
+.field-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  padding-top: 14px;
+  font: 11.5px/1.4 var(--mono);
+  color: var(--muted);
+}
+.field-key span { position: relative; padding-left: 17px; transition: opacity 0.6s var(--ease); }
+.field-key i { position: absolute; top: 3.5px; left: 0; width: 9px; height: 9px; }
+.field-key b { font-weight: 500; font-variant-numeric: tabular-nums; color: var(--ink); }
+.k-both i { background: var(--ink); }
+.k-gain i { background: var(--signal); }
+.k-lost i { box-shadow: inset 0 0 0 1px var(--muted); }
+.k-none i { background: var(--line-2); }
+.field:not(.merged) .k-gain,
+.field:not(.merged) .k-lost { opacity: 0.4; }
 .field figcaption {
   display: flex;
   gap: 14px;
@@ -848,7 +877,10 @@
   .proof { grid-template-columns: 1fr; }
 }
 @media (max-width: 520px) {
-  .bar-row { grid-template-columns: 100px minmax(0, 1fr) 48px; gap: 10px; }
+  .bar-row { grid-template-columns: 100px minmax(0, 1fr) 72px; gap: 10px; }
+  .wake-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 0; }
+  .wake:nth-child(odd) { padding-left: 0; border-left: 0; }
+  .field-key { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
   .bar-row .who { font-size: 12.5px; }
   .bar-row b { font-size: 18px; }
 }

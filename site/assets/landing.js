@@ -4,14 +4,14 @@
 //   2. hero: "Agents forget." as particles (particles.js) over a looping canvas of agents on one thread
 //   3. Fig. 2, the email → state sequence (mechanism.js)
 //   4. the replay: a pinned scene of thread → Continuity → agent, from real engine output (relay.js)
-//   5. results: Fig. 3 to scale (tokenfield.js), counters and cell meters
+//   5. results: Fig. 3, every held-out case to scale (casefield.js), and counters
 //   6. footer wordmark, dithered — the page's one dithered moment, kept quiet
 import { dither } from './dither.js';
 import { setupTheme, token } from './theme.js';
 import { splitWords, scramble, countUp, setupNavThread, stillMotion } from './motion.js';
 import { setupHeroParticles } from './particles.js';
 import { setupMechanism } from './mechanism.js';
-import { setupTokenField } from './tokenfield.js';
+import { setupCaseField } from './casefield.js';
 import { setupRelay } from './relay.js';
 
 const one = (sel, root = document) => root.querySelector(sel);
@@ -39,7 +39,7 @@ function setupChrome() {
       watcher.unobserve(el);
       const label = el.matches('.sec-k') && one('.t', el);
       if (label) scramble(label, label.textContent, { duration: 650, delay: 120 });
-      if (el.matches('.metric')) all('.bar-row b', el).forEach((b, i) => countUp(b, { delay: 250 + i * 120 }));
+      if (el.matches('.metric')) all('.bar-row b, .wake b', el).forEach((b, i) => countUp(b, { delay: 250 + i * 120 }));
       if (el.matches('.ledger')) all('code', el).forEach((c, i) => scramble(c, c.textContent, { duration: 600, delay: 400 + i * 140 }));
     }
   }, { rootMargin: '0px 0px -8% 0px' });
@@ -316,15 +316,6 @@ async function setupStory() {
   one('#foot-src').textContent = `story: real engine output, ${snap.captured_at.slice(0, 10)}`;
 }
 
-// ============================================================ 4 · results
-function setupCells() {
-  all('.cells').forEach((row) => {
-    const n = Number(row.dataset.n);
-    const of = Number(row.dataset.of);
-    row.innerHTML = Array.from({ length: of }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
-  });
-}
-
 // ============================================================ 5 · wordmark
 // paper-on-paper: the dither only reaches full ink where the slow sweep or the pointer lights it
 const wordmarkPalette = () => [token('--bg'), token('--bg-2'), token('--faint'), token('--muted')];
@@ -368,7 +359,6 @@ if (document.documentElement.classList.contains('px')) {
   setupHeroParticles({ hero: one('.hero'), line: one('.h-forget'), thread: one('#hero-thread'), nodes: HERO_EVENTS.map((e) => e.at), head: heroThread.head });
 }
 setupMechanism(one('#mech'));
-setupTokenField(one('#field'));
+setupCaseField(one('#field'));
 setupStory();
-setupCells();
 setupWordmark();

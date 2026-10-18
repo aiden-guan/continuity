@@ -183,35 +183,59 @@
       <div class="wrap sec-grid">
         <div class="sec-k reveal"><span class="n">04</span><span class="t">Results</span></div>
         <div class="sec-body">
-          <h2 class="h2 reveal">1,000× less context. <span class="dim">The right answer.</span></h2>
+          <h2 class="h2 reveal">Same agent. <span class="dim">Right 69 times in 100, not&nbsp;49.</span></h2>
 
           <figure id="field" class="field reveal">
             <div class="field-h">
-              <div><b data-count>2,769,083</b><span>tokens to reread 267 messages</span></div>
-              <div class="field-me"><b>2,442</b><span>tokens in the Continuity briefing</span></div>
+              <div><b data-count>49.2%</b><span>Primitive alone · 320&nbsp;of&nbsp;650</span></div>
+              <div class="field-me"><b>68.8%</b><span>With Continuity · 447&nbsp;of&nbsp;650</span></div>
             </div>
-            <div class="field-c"><canvas aria-label="1,134 squares, each one briefing, merging into a single square"></canvas></div>
+            <div class="field-c"><canvas role="img" aria-label="650 squares, one per held-out case: 255 right with and without Continuity, 192 right only with it, 65 right only without it, 138 right with neither"></canvas></div>
+            <div class="field-key">
+              <span class="k-both"><i></i>Right either way <b>255</b></span>
+              <span class="k-gain"><i></i>Only with Continuity <b>192</b></span>
+              <span class="k-lost"><i></i>Only without it <b>65</b></span>
+              <span class="k-none"><i></i>Neither <b>138</b></span>
+            </div>
             <figcaption>
               <span class="fig-n">Fig. 3</span>
-              <span>To scale. Each square is one 2,442-token briefing; the transcript is 1,134 of them.</span>
+              <span>Cold handoffs on the benchmark’s held-out eval split, to scale. One square per case.</span>
               <button class="replay" type="button" data-replay>Replay</button>
             </figcaption>
           </figure>
 
           <div class="proof">
             <div class="metric reveal">
-              <div class="metric-h"><span>Tokens to resume after 267 messages</span><span>lower is better</span></div>
-              <div class="bar-row me"><span class="who">Continuity</span><div class="bar"><i class="me" style="--w:.0009"></i></div><b>2.4k</b></div>
-              <div class="bar-row"><span class="who">Reread transcript</span><div class="bar"><i style="--w:1"></i></div><b>2.7M</b></div>
+              <div class="metric-h"><span>Critical facts right</span><span>higher is better</span></div>
+              <div class="bar-row me"><span class="who">Continuity</span><div class="bar"><i class="me" style="--w:.84"></i></div><b>84%</b></div>
+              <div class="bar-row"><span class="who">Primitive alone</span><div class="bar"><i style="--w:.617"></i></div><b>62%</b></div>
             </div>
             <div class="metric reveal" style="--d:.08s">
-              <div class="metric-h"><span>Cold handoffs answered correctly</span><span>higher is better</span></div>
-              <div class="bar-row me"><span class="who">Continuity</span><div class="cells" data-n="6" data-of="6"></div><b>6/6</b></div>
-              <div class="bar-row"><span class="who">Full transcript</span><div class="cells" data-n="5" data-of="6"></div><b>5/6</b></div>
-              <div class="bar-row"><span class="who">Last 3 emails</span><div class="cells" data-n="3" data-of="6"></div><b>3/6</b></div>
+              <div class="metric-h"><span>Tokens read to decide</span><span>lower is better</span></div>
+              <div class="bar-row me"><span class="who">Continuity</span><div class="bar"><i class="me" style="--w:.554"></i></div><b>7.0k</b></div>
+              <div class="bar-row"><span class="who">Primitive alone</span><div class="bar"><i style="--w:1"></i></div><b>12.7k</b></div>
+            </div>
+            <div class="metric reveal">
+              <div class="metric-h"><span>Cost per decision</span><span>about equal</span></div>
+              <div class="bar-row me"><span class="who">Continuity</span><div class="bar"><i class="me" style="--w:1"></i></div><b>$0.0044</b></div>
+              <div class="bar-row"><span class="who">Primitive alone</span><div class="bar"><i style="--w:.96"></i></div><b>$0.0043</b></div>
+            </div>
+            <div class="metric reveal" style="--d:.08s">
+              <div class="metric-h"><span>Cost per right handoff</span><span>lower is better</span></div>
+              <div class="bar-row me"><span class="who">Continuity</span><div class="bar"><i class="me" style="--w:.745"></i></div><b>$0.0064</b></div>
+              <div class="bar-row"><span class="who">Primitive alone</span><div class="bar"><i style="--w:1"></i></div><b>$0.0086</b></div>
+            </div>
+            <div class="metric wakes reveal">
+              <div class="metric-h"><span>Cost per thread</span><span>vs Primitive alone</span></div>
+              <div class="wake-row">
+                <div class="wake even"><span>1 wake</span><b>+4%</b></div>
+                <div class="wake"><span>2 wakes</span><b>−17%</b></div>
+                <div class="wake"><span>3 wakes</span><b>−25%</b></div>
+                <div class="wake"><span>5 wakes</span><b>−30%</b></div>
+              </div>
             </div>
           </div>
-          <p class="source reveal">Six cold-handoff scenarios with a Claude agent, graded by rubric on the first email it sends. Token counts from <code>eval/results/scale.json</code>.</p>
+          <p class="source reveal">Continuity benchmark, held-out eval split: 650 frozen cases across 5 verticals, with the same Haiku 5.5 agent on both sides. A handoff is right when the next action and every critical fact are. Costs include Continuity reading every email; thread costs assume the same emails at every wake. Synthetic cases, one trial each. From <code>bench/FINDINGS.md</code>, run <code>opt-final2-eval-all</code>.</p>
         </div>
       </div>
     </section>
