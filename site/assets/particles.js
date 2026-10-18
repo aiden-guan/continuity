@@ -4,7 +4,9 @@
 // per grid cell, so at rest it reads as a halftone print of the heading. Every particle has
 // one number, t, between home (0) and the thread (1):
 //   · on load the letters rise out of the Fig. 1 thread (t falls from 1 to 0)
-//   · scrolling dissolves the line back into the thread, right to left, swirling like ink in water
+//   · scrolling dissolves the line back down, right to left, pooling into the event nodes Fig. 1
+//     has already reached (lit ink) — so where the streams go depends on how far its loop has run.
+//     A particle picks its node when it starts moving and keeps it until it is home again.
 //   · a few particles of "forget." keep drifting off and coming back
 //   · the pointer pushes particles aside; they spring home
 // Position is a pure function of t and the clock, so scrolling back up reassembles the line.
@@ -24,7 +26,7 @@ const INTRO_MS = 1500;   // one particle's trip from the thread to its letter
 const INTRO_SPREAD = 900; // first to last particle leaving the thread
 const PUSH_RADIUS = 90;
 
-export function setupHeroParticles({ hero, line, thread }) {
+export function setupHeroParticles({ hero, line, thread, nodes = [], head = () => 1 }) {
   const canvas = document.createElement('canvas');
   canvas.className = 'hero-px';
   canvas.setAttribute('aria-hidden', 'true');
@@ -35,9 +37,11 @@ export function setupHeroParticles({ hero, line, thread }) {
   let ink = token('--ink');
   let parts = [];
   let dot = 2;
-  let view = { w: 0, h: 0, dpr: 1 };
+  let view = { w: 0, h: 0, dpr: 1, lineY: 0 };
   let pointer = null;
   let introAt = 0;
+  let shown = 0;   // the dissolve as drawn: it eases after the scroll, so a fast flick still plays out
+  let lastNow = 0;
   let frameId = 0;
   let inView = true;
   let ready = false; // set once the webfont is in, so the samples match the real type
@@ -85,12 +89,7 @@ export function setupHeroParticles({ hero, line, thread }) {
       g.restore();
     }
 
-    // the thread line in Fig. 1 (landing.js draws it at 60% of the canvas height)
-    const tb = thread.getBoundingClientRect();
-    const margin = Math.max(20, Math.min(tb.width * 0.05, 64));
-    const lineY = tb.top - box.top + Math.round(tb.height * 0.6);
-    const lineA = tb.left - box.left + margin;
-    const lineB = tb.right - box.left - margin;
+    measureThread(box);
 
     const step = Math.max(2, Math.round(size / 42));
     dot = Math.max(1.3, step * 0.74);
@@ -100,19 +99,23 @@ export function setupHeroParticles({ hero, line, thread }) {
     const span = Math.max(1, lineBox.width);
     const forgetFrom = line.querySelector('.pw:last-child').getBoundingClientRect().left - box.left;
 
+    const at0 = head(performance.now());
+    const lit0 = litNodes(at0);
     const next = [];
     for (let y = Math.floor(step / 2); y < off.height; y += step) {
       for (let x = Math.floor(step / 2); x < off.width; x += step) {
         if (data[(y * off.width + x) * 4 + 3] < 110) continue;
         const across = clamp01((x - left) / span);
-        const tx = Math.min(lineB, Math.max(lineA, x + (Math.random() - 0.5) * 160));
+        const jx = (Math.random() - 0.5) * 3;
         next.push({
           hx: x, hy: y,
-          tx, ty: lineY,
+          across, jx,
+          tx: targetX(across, lit0, at0) + jx,
+          jy: (Math.random() - 0.5) * 3,
           // assembly runs left to right; dissolving starts at the end of "forget."
           inDelay: across * 0.55 + Math.random() * 0.45,
-          outDelay: (1 - across) * 0.65 + Math.random() * 0.35,
-          swirl: 14 + Math.random() * 46,
+          outDelay: (1 - across) * 0.7 + Math.random() * 0.3,
+          swirl: 6 + Math.random() * 22,
           angle: Math.random() * Math.PI * 2,
           spin: (Math.random() - 0.5) * 3.5,
           flake: x > forgetFrom && Math.random() < 0.07,
@@ -125,6 +128,30 @@ export function setupHeroParticles({ hero, line, thread }) {
     parts = next;
   }
 
+  // ------------------------------------------------------------ targets
+  // Fig. 1's line, where landing.js draws it (60% of its canvas height, inset by its margin).
+  // Measured every frame: the figure slides in after load, and a cached position lands the
+  // particles below the line.
+  function measureThread(box) {
+    const tb = thread.getBoundingClientRect();
+    const margin = Math.max(20, Math.min(tb.width * 0.05, 64));
+    view.lineY = tb.top - box.top + Math.round(tb.height * 0.6);
+    view.lineA = Math.round(tb.left - box.left + margin);
+    view.lineB = Math.round(tb.right - box.left - margin);
+  }
+
+  // only the nodes Fig. 1's playhead has passed (drawn in ink) take particles; before the first
+  // one is reached, everything pools at the playhead itself
+  const litNodes = (at) => nodes.filter((n) => n <= at);
+  function targetX(across, lit, at = 1) {
+    const { lineA, lineB } = view;
+    let node;
+    if (!nodes.length) node = across;
+    else if (!lit.length) node = at;
+    else node = lit[Math.min(lit.length - 1, Math.floor(across * lit.length))];
+    return lineA + node * (lineB - lineA);
+  }
+
   // ------------------------------------------------------------ frame
   function frame(now) {
     frameId = 0;
@@ -132,17 +159,26 @@ export function setupHeroParticles({ hero, line, thread }) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
-    const heroTop = hero.getBoundingClientRect().top;
-    const scrolled = clamp01(-heroTop / (innerHeight * 0.62));
+    // done by the time the thread has risen to 30% of the screen, so the landing is always in view
+    const heroBox = hero.getBoundingClientRect();
+    const heroTop = heroBox.top;
+    measureThread(heroBox);
+    const scrolled = clamp01(-heroTop / Math.max(260, view.lineY - innerHeight * 0.3));
+    const dt = lastNow ? Math.min(64, now - lastNow) : 16;
+    lastNow = now;
+    shown += (scrolled - shown) * (1 - Math.exp(-dt / 420));
+    if (Math.abs(scrolled - shown) < 0.0005) shown = scrolled;
     const since = now - introAt;
+    const at = head(now);
+    const lit = litNodes(at);
 
     ctx.fillStyle = ink;
     ctx.beginPath(); // every fully opaque particle goes into one path
-    let moving = false;
+    let moving = shown !== scrolled;
 
     for (const p of parts) {
       const intro = 1 - easeOut(clamp01((since - p.inDelay * INTRO_SPREAD) / INTRO_MS));
-      const out = clamp01((scrolled - p.outDelay * 0.5) / 0.5);
+      const out = clamp01((shown - p.outDelay * 0.4) / 0.6);
       let flake = 0;
       if (p.flake) {
         const s = Math.max(0, Math.sin(now / p.period * Math.PI * 2 + p.phase));
@@ -151,11 +187,16 @@ export function setupHeroParticles({ hero, line, thread }) {
       const t = Math.max(intro, out, flake);
       if (t > 0) moving = true;
 
+      const goal = targetX(p.across, lit, at) + p.jx;
+      // a node lit mid-flight doesn't pull particles over: the choice holds until they are home
+      if (!p.locked || t === 0) p.tx = goal;
+      p.locked = t > 0;
+
       const e = easeInOut(t);
       const arc = Math.sin(Math.PI * t) * p.swirl;
       const ang = p.angle + t * p.spin + now * 0.00035;
       let x = p.hx + (p.tx - p.hx) * e + Math.cos(ang) * arc;
-      let y = p.hy + (p.ty - p.hy) * e + Math.sin(ang) * arc * 0.55;
+      let y = p.hy + (view.lineY + p.jy - p.hy) * e + Math.sin(ang) * arc * 0.55;
 
       // the pointer pushes letters aside; they spring back
       let pushX = 0;
@@ -177,9 +218,10 @@ export function setupHeroParticles({ hero, line, thread }) {
       x += p.ox;
       y += p.oy;
 
-      const alpha = 1 - smooth(0.72, 1, t);
+      // fully visible all the way down; they shrink into the node and vanish there
+      const alpha = 1 - smooth(0.95, 1, t);
       if (alpha <= 0.01) continue;
-      const s = dot * (1 - 0.45 * t);
+      const s = dot * (1 - 0.55 * t);
       if (alpha > 0.99) {
         ctx.rect(x - s / 2, y - s / 2, s, s);
       } else {
@@ -194,7 +236,11 @@ export function setupHeroParticles({ hero, line, thread }) {
     if (inView && (moving || parts.some((p) => p.flake))) frameId = requestAnimationFrame(frame);
   }
 
-  const kick = () => { if (!frameId && inView) frameId = requestAnimationFrame(frame); };
+  const kick = () => {
+    if (frameId || !inView) return;
+    lastNow = 0;
+    frameId = requestAnimationFrame(frame);
+  };
 
   // ------------------------------------------------------------ wiring
   let resizeTimer = 0;
