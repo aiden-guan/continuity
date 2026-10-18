@@ -7,6 +7,9 @@
 // DB), and its API is proxied on the same origin so the site can read state directly. The beats match
 // scripts/demo.ts: every agent is its own OS process, Agent A really gets SIGKILLed, and B and C start
 // with no memory at all. Child output and process lifecycle are pushed to the site over SSE.
+//
+// A person is in the loop: Agent C's order confirmation is held as an approval card until someone
+// approves or rejects it from the page (A / R).
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { existsSync, readFileSync, rmSync, statSync } from 'node:fs';
@@ -232,7 +235,7 @@ const beats: Beat[] = [
   },
   {
     title: 'Agent C closes the deal.',
-    caption: 'Another fresh agent. Every check passes.',
+    caption: 'Every check passes. Committing money still needs you.',
     run: async () => {
       const c = startAgent('agent-c', '--once');
       if ((await exitCode(c)) !== 0) throw new Error('agent-c failed');

@@ -5,3 +5,5 @@ data/
 *.db-*
 .scratch/
 eval/results/runs/
+bench/results/*
+!bench/results/README.md

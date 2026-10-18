@@ -54,7 +54,7 @@ const TOOLS = [
   },
   {
     name: 'continuity_send',
-    description: 'Send an email to a task participant via Primitive. Continuity threads it, records it as an event, refuses binding language (accept/approve payment) while hard requirements fail, and refuses a send decided on an outdated context (fetch context again when told the state is stale or incomplete).',
+    description: 'Send an email to a task participant via Primitive. Continuity threads it and records it as an event. Declare the intent honestly: "commit" for anything that accepts, confirms or places an order or approves payment. Hard limits refuse the send (non-participants, credentials, a commitment while a requirement fails, a send decided on an outdated context — fetch context again). Commitments, payment/bank details and gray areas are HELD for a human approver: the reply says held with an approval id; stop and wait for the human.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -63,10 +63,68 @@ const TOOLS = [
         to: { type: 'string' },
         body: { type: 'string' },
         subject: { type: 'string' },
+        intent: { type: 'string', enum: ['inform', 'ask', 'negotiate', 'commit'], description: 'what the email does; an email not declared "commit" that reads as a commitment is refused or held' },
         based_on_version: { type: 'number', description: 'state_version of the context you decided on (defaults to the last context this session read)' },
       },
       required: ['task', 'agent_id', 'to', 'body'],
     },
+  },
+  {
+    name: 'continuity_list_approvals',
+    description: 'Decisions held for a human: commitments the agent drafted, payment/bank details, gray areas, and payment-detail changes from email awaiting verification. Each comes with a readable card (why, situation, requirements with sources, the draft, options, a recommendation).',
+    inputSchema: { type: 'object', properties: { task: { type: 'string', description: 'task id or alias; omit for every task' }, all: { type: 'boolean', description: 'include decided ones' } } },
+  },
+  {
+    name: 'continuity_decide_approval',
+    description: 'A HUMAN approver\'s decision on a held card (needs a token with the approve scope; agents never hold it). Options for a send: approve, approve_with_edits (edited_body), reject_with_reply (reply_body), reject, hold_verify, take_over. For a verification: verified, reject, hold_verify, take_over. Refused if the card expired or the deal changed since it was made (a fresh card is issued).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        task: { type: 'string' },
+        approval_id: { type: 'string' },
+        option: { type: 'string', enum: ['approve', 'approve_with_edits', 'reject_with_reply', 'reject', 'hold_verify', 'verified', 'take_over'] },
+        by: { type: 'string', description: 'who decided (logged)' },
+        note: { type: 'string' },
+        edited_body: { type: 'string' },
+        reply_body: { type: 'string' },
+      },
+      required: ['task', 'approval_id', 'option'],
+    },
+  },
+  {
+    name: 'continuity_history',
+    description: "A task's typed timeline: offers, counters, appraisals, date changes, commitments, conflicts — each with its source email id.",
+    inputSchema: { type: 'object', properties: { task: { type: 'string' }, types: { type: 'string', description: 'optional comma-separated event types to keep, e.g. counter_offer,closing_set' } }, required: ['task'] },
+  },
+  {
+    name: 'continuity_state_at',
+    description: "A task's terms as they stood at a moment (an ISO time, or a timeline seq).",
+    inputSchema: { type: 'object', properties: { task: { type: 'string' }, at: { type: 'string' } }, required: ['task', 'at'] },
+  },
+  {
+    name: 'continuity_signals',
+    description: 'Open alerts across all tasks you can see (failing requirements, contradictions, overdue promises, approaching deadlines, quarantined injections, stalled tasks), with evidence ids.',
+    inputSchema: { type: 'object', properties: { task: { type: 'string', description: 'optional: one task only' } } },
+  },
+  {
+    name: 'continuity_list_deals',
+    description: 'Every task at once: outcome (accepted | fell_through | open), who acts next and why, failing checks, open alerts.',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'continuity_query',
+    description: 'One read-only SQL SELECT across all tasks (tables: deals, deal_events, deal_terms, deal_checks, deal_obligations, signals; columns via GET /query/schema or SELECT name, sql FROM sqlite_master). Max 500 rows.',
+    inputSchema: { type: 'object', properties: { sql: { type: 'string' } }, required: ['sql'] },
+  },
+  {
+    name: 'continuity_find_similar',
+    description: 'Tasks whose history began like this one, and how they ended (fell-through rate over the closest cohort).',
+    inputSchema: { type: 'object', properties: { task: { type: 'string' } }, required: ['task'] },
+  },
+  {
+    name: 'continuity_ask',
+    description: 'A plain-language question about the whole portfolio, answered with citations to tasks and source emails (needs ANTHROPIC_API_KEY on the server).',
+    inputSchema: { type: 'object', properties: { question: { type: 'string' } }, required: ['question'] },
   },
   {
     name: 'continuity_mark_seen',
@@ -84,7 +142,7 @@ async function apiGet(path: string) {
 }
 
 async function apiPost(path: string, body: unknown) {
-  const res = await fetch(`${API}${path}`, { method: 'POST', headers: authHeaders(), body: JSON.stringify(body) });
+  const res = await fetch(`${API}${path}`, { method: 'POST', headers: { ...authHeaders(), 'content-type': 'application/json' }, body: JSON.stringify(body) });
   const text = await res.text();
   if (!res.ok) throw new Error(text);
   return text;
@@ -121,9 +179,33 @@ async function callTool(name: string, args: Record<string, any>): Promise<string
       return (await apiGet(`/tasks/${task}/changes?since=${Number(args.since ?? 0)}`)).text;
     case 'continuity_send':
       return apiPost(`/tasks/${task}/send`, {
-        agent_id: args.agent_id, to: args.to, body: args.body, subject: args.subject,
+        agent_id: args.agent_id, to: args.to, body: args.body, subject: args.subject, intent: args.intent,
         based_on_version: args.based_on_version ?? lastVersion.get(versionKey) ?? null,
       });
+    case 'continuity_list_approvals': {
+      const path = args.task ? `/tasks/${task}/approvals` : '/approvals';
+      const list = JSON.parse((await apiGet(`${path}${args.all ? '?all=1' : ''}`)).text) as { id: string; task_id: string; status: string; text: string }[];
+      // the plain-text cards read best; ids and status stay machine-readable
+      return list.length ? list.map((a) => `[${a.task_id} ${a.id} ${a.status}]\n${a.text}`).join('\n\n---\n\n') : 'No approvals waiting.';
+    }
+    case 'continuity_decide_approval':
+      return apiPost(`/tasks/${task}/approvals/${encodeURIComponent(args.approval_id)}/decide`, {
+        option: args.option, by: args.by, note: args.note, edited_body: args.edited_body, reply_body: args.reply_body,
+      });
+    case 'continuity_history':
+      return (await apiGet(`/tasks/${task}/history${args.types ? `?type=${encodeURIComponent(args.types)}` : ''}`)).text;
+    case 'continuity_state_at':
+      return (await apiGet(`/tasks/${task}/state-at?at=${encodeURIComponent(args.at ?? '')}`)).text;
+    case 'continuity_signals':
+      return (await apiGet(`/signals${args.task ? `?task=${task}` : ''}`)).text;
+    case 'continuity_list_deals':
+      return (await apiGet('/deals')).text;
+    case 'continuity_query':
+      return apiPost('/query', { sql: args.sql });
+    case 'continuity_find_similar':
+      return (await apiGet(`/tasks/${task}/similar`)).text;
+    case 'continuity_ask':
+      return apiPost('/ask', { question: args.question });
     case 'continuity_mark_seen': {
       // asking for changes after a huge seq returns nothing but still reports the current version
       const current = JSON.parse((await apiGet(`/tasks/${task}/changes?since=999999999`)).text).state_version;

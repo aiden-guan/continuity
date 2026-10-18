@@ -127,7 +127,7 @@ async function llmDecideRaw(system: string, content: string): Promise<Decision> 
   const { anthropicClient } = await import('../src/anthropic.ts');
   const client = anthropicClient();
   const request = {
-    model: process.env.CONTINUITY_AGENT_MODEL || 'claude-opus-5-5',
+    model: process.env.CONTINUITY_AGENT_MODEL || 'claude-haiku-5-5',
     max_tokens: 16000,
     system,
     messages: [{ role: 'user', content: `${content}\n\nWhat do you do next? Respond with the JSON decision.` }],

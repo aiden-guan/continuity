@@ -1,7 +1,7 @@
 // The mail-delivery boundary. Delivery always belongs to Primitive, never to Continuity; locally a
 // simulator takes its place, and every outcome records which of the two produced it.
 import { createPrimitiveClient } from '@primitivedotdev/sdk';
-import { getSentEmail } from '@primitivedotdev/sdk/api';
+import { getEmail, getSentEmail } from '@primitivedotdev/sdk/api';
 import type { StoredEvent } from '../types.ts';
 import { SimMailbox } from '../sim/mailbox.ts';
 import { nowIso } from '../clock.ts';
@@ -28,7 +28,9 @@ export interface SendOutcome {
 export interface Transport {
   mode: 'primitive' | 'local-sim';
   send(req: SendRequest, idempotencyKey: string): Promise<SendOutcome>;
-  fetchAttachment(event: StoredEvent, partIndex: number): Promise<Buffer | null>;
+  fetchAttachment(event: StoredEvent, partIndex: number, signal?: AbortSignal): Promise<Buffer | null>;
+  /** The email as Primitive stores it (REST EmailDetail), fetched with our own key; null if unknown. */
+  fetchEmailDetail?(id: string): Promise<Record<string, unknown> | null>;
   /** Primitive Memories (live transport only): durable string-keyed checkpoints. */
   memory?: { get(key: string): Promise<unknown>; set(key: string, value: unknown): Promise<void> };
 }
@@ -69,6 +71,10 @@ export class LocalSimTransport implements Transport {
 
   // the simulator carries attachment bytes inline in the webhook payload, so there is nothing to fetch
   async fetchAttachment() { return null; }
+
+  /** Stands in for Primitive's GET /emails/{id}: tests and the simulator put EmailDetail records here. */
+  details = new Map<string, Record<string, unknown>>();
+  async fetchEmailDetail(id: string) { return this.details.get(id) ?? null; }
 }
 
 /** Retryable statuses among the 4xx range; any other 4xx is treated as a permanent refusal. */
@@ -120,10 +126,15 @@ export class PrimitiveTransport implements Transport {
     return { mode: 'primitive', primitive_email_id: result.id, message_id, thread_id, status: String(result.status), replayed: result.idempotentReplay };
   }
 
-  async fetchAttachment(event: StoredEvent, partIndex: number): Promise<Buffer | null> {
+  async fetchAttachment(event: StoredEvent, partIndex: number, signal?: AbortSignal): Promise<Buffer | null> {
     if (!event.primitive_email_id) return null;
-    const download = await this.client.downloadEmailAttachmentPart(event.primitive_email_id, partIndex);
+    const download = await this.client.downloadEmailAttachmentPart(event.primitive_email_id, partIndex, { signal });
     return Buffer.from(download.bytes);
+  }
+
+  async fetchEmailDetail(id: string): Promise<Record<string, unknown> | null> {
+    const r = await getEmail({ client: this.client.client, path: { id }, signal: AbortSignal.timeout(30_000) });
+    return (r.data as { data?: Record<string, unknown> } | undefined)?.data ?? null;
   }
 
   memory = {

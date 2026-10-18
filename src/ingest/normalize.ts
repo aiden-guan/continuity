@@ -3,6 +3,8 @@
 // Threading comes from protocol metadata (thread_id, Message-ID, In-Reply-To, References),
 // never from an LLM.
 import type { AttachmentMeta, EventInput } from '../types.ts';
+import { resolveEventTimes } from './maildate.ts';
+import { detailAsEvent, senderAuthOf } from './sender-auth.ts';
 
 /** `"Name" <a@b.com>` → `a@b.com` (lowercased); a bare address passes through. */
 function bareAddress(v: string | null | undefined): string {
@@ -40,6 +42,9 @@ export function fromPrimitiveWebhook(evt: Record<string, any>): EventInput {
     // them via GET /emails/{id}/attachments/{part_index} instead (see transport/primitive.ts).
     content_base64: a.content_base64,
   }));
+  const times = resolveEventTimes(headers.date ?? null, email.received_at);
+  // identity comes from the From header only — never the SMTP envelope sender, which the sender controls
+  const from = bareAddress(headers.from);
   return {
     source: email.id?.startsWith?.('sim_') ? 'local-sim' : 'primitive',
     dedupe_key: `primitive:email:${email.id ?? evt.id}`,
@@ -51,15 +56,16 @@ export function fromPrimitiveWebhook(evt: Record<string, any>): EventInput {
     in_reply_to: asList(parsed.in_reply_to)[0] ?? null,
     references: asList(parsed.references),
     direction: 'inbound',
-    from: bareAddress(headers.from) || bareAddress(email.smtp?.mail_from),
+    from,
     from_name: displayName(headers.from),
     to: toAddrs.length ? toAddrs : asList(email.smtp?.rcpt_to).map((a) => a.toLowerCase()),
     cc: lowerAddresses(parsed.cc),
     subject: headers.subject ?? '',
     body_text: parsed.body_text ?? '',
-    occurred_at: headers.date ? new Date(headers.date).toISOString() : email.received_at,
-    received_at: email.received_at ?? new Date().toISOString(),
-    auth_verdict: email.analysis?.sender?.authenticated === true ? 'authenticated' : email.auth?.dmarc ?? null,
+    occurred_at: times.occurred_at,
+    received_at: times.received_at,
+    time_flags: times.time_flags,
+    auth_verdict: JSON.stringify(senderAuthOf(evt, from)),
     attachments,
     raw: withoutBulk(evt),
   };
@@ -68,6 +74,9 @@ export function fromPrimitiveWebhook(evt: Record<string, any>): EventInput {
 /** REST `GET /v1/emails/{id}` EmailDetail (used by the long-poll receiver in live mode). */
 export function fromPrimitiveEmailDetail(d: Record<string, any>): EventInput {
   const parsed = d.parsed ?? {};
+  // EmailDetail has no Date header field: occurred_at is Primitive's receipt time
+  const times = resolveEventTimes(undefined, d.received_at ?? d.created_at);
+  const from = bareAddress(d.from_header) || String(d.from_email ?? '').toLowerCase();
   return {
     source: 'primitive',
     dedupe_key: `primitive:email:${d.id}`,
@@ -78,15 +87,16 @@ export function fromPrimitiveEmailDetail(d: Record<string, any>): EventInput {
     in_reply_to: asList(parsed.in_reply_to)[0] ?? null,
     references: asList(parsed.references),
     direction: 'inbound',
-    from: (d.from_email ?? bareAddress(d.from_header) ?? d.sender ?? '').toLowerCase(),
+    from,
     from_name: displayName(d.from_header),
     to: [String(d.to_email ?? d.recipient ?? '').toLowerCase()],
     cc: lowerAddresses(parsed.cc),
     subject: d.subject ?? '',
     body_text: d.body_text ?? parsed.body_text ?? '',
-    occurred_at: d.received_at ?? d.created_at,
-    received_at: d.received_at ?? d.created_at,
-    auth_verdict: d.auth?.dmarc ?? null,
+    occurred_at: times.occurred_at,
+    received_at: times.received_at,
+    time_flags: times.time_flags,
+    auth_verdict: JSON.stringify(senderAuthOf(detailAsEvent(d), from)),
     attachments: (parsed.attachments ?? []).map((a: any) => ({
       filename: a.filename,
       content_type: a.content_type,

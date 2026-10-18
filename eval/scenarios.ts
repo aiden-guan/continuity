@@ -5,6 +5,8 @@
 //     (used to grade the offline policy agent and, optionally, LLM agents).
 import { Harness, runCanonicalScenario } from '../src/sim/harness.ts';
 import { bindingPhrases } from '../src/engine/guard.ts';
+import { applyVerifiedClaim } from '../src/approvals.ts';
+import { openApprovals, recordDecision } from '../src/engine/approval-log.ts';
 import { counterparty, defaultAddresses, procurementTask, quoteV1 } from '../src/sim/scenario.ts';
 import type { SimEmail } from '../src/sim/scenario.ts';
 
@@ -48,6 +50,19 @@ const scheduleIsSplit = (h: Harness) => sameJson(h.active('delivery.schedule')[0
 const deadlineFails = (h: Harness) => h.checks().some((c) => c.id.startsWith('delivery_deadline') && c.status === 'fail');
 const priceIs1140 = (h: Harness) => h.active('price.unit')[0]?.value === 11.4;
 const hasTransition = (h: Harness, type: string) => h.store.transitionsForTask(h.task.id).some((t) => t.type === type);
+
+/** The human step: an approver verifies a held money detail by phone and decides its card "verified". */
+async function verifyHeld(h: Harness, key: string, value: unknown, at: string) {
+  const held = h.claims(key).find((c) => c.status === 'proposed' && sameJson(c.value, value));
+  if (!held) return;
+  const snap = await h.backend.loadTask(h.org, h.task.id);
+  await h.backend.commit(snap, (s) => {
+    const card = openApprovals(s, h.task.id, at).find((a) => a.claim_id === held.id);
+    applyVerifiedClaim(s, h.task, held.id, 'approver:eval', at);
+    if (card) recordDecision(s, h.task.id, at, { approval_id: card.id, status: 'verified', option: 'verified', by: 'approver:eval' }, `approver:eval decided ${card.id}: verified by phone`);
+  });
+  await h.refresh();
+}
 
 // Rubric for "push back on the delivery conflict with the supplier".
 const RAISE_DELIVERY: Rubric = {
@@ -229,7 +244,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: 'stale-artifact',
     category: 'stale artifacts',
-    description: 'An email changes one quote term (payment Net 30 → Net 45); the quote stays the source for price and delivery.',
+    description: 'An email changes one quote term (payment Net 30 → Net 45); payment terms are a money detail, so the change is held until a human verifies it, then the quote stays the source for price and delivery.',
     build: async (h) => {
       const rfq = await h.out(A.supplier, 'RFQ — PO-4817', RFQ_SHORT, '2026-10-19T09:00:00Z');
       const offer = await h.in(counterparty.supplierOffer(A, { messageId: rfq.messageId, subject: rfq.subject }));
@@ -240,9 +255,12 @@ export const SCENARIOS: Scenario[] = [
         at: '2026-10-19T16:00:00Z',
         inReplyTo: offer.messageId,
       }));
+      // held: not applied from email alone; a human confirms it by phone (the verification card), then it applies
+      await verifyHeld(h, 'payment.terms', 'Net 45', '2026-10-19T17:00:00Z');
     },
     assertions: [
-      ['payment terms now Net 45', (h) => h.active('payment.terms')[0]?.value === 'Net 45'],
+      ['the Net 45 change was held for a human first', (h) => hasTransition(h, 'claim_held_for_verification')],
+      ['payment terms now Net 45 (after verification)', (h) => h.active('payment.terms')[0]?.value === 'Net 45'],
       ['quote partially stale — exactly payment.terms', (h) => {
         const doc = h.context().documents[0];
         return doc.status === 'partially_stale' && sameJson(doc.stale_terms.map((t) => t.term), ['payment.terms']);

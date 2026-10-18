@@ -9,9 +9,12 @@
 //  - When two different parties disagree on a term, both claims become "contested"; neither wins,
 //    and one side revising does not settle it while the other still disagrees.
 //  - Hedged, low-confidence, or non-authoritative claims are kept as "proposed" and change nothing.
-//  - Evidence older than the current claim is recorded but never overwrites it; evidence older than the
-//    speaker's retraction (or offer withdrawal) never revives the term, and a late retraction or
-//    withdrawal never reaches over a value given after it.
+//  - A forwarded copy of older evidence is recorded but never overwrites the current claim; any other
+//    message wins by arrival order (its Date header is the sender's claim), with a date_skew flag.
+//    Likewise a forward older than the speaker's retraction (or offer withdrawal) never revives the
+//    term, and a forwarded retraction or withdrawal never reaches over a value given after it.
+//  - Authority needs an authenticated sender: an unproven sender's claims stay tentative, and it
+//    cannot close obligations or replace documents. Inbound mail "from us" carries no authority.
 //  - Withdrawing an offer keeps its history but retracts its terms (so checks fail).
 //  - A compound question becomes one obligation per issue; each closes only when its debtor
 //    actually answers that issue's term.
@@ -27,8 +30,14 @@ import type { Proposal } from '../extract/types.ts';
 import { domainFor, sameValue, termKeys, termOf, type DomainPack } from '../domain/pack.ts';
 import '../domain/index.ts';
 import { findDates } from '../extract/dates.ts';
+import { parseSenderAuth, senderAuthMode } from '../ingest/sender-auth.ts';
 
 export const MIN_CONFIDENCE = 0.6;
+
+// Only a forward can legitimately carry older evidence that arrives after newer evidence.
+const FWD_SUBJECT = /^\s*(?:fwd?|fw)\s*:/i;
+const FWD_BODY = /^-{3,}\s*(?:forwarded message|original message)\s*-{3,}|^begin forwarded message:/im;
+export const isForward = (e: Pick<StoredEvent, 'subject' | 'body_text'>) => FWD_SUBJECT.test(e.subject) || FWD_BODY.test(e.body_text);
 
 /** Deadline phrases ("by tomorrow", "before Oct 22") yield a date; a bare date mention is not a deadline. */
 export function dueFromText(text: string, refIso: string): string | null {
@@ -128,6 +137,13 @@ export function applyProposal(inp: ApplyInput) {
   const who = labelOf(task, speaker);
   const whoParty = partyOf(task, speaker);
   const nameOf = (address: string) => labelOf(task, address);
+  // Authority needs proof of identity. Outbound events are our own sends, recorded by Continuity itself.
+  // Inbound mail must be authenticated, and inbound mail "from us" is never authoritative: our real
+  // sends are recorded as outbound, so an inbound copy is someone using our name (or a stray loop).
+  const auth = event.direction === 'outbound' ? null : parseSenderAuth(event.auth_verdict);
+  const verified = event.direction === 'outbound'
+    || (whoParty?.role !== 'self' && (auth?.status === 'pass' || senderAuthMode() === 'flag'));
+  const unverifiedWhy = whoParty?.role === 'self' ? 'inbound mail claiming to be from us' : `sender not authenticated (${auth?.reason ?? 'no auth data'})`;
 
   // ---- 0. instruction-like content is quarantined as data
   for (const flag of proposal.injection_flags) {
@@ -138,6 +154,7 @@ export function applyProposal(inp: ApplyInput) {
   // ---- 1. artifacts: a newer doc of the same kind from the same owner replaces the older one
   for (const incoming of inp.artifacts) {
     log('artifact_added', `${who} sent ${incoming.filename} (${incoming.kind}${incoming.version_label ? ` ${incoming.version_label}` : ''})`, incoming.id);
+    if (!verified) continue; // an unproven sender cannot retire the current document
     for (const earlier of store.artifactsForTask(task.id)) {
       if (earlier.id === incoming.id) continue;
       if (earlier.kind !== incoming.kind || earlier.owner !== incoming.owner) continue;
@@ -157,20 +174,34 @@ export function applyProposal(inp: ApplyInput) {
   const claimsInOrder = [...proposal.claims].sort((a, b) => Number(!!a.from_attachment) - Number(!!b.from_attachment));
   const lifecycleKeys = new Set(pack.terms.filter((t) => t.lifecycle).map((t) => t.key));
   let speakerMadeOffer = false;
+  let skewFlagged = false;
+  const forwarded = isForward(event);
+  const flagSkew = (than: string, thanAt: string) => {
+    if (skewFlagged) return;
+    skewFlagged = true;
+    store.addFlag(task.id, event.id, 'date_skew', `${who}'s Date header (${event.occurred_at}) precedes ${than} (${thanAt}), but it arrived later and is not a forward; applied in arrival order`, at);
+  };
 
   const occurredAt = (eventId: string | null) => (eventId ? store.getEvent(eventId)?.occurred_at ?? null : null);
   const newest = (times: (string | null)[]) => times.reduce<string | null>((max, t) => (t && (!max || t > max) ? t : max), null);
+  /** Did this source event come before this message? Only a forward is placed by its Date; anything else arrived after. */
+  const cameBefore = (sourceEventId: string) => !forwarded || (occurredAt(sourceEventId) ?? '') <= event.occurred_at;
   /** When a withdrawal was last said (a repeated withdrawal adds evidence to the same claim). */
   const withdrawnAt = (w: Claim) => newest(store.claimEvidence(w.id).map((e) => occurredAt(e.event_id)));
   /** When this speaker last ended a term: an explicit retraction of it or, for an offer term, withdrawing the offer. */
-  const endedAt = (key: string, kind: Claim['kind']): string | null => {
-    const retractions = store.transitionsForTask(task.id).filter((t) => t.type === 'claim_retracted'
-      && store.getEvent(t.event_id ?? '')?.from.toLowerCase() === speaker
-      && ((t.detail as { key?: string }).key ?? store.getClaim(t.subject_id ?? '')?.key) === key);
-    const withdrawals = kind === 'offer'
-      ? store.claimsForTask(task.id).filter((c) => c.speaker === speaker && lifecycleKeys.has(c.key) && c.status !== 'proposed')
-      : [];
-    return newest([...retractions.map((t) => occurredAt(t.event_id)), ...withdrawals.map(withdrawnAt)]);
+  const endedAt = (key: string, kind: Claim['kind']): { at: string; by: string } | null => {
+    const ends: { at: string | null; by: string }[] = store.transitionsForTask(task.id)
+      .filter((t) => t.type === 'claim_retracted' && t.event_id
+        && store.getEvent(t.event_id)?.from.toLowerCase() === speaker
+        && ((t.detail as { key?: string }).key ?? store.getClaim(t.subject_id ?? '')?.key) === key)
+      .map((t) => ({ at: occurredAt(t.event_id), by: t.event_id! }));
+    if (kind === 'offer') {
+      for (const w of store.claimsForTask(task.id)) {
+        if (w.speaker === speaker && lifecycleKeys.has(w.key) && w.status !== 'proposed') ends.push({ at: withdrawnAt(w), by: w.source_event_id });
+      }
+    }
+    const at = newest(ends.map((e) => e.at));
+    return at ? { at, by: ends.find((e) => e.at === at)!.by } : null;
   };
   /** Both sides of a same-group disagreement become contested; neither wins. */
   const contest = (claim: Claim, conflicting: Claim[], display: string) => {
@@ -214,11 +245,12 @@ export function applyProposal(inp: ApplyInput) {
     const isLifecycle = lifecycleKeys.has(pc.key);
 
     let authoritative = false;
-    if (whoParty) {
-      // our own decisions count, except on a term another participant decides (a ceiling we quote is not finance's approval)
+    if (whoParty && verified) {
+      // our own decisions count, except on a term someone on our side decides (a ceiling we quote is not finance's
+      // approval); a counterparty owning the same term (a price both sides negotiate) does not take it away from us
       if (whoParty.role === 'self') {
         authoritative = pc.kind === 'decision'
-          && !task.participants.some((p) => p !== whoParty && p.authority.some((prefix) => pc.key.startsWith(prefix)));
+          && !task.participants.some((p) => p.role === 'internal' && p.authority.some((prefix) => pc.key.startsWith(prefix)));
       }
       else if (isLifecycle) authoritative = whoParty.role === 'counterparty'; // any counterparty may withdraw its own offer
       else authoritative = whoParty.authority.some((prefix) => pc.key.startsWith(prefix));
@@ -227,7 +259,8 @@ export function applyProposal(inp: ApplyInput) {
     // 2a. tentative: hedged, low confidence, or not this speaker's term to set
     if (pc.hedged || confidence < MIN_CONFIDENCE || !authoritative) {
       let reason: string;
-      if (!authoritative) reason = `${who} is not authoritative for ${pc.key}`;
+      if (!verified) reason = unverifiedWhy;
+      else if (!authoritative) reason = `${who} is not authoritative for ${pc.key}`;
       else if (pc.hedged) reason = 'hedged language';
       else reason = `low confidence (${confidence})`;
       const tentative = store.insertClaim({ ...base, status: 'proposed', supersede_reason: reason });
@@ -244,21 +277,20 @@ export function applyProposal(inp: ApplyInput) {
         answeredKeys.add(pc.key);
         continue;
       }
-      // a withdrawal that arrives late reaches back only over what was offered or promised before it,
+      // a forwarded withdrawal reaches back only over what was offered or promised before it,
       // and if the speaker has offered since, it is already undone
-      const before = (sourceEventId: string) => (occurredAt(sourceEventId) ?? '') <= event.occurred_at;
       const ownOffers = liveClaims().filter((x) => x.speaker === speaker && x.kind === 'offer' && !lifecycleKeys.has(x.key));
-      const offeredSince = ownOffers.find((x) => !before(x.source_event_id));
+      const offeredSince = ownOffers.find((x) => !cameBefore(x.source_event_id));
       const withdrawal = offeredSince
         ? store.insertClaim({ ...base, status: 'superseded', supersede_reason: `older than ${who}'s offer in ${offeredSince.source_event_id} (evidence arrived late)` })
         : store.insertClaim({ ...base, status: 'active' });
       attachEvidence(withdrawal.id);
       const retracted: string[] = [];
-      for (const term of ownOffers.filter((x) => before(x.source_event_id))) {
+      for (const term of ownOffers.filter((x) => cameBefore(x.source_event_id))) {
         store.updateClaim(term.id, { status: 'retracted', supersede_reason: `offer withdrawn by ${who} in ${event.id}` });
         retracted.push(`${term.key} (${term.display})`);
       }
-      const promises = store.obligationsForTask(task.id).filter((x) => isOpen(x) && x.debtor === speaker && x.kind === 'commitment' && before(x.source_event_id));
+      const promises = store.obligationsForTask(task.id).filter((x) => isOpen(x) && x.debtor === speaker && x.kind === 'commitment' && cameBefore(x.source_event_id));
       for (const ob of promises) {
         store.updateObligation(ob.id, { status: 'cancelled', resolved_by_event_id: event.id, resolved_at: at, resolution_note: `${who} withdrew its offer` });
         log('obligation_resolved', `${who}'s commitment "${ob.text}" → cancelled (offer withdrawn)`, ob.id, { status: 'cancelled' });
@@ -270,6 +302,21 @@ export function applyProposal(inp: ApplyInput) {
       continue;
     }
 
+    // 2a''. money / identity details (wire or bank details, payment terms): never applied from email alone —
+    // held until a human verifies them out of band (an approval card); a repeat of the current value just corroborates
+    const sensitivity = event.direction === 'inbound' && pc.mode !== 'retraction' ? termOf(pack, pc.key)?.sensitive : undefined;
+    if (sensitivity) {
+      const current = liveClaims().find((c) => c.key === pc.key && c.speaker === speaker);
+      const changed = !current || !sameValue(current.value, value);
+      if (changed && (sensitivity === 'always' || current)) {
+        const held = store.insertClaim({ ...base, status: 'proposed', supersede_reason: `held for human verification: ${pc.key} is a payment/identity detail and is never applied from email alone` });
+        attachEvidence(held.id);
+        const what = current ? `changed ${pc.key} (${current.display} → ${display})` : `new ${pc.key} (${display})`;
+        log('claim_held_for_verification', `${who}'s ${what} is held until a human verifies it`, held.id, { previous: current?.display ?? null });
+        continue;
+      }
+    }
+
     if (pc.kind === 'offer') speakerMadeOffer = true;
 
     const onKey = liveClaims().filter((c) => c.key === pc.key);
@@ -277,17 +324,19 @@ export function applyProposal(inp: ApplyInput) {
     const peers = onKey.filter((c) => c.speaker !== speaker && groupOf(task, c.speaker) === groupOf(task, speaker));
 
     if (pc.mode === 'retraction') {
-      // a retraction that arrives late does not reach back over a value the speaker gave after it
-      const retractable = own.filter((c) => (occurredAt(c.source_event_id) ?? '') <= event.occurred_at);
+      // a forwarded retraction does not reach back over a value the speaker gave after it
+      const retractable = own.filter((c) => cameBefore(c.source_event_id));
       for (const old of retractable) {
         store.updateClaim(old.id, { status: 'retracted', supersede_reason: `retracted by ${who} in ${event.id}` });
         log('claim_retracted', `${who} withdrew ${pc.key} (${old.display})`, old.id, { key: pc.key });
       }
-      // logged even when nothing was retracted, so older evidence arriving later cannot revive the term
+      // logged even when nothing was retracted, so an older forward arriving later cannot revive the term
       if (!retractable.length) {
         const note = own.length ? 'older than the current value, which is kept' : 'nothing current to withdraw';
         log('claim_retracted', `${who} withdrew ${pc.key} (${note})`, null, { key: pc.key });
       }
+      const newerOwn = own.find((c) => (occurredAt(c.source_event_id) ?? '') > event.occurred_at);
+      if (!forwarded && newerOwn) flagSkew(newerOwn.source_event_id, occurredAt(newerOwn.source_event_id)!);
       answeredKeys.add(pc.key);
       continue;
     }
@@ -303,12 +352,17 @@ export function applyProposal(inp: ApplyInput) {
     if (own.length) {
       const latest = own[own.length - 1];
       const latestEvent = store.getEvent(latest.source_event_id)!;
-      if (event.occurred_at < latestEvent.occurred_at) {
+      // a forward older than the current claim is stale, and so is one older than the speaker's retraction of the
+      // term: whatever is current now was applied after that retraction, even if its own Date header says otherwise
+      const endedLater = forwarded ? endedAt(pc.key, pc.kind) : null;
+      if (forwarded && (event.occurred_at < latestEvent.occurred_at || (endedLater && event.occurred_at < endedLater.at))) {
         const late = store.insertClaim({ ...base, status: 'superseded', superseded_by: latest.id, supersede_reason: `older than current claim ${latest.id} (evidence arrived late)` });
         attachEvidence(late.id);
         log('stale_evidence', `Older ${pc.key} from ${who} (${display}) arrived late; current value ${latest.display} kept`, late.id);
         continue;
       }
+      // the Date header is sender-controlled and clocks drift: a non-forward that arrived later wins by arrival order
+      if (event.occurred_at < latestEvent.occurred_at) flagSkew(latestEvent.id, latestEvent.occurred_at);
       // revising does not settle a disagreement: a peer that still says something else keeps it contested
       const stillDisputed = peers.filter((c) => !sameValue(c.value, value));
       const revised = store.insertClaim({ ...base, status: stillDisputed.length ? 'contested' : 'active' });
@@ -324,13 +378,16 @@ export function applyProposal(inp: ApplyInput) {
       continue;
     }
 
-    // 2b'. older than this speaker's own retraction of the term (or withdrawal of its offer): history only
+    // 2b'. a forward older than this speaker's own retraction of the term (or withdrawal of its offer): history only
     const ended = endedAt(pc.key, pc.kind);
-    if (ended && event.occurred_at < ended) {
-      const late = store.insertClaim({ ...base, status: 'retracted', supersede_reason: `retracted: older than ${who}'s withdrawal of ${pc.key} (evidence arrived late)` });
-      attachEvidence(late.id);
-      log('stale_evidence', `Older ${pc.key} from ${who} (${display}) arrived late; ${who} has since withdrawn it`, late.id);
-      continue;
+    if (ended && event.occurred_at < ended.at) {
+      if (forwarded) {
+        const late = store.insertClaim({ ...base, status: 'retracted', supersede_reason: `retracted: older than ${who}'s withdrawal of ${pc.key} in ${ended.by} (evidence arrived late)` });
+        attachEvidence(late.id);
+        log('stale_evidence', `Older ${pc.key} from ${who} (${display}) arrived late; ${who} has since withdrawn it`, late.id);
+        continue;
+      }
+      flagSkew(ended.by, ended.at);
     }
 
     // 2c. another party in the same group says something different: keep both, contested
@@ -347,11 +404,11 @@ export function applyProposal(inp: ApplyInput) {
     }
   }
 
-  // a fresh offer after a withdrawal makes the speaker available again (the withdrawal stays in history);
-  // an older offer that arrives late does not undo a newer withdrawal
+  // a fresh offer after a withdrawal makes the speaker available again (the withdrawal stays in history)
   if (speakerMadeOffer) {
+    // a forwarded older offer does not undo a newer withdrawal
     const priorWithdrawals = liveClaims().filter((c) => c.speaker === speaker && lifecycleKeys.has(c.key) && c.source_event_id !== event.id
-      && (withdrawnAt(c) ?? '') <= event.occurred_at);
+      && (!forwarded || (withdrawnAt(c) ?? '') <= event.occurred_at));
     for (const w of priorWithdrawals) {
       store.updateClaim(w.id, { status: 'superseded', supersede_reason: `new offer from ${who} in ${event.id}` });
       log('offer_reinstated', `${who} made a new offer after withdrawing (${w.source_event_id}); only the new terms are current`, w.id);
@@ -447,8 +504,11 @@ export function applyProposal(inp: ApplyInput) {
   };
   const doneStatus = (o: Obligation): Obligation['status'] => (o.kind === 'commitment' ? 'fulfilled' : 'answered');
 
+  // an unproven sender can open obligations (we see what they ask) but cannot close or trigger anyone's
+  const closable = () => (verified ? openNow() : []);
+
   // 4a. conditions: "pay on invoice" becomes due once the creditor's invoice arrives
-  for (const o of openNow()) {
+  for (const o of closable()) {
     if (!o.condition || o.condition_met_at || o.condition.kind !== 'artifact') continue;
     const wantedKind = o.condition.artifact_kind;
     const trigger = inp.artifacts.find((x) => x.kind === wantedKind && x.owner.toLowerCase() === o.creditor);
@@ -458,7 +518,7 @@ export function applyProposal(inp: ApplyInput) {
   }
 
   // 4b. delivered quantities: partial or full fulfilment of quantity-bearing commitments
-  for (const f of proposal.fulfillments ?? []) {
+  for (const f of verified ? proposal.fulfillments ?? [] : []) {
     if (f.confidence < MIN_CONFIDENCE || !f.quantity || f.quantity <= 0) continue;
     const named = f.obligation_id ? store.getObligation(f.obligation_id) : null;
     const namedUsable = named && named.task_id === task.id && isOpen(named) && named.debtor === speaker && named.quantity != null ? named : null;
@@ -486,7 +546,7 @@ export function applyProposal(inp: ApplyInput) {
   }
 
   // 4c. questions/requests close on claims about their issue; document promises on a matching document
-  for (const o of openNow()) {
+  for (const o of closable()) {
     if (openedHere.has(o.id)) continue;
     if (o.debtor !== speaker) continue;
     if (o.expects_artifact) {
@@ -506,7 +566,7 @@ export function applyProposal(inp: ApplyInput) {
     }
   }
 
-  for (const r of proposal.resolutions) {
+  for (const r of verified ? proposal.resolutions : []) {
     const o = store.getObligation(r.obligation_id);
     if (!o || o.task_id !== task.id || !isOpen(o) || r.confidence < 0.7) continue;
     if (r.resolution === 'cancelled' && o.creditor === speaker) {

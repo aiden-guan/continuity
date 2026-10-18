@@ -7,7 +7,7 @@ import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { MemoryStore, COMMIT_COUNTERS, type Delta } from './state.ts';
 import type {
-  ActionRow, Backend, BlobIn, BlobRef, CommitOptions, CommitResult, JobInput, JobOutcome, JobRow, LinkLookup, Principal, ReceiveResult, TaskSnapshot,
+  ActionRow, Backend, BlobIn, BlobRef, CommitOptions, CommitResult, JobInput, JobOutcome, JobRow, LinkLookup, Principal, ReceiveResult, SignalRow, TaskSnapshot,
 } from './backend.ts';
 import type { Artifact, Claim, EventInput, Obligation, StoredEvent, TaskSpec } from '../types.ts';
 import { stripAttachmentBytes } from './rows.ts';
@@ -73,6 +73,10 @@ CREATE TABLE IF NOT EXISTS attachment_blobs (
   primitive_email_id TEXT, bytes BLOB NOT NULL, PRIMARY KEY (event_id, part_index)
 );
 CREATE TABLE IF NOT EXISTS principals (token_hash TEXT PRIMARY KEY, json TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS signals (
+  key TEXT PRIMARY KEY, task_id TEXT NOT NULL, rule TEXT NOT NULL, severity TEXT NOT NULL, summary TEXT NOT NULL,
+  detail_json TEXT NOT NULL, first_seen TEXT NOT NULL, last_seen TEXT NOT NULL, resolved_at TEXT
+);
 `;
 
 /** Columns added since the first version; each is tried and skipped when already present. */
@@ -84,6 +88,7 @@ const ADDED_COLUMNS = [
   'ALTER TABLE extractions ADD COLUMN version INTEGER',
   'ALTER TABLE tasks ADD COLUMN state_version INTEGER',
   'ALTER TABLE agent_runs ADD COLUMN ext_json TEXT',
+  'ALTER TABLE events ADD COLUMN time_flags_json TEXT',
 ];
 
 /** Obligation fields kept together in ext_json. */
@@ -248,12 +253,13 @@ export class SqliteBackend implements Backend {
       const e = stripAttachmentBytes(input);
       this.#q(`INSERT INTO events(id, seq, dedupe_key, task_id, link_reason, source, direction, primitive_event_id, primitive_email_id,
         reply_to_sent_email_id, thread_id, message_id, in_reply_to, references_json, from_addr, from_name, to_json, cc_json, subject,
-        body_text, occurred_at, received_at, auth_verdict, attachments_json, raw_json, processing_status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+        body_text, occurred_at, received_at, auth_verdict, attachments_json, raw_json, processing_status, time_flags_json)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
         eventId, seq, e.dedupe_key, target?.task_id ?? null, target?.reason ?? null, e.source, e.direction, e.primitive_event_id ?? null,
         e.primitive_email_id ?? null, e.reply_to_sent_email_id ?? null, e.thread_id, e.message_id, e.in_reply_to, toJson(e.references),
         e.from, e.from_name ?? null, toJson(e.to), toJson(e.cc), e.subject, e.body_text, e.occurred_at, e.received_at,
         e.auth_verdict ?? null, toJson(e.attachments), input.raw === undefined ? null : toJson(input.raw), target ? 'received' : 'unlinked',
+        e.time_flags?.length ? toJson(e.time_flags) : null,
       );
       if (target && e.thread_id) this.#mapThread(e.thread_id, target.task_id, `${eventId}: ${target.reason}`);
       for (const b of blobs) this.#putBlob({ ...b, event_id: eventId });
@@ -601,6 +607,26 @@ export class SqliteBackend implements Backend {
     });
   }
 
+  // ------------------------------------------------------------------ remembered Signal alerts
+
+  async listSignals(org: string, opts: { includeResolved?: boolean } = {}) {
+    this.#checkOrg(org);
+    const where = opts.includeResolved ? '' : 'WHERE resolved_at IS NULL';
+    return (this.#q(`SELECT * FROM signals ${where} ORDER BY first_seen, key`).all() as Row[]).map((r) => {
+      const { detail_json, ...columns } = r;
+      return { ...(columns as unknown as SignalRow), detail: fromJson(detail_json, { evidence: [] }) };
+    });
+  }
+  async saveSignals(org: string, rows: SignalRow[]) {
+    this.#checkOrg(org);
+    this.#tx(() => {
+      for (const s of rows) {
+        this.#q(`INSERT OR REPLACE INTO signals(key, task_id, rule, severity, summary, detail_json, first_seen, last_seen, resolved_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(s.key, s.task_id, s.rule, s.severity, s.summary, toJson(s.detail), s.first_seen, s.last_seen, s.resolved_at);
+      }
+    });
+  }
+
   // ------------------------------------------------------------------ blobs and principals
 
   #putBlob(b: BlobIn) {
@@ -638,6 +664,7 @@ export function rowToEvent(r: Row): StoredEvent {
     from: String(r.from_addr), from_name: str(r.from_name), to: fromJson(r.to_json, []), cc: fromJson(r.cc_json, []),
     subject: String(r.subject), body_text: String(r.body_text), occurred_at: String(r.occurred_at), received_at: String(r.received_at),
     auth_verdict: str(r.auth_verdict), attachments: fromJson(r.attachments_json, []),
+    ...(r.time_flags_json ? { time_flags: fromJson(r.time_flags_json, []) } : {}),
   };
 }
 

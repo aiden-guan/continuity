@@ -63,7 +63,7 @@ after(async () => {
 async function call(method: string, path: string, token: string | null, body?: unknown) {
   const res = await fetch(`${baseUrl}${path}`, {
     method,
-    headers: token ? { authorization: `Bearer ${token}` } : {},
+    headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...(body === undefined ? {} : { 'content-type': 'application/json' }) },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const raw = await res.text();
