@@ -11,7 +11,8 @@
 //
 // Every message in this story is real Primitive mail. Supplier and finance are scripted counterparties
 // that reply in-thread from their own inboxes; the agents are separate processes that only ever see
-// Continuity's compiled state. Agent A gets SIGKILLed halfway through.
+// Continuity's compiled state. Agent A gets SIGKILLed halfway through. Agent C's acceptance commits us,
+// so it is held for a human: the script then approves it with a separate approver token, as a named person.
 import { spawn, type ChildProcess } from 'node:child_process';
 import { rmSync } from 'node:fs';
 import { createInterface } from 'node:readline';
@@ -20,7 +21,7 @@ import { createPrimitiveClient, type ReplyInput } from '@primitivedotdev/sdk';
 import { getEmail } from '@primitivedotdev/sdk/api';
 import { counterparty, defaultAddresses, procurementTask, quoteV1, quoteV2 } from '../src/sim/scenario.ts';
 import { openBackend } from '../src/store/index.ts';
-import { mintToken } from '../src/auth.ts';
+import { APPROVER_SCOPES, mintToken } from '../src/auth.ts';
 
 const { values: flags } = parseArgs({
   options: {
@@ -112,13 +113,16 @@ function exitOf(child: ChildProcess) {
 const startAgent = (name: string, mode: '--watch' | '--once', color: string) =>
   start('src/agent/run.ts', ['--task', task.alias, '--agent', name, mode, '--mode', agentMode, '--api', API], `[${name}]`, color, { CONTINUITY_TOKEN: tokens[name] ?? '' });
 
-// live mode refuses an unauthenticated API: this script, the receiver and each agent get their own token
+// live mode refuses an unauthenticated API: this script, the receiver and each agent get their own token,
+// and the human approver gets one too (the operator token does not include `approve`)
 const tokens: Record<string, string> = {};
+const APPROVER = 'Sam (ops lead)';
 async function mintDemoTokens() {
   const org = process.env.CONTINUITY_ORG || 'org_local';
   const backend = await openBackend({ mode: 'sqlite', path: DB, explicit: 'demo:live' });
   tokens.operator = (await mintToken(backend, { org, kind: 'operator', label: 'demo:live script' })).token;
   tokens.ingest = (await mintToken(backend, { org, kind: 'ingest', label: 'demo:live receiver' })).token;
+  tokens.approver = (await mintToken(backend, { org, kind: 'operator', scopes: APPROVER_SCOPES, label: `demo:live approver ${APPROVER}` })).token;
   for (const name of ['agent-a', 'agent-b', 'agent-c']) {
     tokens[name] = (await mintToken(backend, { org, kind: 'agent', agent_id: name, task_ids: [task.id], label: `demo:live ${name}` })).token;
   }
@@ -126,9 +130,9 @@ async function mintDemoTokens() {
 }
 
 // ---- Continuity API helpers ------------------------------------------------------------
-async function api<J>(method: string, path: string, body?: unknown): Promise<J> {
+async function api<J>(method: string, path: string, body?: unknown, token = tokens.operator): Promise<J> {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
-  if (tokens.operator) headers.authorization = `Bearer ${tokens.operator}`;
+  if (token) headers.authorization = `Bearer ${token}`;
   const res = await fetch(`${API}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
   const payload = await res.json();
   if (!res.ok) throw new Error(`${method} ${path} → ${res.status} ${JSON.stringify(payload)}`);
@@ -273,6 +277,23 @@ async function main() {
   await beat('8. Agent C (another fresh process) closes the loop', C.mag);
   const agentC = startAgent('agent-c', '--once', C.mag);
   if ((await exitOf(agentC)) !== 0) throw new Error('agent-c failed');
+
+  // the acceptance commits us, so it waits for a person: agents propose, a human decides
+  type Held = { id: string; kind: string; current: boolean; text: string; draft: { to: string } | null; card: { recommended: string; recommended_because: string } };
+  const held = (await api<Held[]>('GET', `/tasks/${taskPath}/approvals`)).find((a) => a.kind === 'send' && a.current && a.draft);
+  if (held) {
+    await beat('9. A human approves the commitment Agent C drafted', C.green);
+    console.log(held.text.split('\n').map((l) => `  ${l}`).join('\n'));
+    const decidedAt = new Date().toISOString();
+    const decided = await api<{ status: string; sent?: { event_id: string } }>('POST', `/tasks/${taskPath}/approvals/${held.id}/decide`, { option: held.card.recommended, by: APPROVER }, tokens.approver);
+    say(`${APPROVER} decided ${held.id}: ${C.bold}${decided.status}${C.reset}${decided.sent ? ` — sent ${decided.sent.event_id}, recorded with approved_by` : ''}`);
+    if (decided.sent) {
+      const closing = await agentMailTo(held.draft!.to, decidedAt, `the approved email to reach ${held.draft!.to}`);
+      say(`delivered to ${held.draft!.to}: "${closing.subject}"`);
+    } else {
+      say(`nothing sent: ${held.card.recommended_because}`);
+    }
+  }
 
   await beat('Done', C.green);
   const final = await api<{ context: { next_actor: string; next_actor_reason: string } }>('GET', `/tasks/${taskPath}/context`);
