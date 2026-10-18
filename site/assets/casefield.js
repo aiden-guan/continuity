@@ -4,7 +4,7 @@
 // scored them (320 right) while its readout counts up, hold, then a playhead sweeps across and
 // switches Continuity on: the 192 cases only it got right light in the signal colour, the 65 only
 // Primitive alone got right go hollow, and the 255 both got right turn to ink (447 right).
-// Counts are from bench/FINDINGS.md, run opt-final2-eval-all.
+// Counts are from bench/FINDINGS.md at d2b1386 (held-out run opt-final2-eval-all).
 
 import { token } from './theme.js';
 import { stillMotion } from './motion.js';

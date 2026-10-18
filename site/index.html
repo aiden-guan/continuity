@@ -222,20 +222,20 @@
             </div>
             <div class="metric reveal" style="--d:.08s">
               <div class="metric-h"><span>Cost per right handoff</span><span>lower is better</span></div>
-              <div class="bar-row me"><span class="who">Continuity</span><div class="bar"><i class="me" style="--w:.745"></i></div><b>$0.0064</b></div>
-              <div class="bar-row"><span class="who">Primitive alone</span><div class="bar"><i style="--w:1"></i></div><b>$0.0086</b></div>
+              <div class="bar-row me"><span class="who">Continuity</span><div class="bar"><i class="me" style="--w:.756"></i></div><b>$0.0062</b></div>
+              <div class="bar-row"><span class="who">Primitive alone</span><div class="bar"><i style="--w:1"></i></div><b>$0.0082</b></div>
             </div>
             <div class="metric wakes reveal">
               <div class="metric-h"><span>Cost per thread</span><span>vs Primitive alone</span></div>
               <div class="wake-row">
-                <div class="wake even"><span>1 wake</span><b>+4%</b></div>
-                <div class="wake"><span>2 wakes</span><b>−17%</b></div>
-                <div class="wake"><span>3 wakes</span><b>−25%</b></div>
-                <div class="wake"><span>5 wakes</span><b>−30%</b></div>
+                <div class="wake even"><span>Break-even</span><b>1.1 wakes</b></div>
+                <div class="wake"><span>2 wakes</span><b>−20%</b></div>
+                <div class="wake"><span>3 wakes</span><b>−26%</b></div>
+                <div class="wake"><span>5 wakes</span><b>−31%</b></div>
               </div>
             </div>
           </div>
-          <p class="source reveal">Continuity benchmark, held-out eval split: 650 frozen cases across 5 verticals, with the same Haiku 5.5 agent on both sides. A handoff is right when the next action and every critical fact are. Costs include Continuity reading every email; thread costs assume the same emails at every wake. Synthetic cases, one trial each. From <code>bench/FINDINGS.md</code>, run <code>opt-final2-eval-all</code>.</p>
+          <p class="source reveal">Continuity benchmark, held-out eval split: 650 frozen cases across 5 verticals, with the same Haiku 5.5 agent on both sides. A handoff is right when the next action and every critical fact are. Costs include Continuity reading every email. Cost per right handoff and per thread use the dev split’s costs, and thread costs assume the same emails at every wake. Synthetic cases, one trial each. Source: <code>bench/FINDINGS.md</code> at commit <code>d2b1386</code>.</p>
         </div>
       </div>
     </section>
