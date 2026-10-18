@@ -4,14 +4,13 @@
 //   2. hero: "Agents forget." as particles (particles.js) over a looping canvas of agents on one thread
 //   3. Fig. 2, the email → state sequence (mechanism.js)
 //   4. the replay: a pinned scene of thread → Continuity → agent, from real engine output (relay.js)
-//   5. results: Fig. 3, every held-out case to scale (casefield.js), and counters
+//   5. results: a benchmark leaderboard; bars rise and values count up
 //   6. footer wordmark, dithered — the page's one dithered moment, kept quiet
 import { dither } from './dither.js';
 import { setupTheme, token } from './theme.js';
 import { splitWords, scramble, countUp, setupNavThread, stillMotion } from './motion.js';
 import { setupHeroParticles } from './particles.js';
 import { setupMechanism } from './mechanism.js';
-import { setupCaseField } from './casefield.js';
 import { setupRelay } from './relay.js';
 
 const one = (sel, root = document) => root.querySelector(sel);
@@ -39,7 +38,7 @@ function setupChrome() {
       watcher.unobserve(el);
       const label = el.matches('.sec-k') && one('.t', el);
       if (label) scramble(label, label.textContent, { duration: 650, delay: 120 });
-      if (el.matches('.metric')) all('.bar-row b, .wake b', el).forEach((b, i) => countUp(b, { delay: 250 + i * 120 }));
+      if (el.matches('.bench')) all('.col b', el).forEach((b, i) => countUp(b, { delay: 200 + i * 120 }));
       if (el.matches('.ledger')) all('code', el).forEach((c, i) => scramble(c, c.textContent, { duration: 600, delay: 400 + i * 140 }));
     }
   }, { rootMargin: '0px 0px -8% 0px' });
@@ -359,6 +358,5 @@ if (document.documentElement.classList.contains('px')) {
   setupHeroParticles({ hero: one('.hero'), line: one('.h-forget'), thread: one('#hero-thread'), nodes: HERO_EVENTS.map((e) => e.at), head: heroThread.head });
 }
 setupMechanism(one('#mech'));
-setupCaseField(one('#field'));
 setupStory();
 setupWordmark();

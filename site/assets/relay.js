@@ -1,18 +1,18 @@
-// Section 03, the replay: one deal, three agents, one board.
+// Section 03, the replay: one deal, three agents, and what Continuity does with every email.
 //
-//   the latest email
-//        │
-//   ┌─ CONTINUITY ─────────────────┐   the state, shown as a departures board: four rows that
-//   │ DELIVERY  300 FRI 23 · 200 … ✕│   flip when an email changes them, and never grow
-//   │ NEXT      US · RAISE LATE …  ● │
-//   └──────────────────────────────┘
-//        │
-//   the agent on shift (or nobody)
+//   STORE  [1][2][3][4][5]          every event is kept, in order (the log only grows)
+//            │ │
+//   SORT   ┌─ CONTINUITY ─────────────────┐   each event's facts land in the rows they change:
+//          │ DELIVERY  300 FRI 23 · 200 … ✕│   four rows, shown as a departures board, that flip
+//          │ NEXT      US · RAISE LATE …  ● │   and never grow
+//          └──────────────────────────────┘
+//                 │
+//   READ   the agent on shift reads the board, not the log
 //
 // The scene is pinned while the section scrolls past; each screen of scroll is one beat.
-// Stepping forward one beat plays it (an email arrives and flips a row, an agent dies, or a new
-// agent wakes with zero memory, reads the board and writes its reply). Any other jump renders the
-// beat's end state at once, so scrubbing never queues animations.
+// Stepping forward one beat plays it (an event is stored and sorted, an agent dies, or a new agent
+// wakes with zero memory, reads the board and writes its reply). Any other jump renders the beat's
+// end state at once, so scrubbing never queues animations.
 // Every value comes from real engine output (snapshot.json): the state as of each event,
 // the agents' briefing sizes and what they actually wrote.
 
@@ -26,6 +26,8 @@ const fmt = (n) => Number(n).toLocaleString('en-US');
 
 const W = 23; // flaps per row
 const FLAP = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$/·';
+const FLY_MS = 620; // an event's facts travelling into their rows
+const ROW_LAG = 90; // between rows, for both the packets and the flips
 
 // who moves next, after each event: the engine's next_actor and next_actor_reason, shortened to fit a row
 const NEXT = {
@@ -48,60 +50,18 @@ function buildBeats(snap) {
   const quote = (at, term) => (ctx(at).current_terms ?? []).find((t) => t.term === term && t.stated_in?.includes(at))?.quote ?? '';
   const tokens = (agent) => sent(agent)?.context_tokens;
 
-  const us = (agent, text) => ({ dir: 'out', who: 'Us', role: agent, text });
-  const them = (who, role, text) => ({ dir: 'in', who, role, text });
-
-  const bSays = line('agent-b', /doesn't work|does not work|Oct 28/i);
-  const cSays = quote('ev_9', 'decision.order');
+  const us = (agent, text) => ({ dir: 'out', who: 'Us', text });
+  const them = (who, text) => ({ dir: 'in', who, text });
 
   return [
-    {
-      at: 'ev_2', title: 'Agent A opens the deal.',
-      body: '500 boards, all by Friday, at most $11.50 each.',
-      agent: { name: 'agent-a', state: 'live' },
-      mail: us('agent-a', line('agent-a', /need all 500/i)),
-    },
-    {
-      at: 'ev_3', title: 'The supplier says yes.',
-      body: 'Each email flips the rows it changes. Nothing else moves.',
-      agent: { name: 'agent-a', state: 'live' },
-      mail: them('Northwind', 'supplier', quote('ev_3', 'price.unit')),
-    },
-    {
-      at: 'ev_3', title: 'Then Agent A is killed.', kill: true,
-      body: 'No warning, no notes. Its memory goes with it. The board stays.',
-      agent: { name: 'agent-a', state: 'killed' },
-    },
-    {
-      at: 'ev_5', title: 'Finance approves.',
-      body: 'No agent is awake to read it. The board updates anyway.',
-      agent: { state: 'none' },
-      mail: them('Priya', 'finance', quote('ev_5', 'budget.max_unit_price')),
-    },
-    {
-      at: 'ev_6', title: 'The supplier changes the deal.',
-      body: 'Friday is now missed. The board shows it before any agent looks.',
-      agent: { state: 'none' },
-      mail: them('Northwind', 'supplier', quote('ev_6', 'delivery.schedule')),
-    },
-    {
-      at: 'ev_7', title: 'Agent B wakes with zero memory.',
-      body: 'It reads the board, not the thread, and pushes back on exactly the late units.',
-      agent: { name: 'agent-b', state: 'wake', tokens: tokens('agent-b') },
-      mail: us('agent-b', bSays),
-    },
-    {
-      at: 'ev_8', title: 'The supplier fixes it.',
-      body: 'All 500 by Friday, $11.48 each. Every row is green again.',
-      agent: { state: 'none' },
-      mail: them('Northwind', 'supplier', `${quote('ev_8', 'delivery.schedule')} ${quote('ev_8', 'price.unit')}`.trim()),
-    },
-    {
-      at: 'ev_9', title: 'Agent C closes the deal.',
-      body: 'Another fresh agent, the same board. Nothing was lost.',
-      agent: { name: 'agent-c', state: 'wake', tokens: tokens('agent-c') },
-      mail: us('agent-c', cSays),
-    },
+    { at: 'ev_2', title: 'Agent A opens the deal.', agent: { name: 'agent-a', state: 'live' }, mail: us('agent-a', line('agent-a', /need all 500/i)) },
+    { at: 'ev_3', title: 'The supplier says yes.', agent: { name: 'agent-a', state: 'live' }, mail: them('Northwind', quote('ev_3', 'price.unit')) },
+    { at: 'ev_3', title: 'Agent A is killed.', kill: true, agent: { name: 'agent-a', state: 'killed' } },
+    { at: 'ev_5', title: 'Finance approves.', agent: { state: 'none' }, mail: them('Priya', quote('ev_5', 'budget.max_unit_price')) },
+    { at: 'ev_6', title: 'The deal changes.', agent: { state: 'none' }, mail: them('Northwind', quote('ev_6', 'delivery.schedule')) },
+    { at: 'ev_7', title: 'Agent B wakes. No memory.', agent: { name: 'agent-b', state: 'wake', tokens: tokens('agent-b') }, mail: us('agent-b', line('agent-b', /doesn't work|does not work|Oct 28/i)) },
+    { at: 'ev_8', title: 'The supplier fixes it.', agent: { state: 'none' }, mail: them('Northwind', `${quote('ev_8', 'delivery.schedule')} ${quote('ev_8', 'price.unit')}`.trim()) },
+    { at: 'ev_9', title: 'Agent C closes it.', agent: { name: 'agent-c', state: 'wake', tokens: tokens('agent-c') }, mail: us('agent-c', quote('ev_9', 'decision.order')), end: true },
   ];
 }
 
@@ -125,7 +85,7 @@ function boardRows(c, at) {
     { k: 'price', label: 'Price', status: check('Unit price within budget'), text: price ? `${price} / UNIT` : 'AWAITING QUOTE' },
     { k: 'budget', label: 'Budget', status: check('Budget approved'), text: budget ? `UP TO ${budget}` : 'ASKED FINANCE' },
     { k: 'next', label: 'Next', status: at === 'ev_9' ? 'done' : c.next_actor === 'us' ? 'us' : 'them', text: NEXT[at] ?? '' },
-  ];
+  ].map((r) => ({ ...r, text: r.text.toUpperCase().padEnd(W).slice(0, W) }));
 }
 
 const MARK = { pass: '✓', fail: '✕', unknown: '·', us: '●', them: '→', done: '✓' };
@@ -137,12 +97,14 @@ export function setupRelay(root, snap) {
   root.style.setProperty('--beats', n);
 
   const $ = (sel) => root.querySelector(sel);
-  const ticket = $('.rl-ticket');
-  const mailCount = $('[data-mails]');
+  const scene = $('.rl-scene');
+  const log = $('.rl-log');
+  const tiles = $('.rl-tiles');
+  const latest = $('.rl-latest');
+  const eventCount = $('[data-mails]');
   const board = $('.rl-board');
   const rowsBox = $('.rl-rows');
   const scanBar = $('.rl-scan');
-  const wireIn = $('[data-wire="in"]');
   const wireOut = $('[data-wire="out"]');
   const agentSt = $('.rl-agentst');
   const agentBox = $('.rl-agent');
@@ -152,14 +114,20 @@ export function setupRelay(root, snap) {
   const cap = $('.rl-cap');
   const capN = $('.rl-cap-n');
   const capT = $('.rl-cap h3');
-  const capB = $('.rl-cap p');
 
   let current = -1;
   let runId = 0;
 
-  // emails in the thread as of each event (the engine linked these; the flash-sale spam it did not)
-  const seq = Object.fromEntries(snap.timeline.events.map((e) => [e.id, e.seq]));
-  const emailsAt = (at) => snap.timeline.events.filter((e) => e.seq <= seq[at]).length;
+  // the events in the thread as of each beat, in order (the flash-sale spam was never linked)
+  const events = [...snap.timeline.events].sort((a, b) => a.seq - b.seq);
+  const seq = Object.fromEntries(events.map((e) => [e.id, e.seq]));
+  const eventsAt = (at) => events.filter((e) => e.seq <= seq[at]);
+
+  const restart = (el, cls) => {
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+  };
 
   // ------------------------------------------------------------ track: one node per beat, agent shifts above
   const track = $('.rl-track');
@@ -189,61 +157,57 @@ export function setupRelay(root, snap) {
     counter.textContent = `${String(i + 1).padStart(2, '0')} / ${String(n).padStart(2, '0')}`;
   }
 
-  // ------------------------------------------------------------ caption
   function setCaption(i, animate) {
-    const b = beats[i];
     capN.textContent = String(i + 1).padStart(2, '0');
-    capT.textContent = b.title;
-    capB.textContent = b.body;
-    cap.classList.toggle('kill', !!b.kill);
+    capT.textContent = beats[i].title;
+    cap.classList.toggle('kill', !!beats[i].kill);
     if (animate) restart(cap, 'roll');
   }
 
-  function restart(el, cls) {
-    el.classList.remove(cls);
-    void el.offsetWidth;
-    el.classList.add(cls);
-  }
-
-  // ------------------------------------------------------------ the latest email
+  // ------------------------------------------------------------ store: the log, one tile per event
   const lastMail = (i) => {
-    for (let k = i; k >= 0; k--) if (beats[k].mail) return { mail: beats[k].mail, at: beats[k].at, own: k === i };
+    for (let k = i; k >= 0; k--) if (beats[k].mail) return { mail: beats[k].mail, own: k === i };
     return null;
   };
 
-  function setTicket(i, { animate = false, typing = false } = {}) {
+  // pending: our own email is still being written, so it is not in the log yet
+  function setLog(i, { pending = false, added = false } = {}) {
+    const evs = eventsAt(beats[i].at).slice(0, pending ? -1 : undefined);
+    const fresh = !pending && !!beats[i].mail;
+    tiles.innerHTML = evs.map((e, k) =>
+      `<i class="rl-tile ${e.direction === 'outbound' ? 'out' : 'in'}${fresh && k === evs.length - 1 ? ' now' : ''}">${k + 1}</i>`).join('');
+    if (added) restart(tiles.lastElementChild, 'add');
+    eventCount.textContent = `${evs.length} events`;
     const last = lastMail(i);
-    if (!last) { ticket.innerHTML = ''; return; }
-    const { mail } = last;
-    ticket.className = `rl-ticket ${mail.dir}${last.own ? '' : ' stale'}`;
-    ticket.innerHTML = `<div class="rl-tk-h"><b>${esc(mail.who)}</b><span>${esc(mail.role)}</span><em>${mail.dir === 'out' ? 'sent' : 'received'}</em></div>
-      <p>${typing ? '' : esc(mail.text)}</p>`;
-    const count = emailsAt(last.at);
-    mailCount.textContent = `${count} email${count === 1 ? '' : 's'}`;
-    if (animate) restart(ticket, 'new');
+    latest.classList.toggle('stale', !last?.own);
+    latest.innerHTML = last ? `<b>${esc(last.mail.who)}</b><span>${pending ? '' : esc(last.mail.text)}</span>` : '';
   }
 
-  async function typeTicket(text, id) {
-    const p = ticket.querySelector('p');
-    if (!p) return;
-    p.classList.add('caret');
+  async function typeLatest(text, id) {
+    const span = latest.querySelector('span');
+    if (!span) return;
+    latest.classList.add('caret');
     for (let k = 2; k <= text.length; k += 3) {
       if (id !== runId) return;
-      p.textContent = text.slice(0, k);
-      await wait(14);
+      span.textContent = text.slice(0, k);
+      await wait(12);
     }
-    p.textContent = text;
-    p.classList.remove('caret');
+    span.textContent = text;
+    latest.classList.remove('caret');
   }
 
-  // ------------------------------------------------------------ the board
+  // ------------------------------------------------------------ sort: the board
   const rowEls = new Map();
+  const shown = new Map(); // row → what it shows now
   rowsBox.innerHTML = boardRows({}, 'ev_1').map((r) => `<div class="rl-brow" data-k="${r.k}">
       <span class="rl-bl">${esc(r.label)}</span>
       <span class="rl-flaps">${'<i class="fl"><b> </b></i>'.repeat(W)}</span>
       <span class="rl-bs"><b>·</b></span>
     </div>`).join('');
   rowsBox.querySelectorAll('.rl-brow').forEach((el) => rowEls.set(el.dataset.k, el));
+
+  const rowsAt = (i) => boardRows(snap.as_of[beats[i].at]?.context ?? {}, beats[i].at);
+  const changedRows = (i) => rowsAt(i).filter((r) => shown.get(r.k) !== `${r.status}|${r.text}`).map((r) => r.k);
 
   // one flap: a few random characters, each a quick fold, then the real one
   function flip(b, to, delay, id) {
@@ -261,27 +225,75 @@ export function setupRelay(root, snap) {
 
   // rows that change flip one after another, each left to right
   function setBoard(i, animate, id) {
-    const c = snap.as_of[beats[i].at]?.context ?? {};
     let lag = 0;
-    for (const r of boardRows(c, beats[i].at)) {
+    for (const r of rowsAt(i)) {
       const el = rowEls.get(r.k);
-      const target = r.text.toUpperCase().padEnd(W).slice(0, W);
       const flaps = el.querySelectorAll('.fl b');
       let changed = false;
       flaps.forEach((b, k) => {
-        if (b.textContent === target[k]) return;
+        if (b.textContent === r.text[k]) return;
         changed = true;
-        if (animate) flip(b, target[k], lag + k * 24, id);
-        else b.textContent = target[k];
+        if (animate) flip(b, r.text[k], lag + k * 24, id);
+        else b.textContent = r.text[k];
       });
       el.className = `rl-brow ${r.status}`;
       el.querySelector('.rl-bs b').textContent = MARK[r.status] ?? '·';
-      if (changed && animate) {
+      if (animate && shown.get(r.k) !== `${r.status}|${r.text}`) {
         restart(el, 'chg');
-        lag += 90;
+        if (changed) lag += ROW_LAG;
       }
+      shown.set(r.k, `${r.status}|${r.text}`);
     }
-    ver.textContent = `state v${c.meta?.state_version ?? '—'}`;
+    ver.textContent = `state v${snap.as_of[beats[i].at]?.context?.meta?.state_version ?? '—'}`;
+  }
+
+  // the newest event's facts travel from its tile into each row they change
+  function fly(keys) {
+    const from = tiles.lastElementChild;
+    if (stillMotion || !keys.length || !from) return;
+    const s = scene.getBoundingClientRect();
+    const t = from.getBoundingClientRect();
+    const x0 = t.left + t.width / 2 - s.left;
+    const y0 = t.bottom - s.top;
+    keys.forEach((k, n) => {
+      const r = rowEls.get(k).querySelector('.rl-flaps').getBoundingClientRect();
+      const x3 = r.left - s.left + 6;
+      const y3 = r.top + r.height / 2 - s.top;
+      const frames = [];
+      for (let step = 0; step <= 16; step++) {
+        const p = step / 16;
+        const u = 1 - p;
+        const x = u * u * u * x0 + 3 * u * u * p * x0 + 3 * u * p * p * (x3 - 48) + p * p * p * x3;
+        const y = u * u * u * y0 + 3 * u * u * p * (y0 + 56) + 3 * u * p * p * y3 + p * p * p * y3;
+        frames.push({ transform: `translate(${x - 3.5}px, ${y - 3.5}px)` });
+      }
+      const sq = document.createElement('i');
+      sq.className = 'rl-packet';
+      scene.append(sq);
+      const anim = sq.animate(frames, { duration: FLY_MS, delay: n * ROW_LAG, easing: 'cubic-bezier(0.45, 0, 0.25, 1)', fill: 'both' });
+      anim.finished.finally(() => sq.remove()).catch(() => {});
+    });
+  }
+
+  // ------------------------------------------------------------ read: the agent
+  function setAgent(i, phase, animate) {
+    const spec = beats[i].agent;
+    agentSt.dataset.state = spec.state;
+    let html;
+    if (spec.state === 'live') {
+      html = `<i class="rl-dot"></i><b class="rl-ag-name">${esc(spec.name)}</b>
+        <span class="rl-chip">remembers ${eventsAt(beats[i].at).length} emails</span>`;
+    } else if (spec.state === 'killed') {
+      html = `<b class="rl-x">✕</b><b class="rl-ag-name">${esc(spec.name)}</b><span class="rl-chip">memory lost</span>`;
+    } else if (spec.state === 'none') {
+      html = '<span class="rl-none">No agent running</span>';
+    } else {
+      html = `<i class="rl-dot"></i><b class="rl-ag-name">${esc(spec.name)}</b><span class="rl-chip new">new</span>
+        <span class="rl-chip">memory 0</span>
+        <span class="rl-chip tok${phase === 'pre' ? ' wait' : ''}">read <b>${phase === 'pre' ? '0' : fmt(spec.tokens)}</b> tokens</span>`;
+    }
+    agentBox.innerHTML = html;
+    if (animate) restart(agentBox, 'enter');
   }
 
   // the agent reading the board: a line of light runs down it
@@ -296,38 +308,16 @@ export function setupRelay(root, snap) {
     ], { duration: 1000, easing: 'cubic-bezier(0.65, 0, 0.35, 1)' }).finished;
   }
 
-  // a square travels along a wire: down (1) or up (-1)
-  function pulse(wire, dir) {
+  // a square runs down the wire from the board to the agent
+  function pulse(wire) {
     if (stillMotion) return Promise.resolve();
     const h = wire.clientHeight;
-    const [from, to] = dir > 0 ? [-3, h - 3] : [h - 3, -3];
     return wire.querySelector('i').animate([
-      { transform: `translateY(${from}px)`, opacity: 0 },
+      { transform: 'translateY(-3px)', opacity: 0 },
       { opacity: 1, offset: 0.2 },
       { opacity: 1, offset: 0.8 },
-      { transform: `translateY(${to}px)`, opacity: 0 },
+      { transform: `translateY(${h - 3}px)`, opacity: 0 },
     ], { duration: 420, easing: 'ease-in-out' }).finished;
-  }
-
-  // ------------------------------------------------------------ the agent
-  function setAgent(i, phase, animate) {
-    const spec = beats[i].agent;
-    agentSt.dataset.state = spec.state;
-    let html;
-    if (spec.state === 'live') {
-      html = `<i class="rl-dot"></i><b class="rl-ag-name">${esc(spec.name)}</b>
-        <span class="rl-chip">remembers ${emailsAt(beats[i].at)} emails</span>`;
-    } else if (spec.state === 'killed') {
-      html = `<b class="rl-x">✕</b><b class="rl-ag-name">${esc(spec.name)}</b><span class="rl-chip">killed · memory lost</span>`;
-    } else if (spec.state === 'none') {
-      html = '<span class="rl-none">No agent running</span>';
-    } else {
-      html = `<i class="rl-dot"></i><b class="rl-ag-name">${esc(spec.name)}</b><span class="rl-chip new">new</span>
-        <span class="rl-chip">memory 0</span>
-        <span class="rl-chip tok${phase === 'pre' ? ' wait' : ''}">read <b>${phase === 'pre' ? '0' : fmt(spec.tokens)}</b> tokens</span>`;
-    }
-    agentBox.innerHTML = html;
-    if (animate) restart(agentBox, 'enter');
   }
 
   function countTokens(to, id) {
@@ -384,10 +374,11 @@ export function setupRelay(root, snap) {
   function renderInstant(i) {
     setCaption(i, false);
     setTrack(i);
-    setTicket(i);
+    setLog(i);
     setBoard(i, false, runId);
     setAgent(i, 'full', false);
     agentSt.classList.remove('dying');
+    log.classList.remove('skip');
   }
 
   async function play(i, id) {
@@ -408,30 +399,37 @@ export function setupRelay(root, snap) {
     }
 
     if (b.agent.state === 'wake') {
-      // a new agent: nothing in memory, so it reads the board
+      // read: a new agent has nothing in memory, so it reads the board and skips the log
       setAgent(i, 'pre', true);
       await wait(450);
       if (!alive()) return;
-      await Promise.all([scan(), wait(500).then(() => pulse(wireOut, 1))]);
+      log.classList.add('skip');
+      await Promise.all([scan(), wait(500).then(() => pulse(wireOut))]);
       if (!alive()) return;
       await countTokens(b.agent.tokens, id);
       if (!alive()) return;
       await wait(250);
+      log.classList.remove('skip');
     } else if (b.agent.state !== prev.state || b.agent.name !== prev.name) {
       setAgent(i, 'full', true);
     }
+    if (!alive() || !b.mail) return;
+
+    // store: the email joins the log (ours is written first)
+    if (b.mail.dir === 'out') {
+      setLog(i, { pending: true });
+      await typeLatest(b.mail.text, id);
+      if (!alive()) return;
+    }
+    setLog(i, { added: true });
+    await wait(420);
     if (!alive()) return;
 
-    if (b.mail) {
-      // the email lands in the thread (ours is written live), then flips the rows it changes
-      setTicket(i, { animate: true, typing: b.mail.dir === 'out' });
-      if (b.mail.dir === 'out') await typeTicket(b.mail.text, id);
-      else await wait(500);
-      if (!alive()) return;
-      await pulse(wireIn, 1);
-      if (!alive()) return;
-      setBoard(i, true, id);
-    }
+    // sort: its facts travel into the rows they change, which flip as they land
+    fly(changedRows(i));
+    await wait(FLY_MS - 60);
+    if (!alive()) return;
+    setBoard(i, true, id);
   }
 
   function show(i) {

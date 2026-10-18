@@ -513,7 +513,7 @@
   transform-origin: left;
   transition: transform 0.7s var(--ease);
 }
-.rl-shift em { position: absolute; left: 8px; top: 0; font: 500 10.5px/1 var(--mono); font-style: normal; }
+.rl-shift em { position: absolute; left: 8px; top: 0; font: 500 10.5px/1 var(--mono); font-style: normal; white-space: nowrap; }
 .rl-shift.on { opacity: 1; }
 .rl-shift.on::before { transform: none; }
 .rl-shift.dead { color: var(--signal); }
@@ -528,15 +528,12 @@
 .rl-cap { display: grid; align-content: center; gap: 16px; }
 .rl-cap-n { font: 500 12px var(--mono); color: var(--signal); font-variant-numeric: tabular-nums; }
 .rl-cap h3 { margin: 0; font-size: clamp(30px, 3.4vw, 50px); font-weight: 500; line-height: 1.02; letter-spacing: -0.042em; text-wrap: balance; }
-.rl-cap p { max-width: 34ch; margin: 0; font-size: clamp(15px, 1.3vw, 18px); line-height: 1.5; color: var(--ink-2); text-wrap: pretty; }
 .rl-cap.kill h3 { color: var(--signal-ink); }
-.rl-cap.roll h3,
-.rl-cap.roll p { animation: cap-in 0.6s var(--ease) both; }
-.rl-cap.roll p { animation-delay: 0.07s; }
+.rl-cap.roll h3 { animation: cap-in 0.6s var(--ease) both; }
 @keyframes cap-in { from { opacity: 0; transform: translateY(10px); } }
 
 /* the scene: the latest email → the board → the agent, top to bottom */
-.rl-scene { display: grid; width: 100%; max-width: 580px; justify-self: end; }
+.rl-scene { display: grid; grid-template-columns: minmax(0, 1fr); width: 100%; max-width: 580px; justify-self: end; }
 .rl-lab {
   display: flex;
   justify-content: space-between;
@@ -549,9 +546,9 @@
 }
 .rl-lab b { font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 
-/* the latest email: one ticket; an older one waits, dimmed, until the next arrives */
-.rl-ticket {
-  min-height: 78px;
+/* store: the log, one tile per event, in order; the newest email in one line beneath */
+.rl-scene { position: relative; }
+.rl-log {
   padding: 10px 12px 11px;
   border: 1px solid var(--line-2);
   border-radius: 8px;
@@ -559,23 +556,39 @@
   box-shadow: var(--shadow);
   transition: opacity 0.4s;
 }
-.rl-ticket.out { box-shadow: inset 3px 0 0 var(--ink), var(--shadow); }
-.rl-ticket.stale { opacity: 0.42; }
-.rl-ticket.new { animation: tk-in 0.55s var(--ease); }
-@keyframes tk-in { from { opacity: 0; transform: translateY(-12px); } }
-.rl-tk-h { display: flex; gap: 8px; margin-bottom: 5px; font: 500 10.5px/1.2 var(--mono); }
-.rl-tk-h span { color: var(--muted); }
-.rl-tk-h em { margin-left: auto; font-style: normal; color: var(--faint); }
-.rl-ticket p {
-  display: -webkit-box;
-  margin: 0;
-  overflow: hidden;
-  font-size: 13.5px;
-  line-height: 1.42;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+.rl-log.skip { opacity: 0.3; }
+.rl-tiles { display: flex; flex-wrap: wrap; gap: 4px; min-height: 22px; }
+.rl-tile {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--line-2);
+  border-radius: 3px;
+  background: var(--bg);
+  font: 500 10px/1 var(--mono);
+  font-style: normal;
+  color: var(--muted);
 }
-.rl-ticket p.caret::after { content: ""; display: inline-block; width: 7px; height: 1.05em; margin-left: 2px; vertical-align: -0.15em; background: var(--signal); }
+.rl-tile.out { border-color: var(--ink); background: var(--ink); color: var(--on-ink); }
+.rl-tile.now { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--signal); }
+.rl-tile.add { animation: tile-in 0.5s var(--ease); }
+@keyframes tile-in { from { opacity: 0; transform: translateY(-10px) scale(0.6); } }
+.rl-latest {
+  margin: 9px 0 0;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ink-2);
+  transition: opacity 0.4s;
+}
+.rl-latest b { margin-right: 8px; font-weight: 600; color: var(--ink); }
+.rl-latest.stale { opacity: 0.5; }
+.rl-latest.caret span::after { content: ""; display: inline-block; width: 7px; height: 1.05em; margin-left: 2px; vertical-align: -0.15em; background: var(--signal); }
+.rl-lab.sort { margin-top: 20px; }
+.rl-packet { position: absolute; top: 0; left: 0; z-index: 3; width: 7px; height: 7px; background: var(--signal); pointer-events: none; }
 
 /* a wire between pieces; a square runs along it when something flows */
 .rl-wire { position: relative; height: 22px; }
@@ -711,10 +724,9 @@
   .rl-cap { gap: 6px; }
   .rl-cap-n { display: none; }
   .rl-cap h3 { font-size: 23px; }
-  .rl-cap p { max-width: none; font-size: 14px; }
   .rl-scene { max-width: none; justify-self: stretch; }
-  .rl-ticket { min-height: 0; padding: 8px 10px 9px; }
-  .rl-ticket p { font-size: 12.5px; }
+  .rl-latest { font-size: 12.5px; }
+  .rl-lab.sort { margin-top: 14px; }
   .rl-wire { height: 14px; }
   .rl-lab { margin-bottom: 6px; }
 }
@@ -727,152 +739,71 @@
   .rl-ag-name { font-size: 15px; }
 }
 
-/* ============================================================ 04 · results */
-.proof {
+/* ============================================================ 04 · results
+   A leaderboard: one panel per named benchmark, Continuity in ink beside Primitive alone. */
+.lb-key { display: flex; gap: 22px; margin-top: 40px; font: 500 11.5px/1 var(--mono); color: var(--muted); }
+.lb-key span { display: inline-flex; align-items: center; gap: 8px; }
+.lb-key i { width: 10px; height: 10px; background: var(--line-2); }
+.lb-key .me { color: var(--ink); }
+.lb-key .me i { background: var(--ink); }
+.lb {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px 48px;
-  margin-top: 48px;
-}
-.metric { border-top: 1px solid var(--ink); }
-.metric-h {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 0 18px;
-  font: 500 11px/1.3 var(--mono);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.metric-h span:last-child { letter-spacing: 0; text-transform: none; color: var(--faint); }
-.bar-row {
-  display: grid;
-  grid-template-columns: 112px minmax(0, 1fr) 88px;
-  gap: 14px;
-  align-items: center;
-  padding: 9px 0;
-}
-.bar-row .who { font-size: 14px; color: var(--ink-2); }
-.bar-row.me .who { color: var(--ink); font-weight: 500; }
-.bar-row b {
-  font: 500 22px/1 var(--sans);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.03em;
-  text-align: right;
-}
-.bar { height: 8px; background: var(--bg-2); border-radius: 2px; overflow: hidden; }
-.bar i {
-  display: block;
-  width: max(3px, calc(var(--w) * 100%));
-  height: 100%;
-  background: var(--muted);
-  transform-origin: left;
-  transition: transform 1.2s var(--ease) 0.2s;
-}
-.bar i.me { background: var(--ink); }
-.metric:not(.in) .bar i { transform: scaleX(0); }
-
-/* cost per thread as more agents wake on it: a row of datasheet cells */
-.wakes { grid-column: 1 / -1; }
-.wake-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding-bottom: 6px; }
-.wake { padding-left: 18px; border-left: 1px solid var(--line); }
-.wake:first-child { padding-left: 0; border-left: 0; }
-.wake span {
-  display: block;
-  font: 500 11px/1.3 var(--mono);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.wake b {
-  display: block;
-  margin-top: 10px;
-  font: 500 clamp(26px, 2.8vw, 36px)/1 var(--sans);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.04em;
-}
-.wake.even b { color: var(--muted); }
-
-.source { max-width: 72ch; margin: 32px 0 0; font-size: 13px; line-height: 1.6; color: var(--muted); }
-
-/* Fig. 3 · every held-out case, to scale (casefield.js) */
-.field { margin: 48px 0 0; }
-.field-h {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 16px;
-  padding: 16px 0 20px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 14px;
   border-top: 1px solid var(--ink);
+  border-left: 1px solid var(--line);
 }
-.field-h b {
-  display: block;
-  font: 500 clamp(28px, 3.6vw, 48px)/1 var(--sans);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.045em;
+.bench {
+  position: relative;
+  margin: 0;
+  padding: 14px 14px 0;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
 }
-.field-h span {
+.bench figcaption b { display: block; font: 600 15px/1.2 var(--sans); letter-spacing: -0.02em; }
+.bench figcaption span {
   display: block;
-  margin-top: 10px;
-  font: 500 11px/1.3 var(--mono);
+  margin-top: 5px;
+  font: 500 10.5px/1 var(--mono);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
 }
-.field-me { text-align: right; }
-.field-me b { color: var(--faint); transition: color 0.8s var(--ease); }
-.field-me b::before {
-  content: "";
-  display: inline-block;
-  width: 0.24em;
-  height: 0.24em;
-  margin-right: 0.22em;
-  vertical-align: 0.12em;
-  background: var(--signal);
-  transform: scale(0);
-  transition: transform 0.6s var(--ease) 0.15s;
+.bench em { position: absolute; top: 15px; right: 14px; font: 500 12px/1 var(--mono); font-style: normal; color: var(--signal-ink); }
+.bench em.flat { color: var(--muted); }
+.bars {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 44px));
+  justify-content: center;
+  gap: 12px;
+  height: 150px;
+  margin-top: 14px;
 }
-.field.merged .field-me b { color: var(--ink); }
-.field.merged .field-me b::before { transform: none; }
-.field-c canvas { display: block; width: 100%; }
+.col { display: flex; flex-direction: column; justify-content: flex-end; }
+.col b {
+  padding-bottom: 6px;
+  font: 500 12.5px/1 var(--mono);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.col.me b { color: var(--ink); }
+.col i {
+  display: block;
+  height: calc(var(--h) * 112px);
+  border-radius: 2px 2px 0 0;
+  background: var(--line-2);
+  transform-origin: bottom;
+  transition: transform 1.1s var(--ease) calc(var(--d, 0s) + 0.15s);
+}
+.col.me i { background: var(--ink); }
+.bench:not(.in) .col i { transform: scaleY(0); }
 
-/* the key: the two outcomes Continuity changes stay dim until the playhead has passed */
-.field-key {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 24px;
-  padding-top: 14px;
-  font: 11.5px/1.4 var(--mono);
-  color: var(--muted);
-}
-.field-key span { position: relative; padding-left: 17px; transition: opacity 0.6s var(--ease); }
-.field-key i { position: absolute; top: 3.5px; left: 0; width: 9px; height: 9px; }
-.field-key b { font-weight: 500; font-variant-numeric: tabular-nums; color: var(--ink); }
-.k-both i { background: var(--ink); }
-.k-gain i { background: var(--signal); }
-.k-lost i { box-shadow: inset 0 0 0 1px var(--muted); }
-.k-none i { background: var(--line-2); }
-.field:not(.merged) .k-gain,
-.field:not(.merged) .k-lost { opacity: 0.4; }
-.field figcaption {
-  display: flex;
-  gap: 14px;
-  padding-top: 16px;
-  font: 12px/1.5 var(--mono);
-  color: var(--muted);
-}
+.source { margin: 20px 0 0; font: 12px/1.5 var(--mono); color: var(--muted); }
 
 @media (max-width: 960px) {
-  .proof { grid-template-columns: 1fr; }
-}
-@media (max-width: 520px) {
-  .bar-row { grid-template-columns: 100px minmax(0, 1fr) 72px; gap: 10px; }
-  .wake-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 0; }
-  .wake:nth-child(odd) { padding-left: 0; border-left: 0; }
-  .field-key { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
-  .bar-row .who { font-size: 12.5px; }
-  .bar-row b { font-size: 18px; }
+  .lb { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* ============================================================ end */

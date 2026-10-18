@@ -139,7 +139,7 @@
       <div class="wrap sec-grid">
         <div class="sec-k reveal"><span class="n">03</span><span class="t">Replay</span></div>
         <div class="sec-body">
-          <h2 class="h2 reveal">Watch an agent die. <span class="dim">Then watch the work continue.</span></h2>
+          <h2 class="h2 reveal">One deal. <span class="dim">Three agents.</span></h2>
         </div>
       </div>
       <!-- the replay: a pinned scene, one beat per screen of scroll (relay.js, real engine output) -->
@@ -156,21 +156,23 @@
               <div class="rl-cap" aria-live="polite">
                 <span class="rl-cap-n">01</span>
                 <h3></h3>
-                <p></p>
               </div>
 
-              <!-- the latest email → the state, as a departures board → the agent, top to bottom -->
+              <!-- store every event in order → sort it into the board → the agent reads only the board -->
               <div class="rl-scene">
-                <div class="rl-lab"><span>The thread</span><b data-mails>—</b></div>
-                <div class="rl-ticket"></div>
-                <div class="rl-wire" data-wire="in" aria-hidden="true"><i></i></div>
+                <div class="rl-lab"><span>Store</span><b data-mails>—</b></div>
+                <div class="rl-log">
+                  <div class="rl-tiles"></div>
+                  <p class="rl-latest"></p>
+                </div>
+                <div class="rl-lab sort"><span>Sort</span></div>
                 <div class="rl-board">
                   <div class="rl-bh"><span><i class="rl-mark"></i>Continuity</span><b data-ver>state v—</b></div>
                   <div class="rl-rows"></div>
                   <i class="rl-scan" aria-hidden="true"></i>
                 </div>
                 <div class="rl-wire" data-wire="out" aria-hidden="true"><i></i></div>
-                <div class="rl-lab"><span>The agent</span></div>
+                <div class="rl-lab"><span>Read</span></div>
                 <div class="rl-agentst">
                   <div class="rl-agent"></div>
                   <canvas class="rl-burst" aria-hidden="true"></canvas>
@@ -187,59 +189,75 @@
       <div class="wrap sec-grid">
         <div class="sec-k reveal"><span class="n">04</span><span class="t">Results</span></div>
         <div class="sec-body">
-          <h2 class="h2 reveal">Same agent. <span class="dim">Right 69 times in 100, not&nbsp;49.</span></h2>
-
-          <figure id="field" class="field reveal">
-            <div class="field-h">
-              <div><b data-count>49.2%</b><span>Primitive alone · 320&nbsp;of&nbsp;650</span></div>
-              <div class="field-me"><b>68.8%</b><span>With Continuity · 447&nbsp;of&nbsp;650</span></div>
-            </div>
-            <div class="field-c"><canvas role="img" aria-label="650 squares, one per held-out case: 255 right with and without Continuity, 192 right only with it, 65 right only without it, 138 right with neither"></canvas></div>
-            <div class="field-key">
-              <span class="k-both"><i></i>Right either way <b>255</b></span>
-              <span class="k-gain"><i></i>Only with Continuity <b>192</b></span>
-              <span class="k-lost"><i></i>Only without it <b>65</b></span>
-              <span class="k-none"><i></i>Neither <b>138</b></span>
-            </div>
-            <figcaption>
-              <span class="fig-n">Fig. 3</span>
-              <span>Cold handoffs on the benchmark’s held-out eval split, to scale. One square per case.</span>
-              <button class="replay" type="button" data-replay>Replay</button>
-            </figcaption>
-          </figure>
-
-          <div class="proof">
-            <div class="metric reveal">
-              <div class="metric-h"><span>Critical facts right</span><span>higher is better</span></div>
-              <div class="bar-row me"><span class="who">Continuity</span><div class="bar"><i class="me" style="--w:.84"></i></div><b>84%</b></div>
-              <div class="bar-row"><span class="who">Primitive alone</span><div class="bar"><i style="--w:.617"></i></div><b>62%</b></div>
-            </div>
-            <div class="metric reveal" style="--d:.08s">
-              <div class="metric-h"><span>Tokens read to decide</span><span>lower is better</span></div>
-              <div class="bar-row me"><span class="who">Continuity</span><div class="bar"><i class="me" style="--w:.554"></i></div><b>7.0k</b></div>
-              <div class="bar-row"><span class="who">Primitive alone</span><div class="bar"><i style="--w:1"></i></div><b>12.7k</b></div>
-            </div>
-            <div class="metric reveal">
-              <div class="metric-h"><span>Cost per decision</span><span>about equal</span></div>
-              <div class="bar-row me"><span class="who">Continuity</span><div class="bar"><i class="me" style="--w:1"></i></div><b>$0.0044</b></div>
-              <div class="bar-row"><span class="who">Primitive alone</span><div class="bar"><i style="--w:.96"></i></div><b>$0.0043</b></div>
-            </div>
-            <div class="metric reveal" style="--d:.08s">
-              <div class="metric-h"><span>Cost per right handoff</span><span>lower is better</span></div>
-              <div class="bar-row me"><span class="who">Continuity</span><div class="bar"><i class="me" style="--w:.756"></i></div><b>$0.0062</b></div>
-              <div class="bar-row"><span class="who">Primitive alone</span><div class="bar"><i style="--w:1"></i></div><b>$0.0082</b></div>
-            </div>
-            <div class="metric wakes reveal">
-              <div class="metric-h"><span>Cost per thread</span><span>vs Primitive alone</span></div>
-              <div class="wake-row">
-                <div class="wake even"><span>Break-even</span><b>1.1 wakes</b></div>
-                <div class="wake"><span>2 wakes</span><b>−20%</b></div>
-                <div class="wake"><span>3 wakes</span><b>−26%</b></div>
-                <div class="wake"><span>5 wakes</span><b>−31%</b></div>
+          <h2 class="h2 reveal">20 points better.</h2>
+          <div class="lb-key reveal"><span class="me"><i></i>Continuity</span><span><i></i>Primitive alone</span></div>
+          <div class="lb">
+            <figure class="bench reveal">
+              <figcaption><b>HandoffBench</b><span>all 650</span></figcaption>
+              <em>+20</em>
+              <div class="bars">
+                <div class="col me"><b>69</b><i style="--h:0.69"></i></div>
+                <div class="col"><b>49</b><i style="--h:0.49"></i></div>
               </div>
-            </div>
+            </figure>
+            <figure class="bench reveal" style="--d:0.06s">
+              <figcaption><b>LedgerBench</b><span>finance</span></figcaption>
+              <em>+21</em>
+              <div class="bars">
+                <div class="col me"><b>49</b><i style="--h:0.49"></i></div>
+                <div class="col"><b>28</b><i style="--h:0.28"></i></div>
+              </div>
+            </figure>
+            <figure class="bench reveal" style="--d:0.12s">
+              <figcaption><b>CargoBench</b><span>freight</span></figcaption>
+              <em>+32</em>
+              <div class="bars">
+                <div class="col me"><b>71</b><i style="--h:0.71"></i></div>
+                <div class="col"><b>39</b><i style="--h:0.39"></i></div>
+              </div>
+            </figure>
+            <figure class="bench reveal" style="--d:0.18s">
+              <figcaption><b>StayBench</b><span>hotels</span></figcaption>
+              <em>+5</em>
+              <div class="bars">
+                <div class="col me"><b>67</b><i style="--h:0.67"></i></div>
+                <div class="col"><b>62</b><i style="--h:0.62"></i></div>
+              </div>
+            </figure>
+            <figure class="bench reveal">
+              <figcaption><b>ClauseBench</b><span>legal</span></figcaption>
+              <em>+23</em>
+              <div class="bars">
+                <div class="col me"><b>82</b><i style="--h:0.82"></i></div>
+                <div class="col"><b>59</b><i style="--h:0.59"></i></div>
+              </div>
+            </figure>
+            <figure class="bench reveal" style="--d:0.06s">
+              <figcaption><b>ProcureBench</b><span>procurement</span></figcaption>
+              <em>+18</em>
+              <div class="bars">
+                <div class="col me"><b>75</b><i style="--h:0.75"></i></div>
+                <div class="col"><b>57</b><i style="--h:0.57"></i></div>
+              </div>
+            </figure>
+            <figure class="bench reveal" style="--d:0.12s">
+              <figcaption><b>Tokens</b><span>per decision</span></figcaption>
+              <em>−45%</em>
+              <div class="bars">
+                <div class="col me"><b>7.0k</b><i style="--h:0.55"></i></div>
+                <div class="col"><b>12.7k</b><i style="--h:1"></i></div>
+              </div>
+            </figure>
+            <figure class="bench reveal" style="--d:0.18s">
+              <figcaption><b>Cost</b><span>per decision</span></figcaption>
+              <em class="flat">+4%</em>
+              <div class="bars">
+                <div class="col me"><b>0.44¢</b><i style="--h:1"></i></div>
+                <div class="col"><b>0.43¢</b><i style="--h:0.98"></i></div>
+              </div>
+            </figure>
           </div>
-          <p class="source reveal">Continuity benchmark, held-out eval split: 650 frozen cases across 5 verticals, with the same Haiku 5.5 agent on both sides. A handoff is right when the next action and every critical fact are. Costs include Continuity reading every email. Cost per right handoff and per thread use the dev split’s costs, and thread costs assume the same emails at every wake. Synthetic cases, one trial each. Source: <code>bench/FINDINGS.md</code> at commit <code>d2b1386</code>.</p>
+          <p class="source reveal">Held-out split · 650 cases · same Haiku agent · <code>bench/FINDINGS.md</code></p>
         </div>
       </div>
     </section>
