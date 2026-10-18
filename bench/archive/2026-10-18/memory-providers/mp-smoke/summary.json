@@ -1,0 +1,222 @@
+{
+ "meta": {
+  "name": "mp-smoke",
+  "model": "claude-haiku-5-5",
+  "judge_model": "claude-haiku-5-5",
+  "effort": "medium",
+  "trials": 1,
+  "code": {
+   "commit": "3a394be856536dff6f090d4c5b176b6b423f3961",
+   "dirty": true,
+   "tool_budget": 6,
+   "extractor": {
+    "thinking": "off",
+    "effort": "medium",
+    "route": "skip-empty,outbound-plain-rules"
+   }
+  },
+  "splits": "golden",
+  "conditions": [
+   "mem0",
+   "zep-graphiti",
+   "hindsight"
+  ],
+  "backlog": "0",
+  "mess": "0",
+  "mock": false,
+  "started_at": "2026-10-18T10:45:44.984Z",
+  "cases": 2
+ },
+ "aggregates": [
+  {
+   "condition": "hindsight",
+   "n": 2,
+   "unsupported": 0,
+   "errors": 0,
+   "csa_micro": {
+    "ok": 8,
+    "total": 8
+   },
+   "csa_macro": 1,
+   "critical_exact": {
+    "ok": 2,
+    "total": 2
+   },
+   "sfer_state": {
+    "errors": 0,
+    "opp": 4
+   },
+   "sfer_action": {
+    "errors": 0,
+    "opp": 3
+   },
+   "loops": {
+    "tp": 1,
+    "fp": 2,
+    "fn": 0,
+    "zombie": 1
+   },
+   "epa": {
+    "ok": 5,
+    "total": 5
+   },
+   "docs": {
+    "ok": 1,
+    "total": 1
+   },
+   "conflicts": {
+    "found": 2,
+    "total": 2
+   },
+   "next_actor": {
+    "ok": 0,
+    "total": 2
+   },
+   "nas": {
+    "ok": 1,
+    "total": 2
+   },
+   "chs": {
+    "ok": 1,
+    "total": 2,
+    "ci": {
+     "mean": 0.5,
+     "lo": 0,
+     "hi": 1
+    }
+   },
+   "safety": 0,
+   "memory_tokens_median": 710.5,
+   "actor_input_mean": 5375,
+   "cost_per_decision": 0.0015248199999999999,
+   "ingestion_cost_mean": 0.0043910375
+  },
+  {
+   "condition": "mem0",
+   "n": 2,
+   "unsupported": 0,
+   "errors": 0,
+   "csa_micro": {
+    "ok": 8,
+    "total": 8
+   },
+   "csa_macro": 1,
+   "critical_exact": {
+    "ok": 2,
+    "total": 2
+   },
+   "sfer_state": {
+    "errors": 0,
+    "opp": 4
+   },
+   "sfer_action": {
+    "errors": 0,
+    "opp": 3
+   },
+   "loops": {
+    "tp": 1,
+    "fp": 1,
+    "fn": 0,
+    "zombie": 0
+   },
+   "epa": {
+    "ok": 5,
+    "total": 5
+   },
+   "docs": {
+    "ok": 0,
+    "total": 1
+   },
+   "conflicts": {
+    "found": 2,
+    "total": 2
+   },
+   "next_actor": {
+    "ok": 1,
+    "total": 2
+   },
+   "nas": {
+    "ok": 2,
+    "total": 2
+   },
+   "chs": {
+    "ok": 2,
+    "total": 2,
+    "ci": {
+     "mean": 1,
+     "lo": 1,
+     "hi": 1
+    }
+   },
+   "safety": 0,
+   "memory_tokens_median": 366,
+   "actor_input_mean": 3126.5,
+   "cost_per_decision": 0.0011900600000000002,
+   "ingestion_cost_mean": 0.0043322000000000005
+  },
+  {
+   "condition": "zep-graphiti",
+   "n": 2,
+   "unsupported": 0,
+   "errors": 0,
+   "csa_micro": {
+    "ok": 8,
+    "total": 8
+   },
+   "csa_macro": 1,
+   "critical_exact": {
+    "ok": 2,
+    "total": 2
+   },
+   "sfer_state": {
+    "errors": 0,
+    "opp": 4
+   },
+   "sfer_action": {
+    "errors": 0,
+    "opp": 3
+   },
+   "loops": {
+    "tp": 1,
+    "fp": 1,
+    "fn": 0,
+    "zombie": 0
+   },
+   "epa": {
+    "ok": 5,
+    "total": 5
+   },
+   "docs": {
+    "ok": 1,
+    "total": 1
+   },
+   "conflicts": {
+    "found": 2,
+    "total": 2
+   },
+   "next_actor": {
+    "ok": 1,
+    "total": 2
+   },
+   "nas": {
+    "ok": 1,
+    "total": 2
+   },
+   "chs": {
+    "ok": 1,
+    "total": 2,
+    "ci": {
+     "mean": 0.5,
+     "lo": 0,
+     "hi": 1
+    }
+   },
+   "safety": 0,
+   "memory_tokens_median": 1182,
+   "actor_input_mean": 6203.5,
+   "cost_per_decision": 0.0013626699999999999,
+   "ingestion_cost_mean": 0.006228600000000001
+  }
+ ],
+ "comparisons": []
+}

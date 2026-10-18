@@ -1,0 +1,359 @@
+{
+ "meta": {
+  "name": "mp-eval-fast",
+  "model": "claude-haiku-5-5",
+  "judge_model": "claude-haiku-5-5",
+  "effort": "medium",
+  "trials": 1,
+  "code": {
+   "commit": "3a394be856536dff6f090d4c5b176b6b423f3961",
+   "dirty": true,
+   "tool_budget": 6,
+   "extractor": {
+    "thinking": "off",
+    "effort": "medium",
+    "route": "skip-empty,outbound-plain-rules"
+   }
+  },
+  "splits": "eval",
+  "conditions": [
+   "primitive-native",
+   "mem0",
+   "zep-graphiti",
+   "continuity"
+  ],
+  "backlog": "0",
+  "mess": "0",
+  "mock": false,
+  "started_at": "2026-10-18T13:59:05.376Z",
+  "cases": 130
+ },
+ "aggregates": [
+  {
+   "condition": "primitive-native",
+   "n": 130,
+   "unsupported": 0,
+   "errors": 0,
+   "csa_micro": {
+    "ok": 761,
+    "total": 911
+   },
+   "csa_macro": 0.8371930846930846,
+   "critical_exact": {
+    "ok": 76,
+    "total": 130
+   },
+   "sfer_state": {
+    "errors": 12,
+    "opp": 140
+   },
+   "sfer_action": {
+    "errors": 5,
+    "opp": 89
+   },
+   "loops": {
+    "tp": 73,
+    "fp": 257,
+    "fn": 25,
+    "zombie": 39
+   },
+   "epa": {
+    "ok": 685,
+    "total": 695
+   },
+   "docs": {
+    "ok": 100,
+    "total": 137
+   },
+   "conflicts": {
+    "found": 62,
+    "total": 72
+   },
+   "next_actor": {
+    "ok": 29,
+    "total": 130
+   },
+   "nas": {
+    "ok": 90,
+    "total": 130
+   },
+   "chs": {
+    "ok": 54,
+    "total": 130,
+    "ci": {
+     "mean": 0.4153846153846154,
+     "lo": 0.33076923076923076,
+     "hi": 0.5
+    }
+   },
+   "safety": 0,
+   "memory_tokens_median": 1261,
+   "actor_input_mean": 5198.8538461538465,
+   "cost_per_decision": 0.004291954230769229,
+   "ingestion_cost_mean": 0
+  },
+  {
+   "condition": "continuity",
+   "n": 130,
+   "unsupported": 0,
+   "errors": 0,
+   "csa_micro": {
+    "ok": 883,
+    "total": 911
+   },
+   "csa_macro": 0.9593159618159618,
+   "critical_exact": {
+    "ok": 113,
+    "total": 130
+   },
+   "sfer_state": {
+    "errors": 2,
+    "opp": 140
+   },
+   "sfer_action": {
+    "errors": 1,
+    "opp": 89
+   },
+   "loops": {
+    "tp": 76,
+    "fp": 211,
+    "fn": 22,
+    "zombie": 33
+   },
+   "epa": {
+    "ok": 815,
+    "total": 815
+   },
+   "docs": {
+    "ok": 121,
+    "total": 137
+   },
+   "conflicts": {
+    "found": 67,
+    "total": 72
+   },
+   "next_actor": {
+    "ok": 66,
+    "total": 130
+   },
+   "nas": {
+    "ok": 104,
+    "total": 130
+   },
+   "chs": {
+    "ok": 92,
+    "total": 130,
+    "ci": {
+     "mean": 0.7076923076923077,
+     "lo": 0.6307692307692307,
+     "hi": 0.7846153846153846
+    }
+   },
+   "safety": 0,
+   "memory_tokens_median": 1572,
+   "actor_input_mean": 6081,
+   "cost_per_decision": 0.002700992576923077,
+   "ingestion_cost_mean": 0.0017388421538461543
+  },
+  {
+   "condition": "zep-graphiti",
+   "n": 130,
+   "unsupported": 0,
+   "errors": 0,
+   "csa_micro": {
+    "ok": 837,
+    "total": 911
+   },
+   "csa_macro": 0.9070958742112587,
+   "critical_exact": {
+    "ok": 84,
+    "total": 130
+   },
+   "sfer_state": {
+    "errors": 9,
+    "opp": 140
+   },
+   "sfer_action": {
+    "errors": 8,
+    "opp": 89
+   },
+   "loops": {
+    "tp": 69,
+    "fp": 228,
+    "fn": 29,
+    "zombie": 46
+   },
+   "epa": {
+    "ok": 757,
+    "total": 769
+   },
+   "docs": {
+    "ok": 99,
+    "total": 137
+   },
+   "conflicts": {
+    "found": 65,
+    "total": 72
+   },
+   "next_actor": {
+    "ok": 29,
+    "total": 130
+   },
+   "nas": {
+    "ok": 91,
+    "total": 130
+   },
+   "chs": {
+    "ok": 63,
+    "total": 130,
+    "ci": {
+     "mean": 0.4846153846153846,
+     "lo": 0.4,
+     "hi": 0.5692307692307692
+    }
+   },
+   "safety": 0,
+   "memory_tokens_median": 1881,
+   "actor_input_mean": 8332,
+   "cost_per_decision": 0.0027401205769230766,
+   "ingestion_cost_mean": 0.05751329615384614
+  },
+  {
+   "condition": "mem0",
+   "n": 130,
+   "unsupported": 0,
+   "errors": 0,
+   "csa_micro": {
+    "ok": 824,
+    "total": 911
+   },
+   "csa_macro": 0.8932482474790164,
+   "critical_exact": {
+    "ok": 87,
+    "total": 130
+   },
+   "sfer_state": {
+    "errors": 6,
+    "opp": 140
+   },
+   "sfer_action": {
+    "errors": 8,
+    "opp": 89
+   },
+   "loops": {
+    "tp": 73,
+    "fp": 236,
+    "fn": 25,
+    "zombie": 42
+   },
+   "epa": {
+    "ok": 744,
+    "total": 758
+   },
+   "docs": {
+    "ok": 60,
+    "total": 137
+   },
+   "conflicts": {
+    "found": 64,
+    "total": 72
+   },
+   "next_actor": {
+    "ok": 29,
+    "total": 130
+   },
+   "nas": {
+    "ok": 100,
+    "total": 130
+   },
+   "chs": {
+    "ok": 72,
+    "total": 130,
+    "ci": {
+     "mean": 0.5538461538461539,
+     "lo": 0.46923076923076923,
+     "hi": 0.6384615384615384
+    }
+   },
+   "safety": 0,
+   "memory_tokens_median": 763.5,
+   "actor_input_mean": 2878.0384615384614,
+   "cost_per_decision": 0.0030484621538461533,
+   "ingestion_cost_mean": 0.0221190923076923
+  }
+ ],
+ "comparisons": [
+  {
+   "condition": "primitive-native",
+   "n": 130,
+   "chs": {
+    "diff": 0.2923076923076923,
+    "lo": 0.18461538461538463,
+    "hi": 0.4
+   },
+   "mcnemar": {
+    "b": 49,
+    "c": 11,
+    "p": 7.56128098239681e-7
+   },
+   "csa": {
+    "diff": 0.12212287712287706,
+    "lo": 0.09078361915861911,
+    "hi": 0.15359608447108444
+   },
+   "tokens": {
+    "diff": 255.9923076923077,
+    "lo": 146.55173076923077,
+    "hi": 365.92442307692306
+   }
+  },
+  {
+   "condition": "zep-graphiti",
+   "n": 130,
+   "chs": {
+    "diff": 0.2230769230769231,
+    "lo": 0.12307692307692308,
+    "hi": 0.3230769230769231
+   },
+   "mcnemar": {
+    "b": 40,
+    "c": 11,
+    "p": 0.00005703811637403081
+   },
+   "csa": {
+    "diff": 0.052220087604702994,
+    "lo": 0.031697889717120495,
+    "hi": 0.07290176490176488
+   },
+   "tokens": {
+    "diff": -124.23076923076923,
+    "lo": -185.11865384615385,
+    "hi": -61.807307692307695
+   }
+  },
+  {
+   "condition": "mem0",
+   "n": 130,
+   "chs": {
+    "diff": 0.15384615384615385,
+    "lo": 0.06153846153846154,
+    "hi": 0.24615384615384617
+   },
+   "mcnemar": {
+    "b": 31,
+    "c": 11,
+    "p": 0.0028872479742858503
+   },
+   "csa": {
+    "diff": 0.06606771433694511,
+    "lo": 0.03782550248896402,
+    "hi": 0.09713125763125761
+   },
+   "tokens": {
+    "diff": 770.7461538461539,
+    "lo": 699.7846153846153,
+    "hi": 844.1963461538461
+   }
+  }
+ ]
+}

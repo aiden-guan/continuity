@@ -8,3 +8,6 @@ eval/results/runs/
 bench/results/*
 !bench/results/README.md
 test-results/
+
+# memory-provider sidecar (bench/providers)
+bench/providers/.venv/

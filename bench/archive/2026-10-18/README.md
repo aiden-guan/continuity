@@ -11,3 +11,4 @@ Re-render a report by gunzipping `rows.jsonl` into a run folder and running `nod
 - `value-*`, `VALUE-RESULTS.md`: the value track (dependency depth, wakes, thread length, history)
 - `realistic`: realistic-thread eval outputs
 - `FINDINGS.md`: write-up
+- `memory-providers`: Mem0, Zep (Graphiti) and Hindsight (partial) vs Continuity on the held-out split

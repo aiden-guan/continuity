@@ -1,0 +1,94 @@
+{
+ "meta": {
+  "name": "mp-eval-hindsight",
+  "model": "claude-haiku-5-5",
+  "judge_model": "claude-haiku-5-5",
+  "effort": "medium",
+  "trials": 1,
+  "code": {
+   "commit": "3a394be856536dff6f090d4c5b176b6b423f3961",
+   "dirty": true,
+   "tool_budget": 6,
+   "extractor": {
+    "thinking": "off",
+    "effort": "medium",
+    "route": "skip-empty,outbound-plain-rules"
+   }
+  },
+  "splits": "eval",
+  "conditions": [
+   "hindsight"
+  ],
+  "backlog": "0",
+  "mess": "0",
+  "mock": false,
+  "started_at": "2026-10-18T10:47:25.265Z",
+  "cases": 130
+ },
+ "aggregates": [
+  {
+   "condition": "hindsight",
+   "n": 33,
+   "unsupported": 0,
+   "errors": 0,
+   "csa_micro": {
+    "ok": 136,
+    "total": 153
+   },
+   "csa_macro": 0.8781194295900179,
+   "critical_exact": {
+    "ok": 23,
+    "total": 33
+   },
+   "sfer_state": {
+    "errors": 1,
+    "opp": 30
+   },
+   "sfer_action": {
+    "errors": 3,
+    "opp": 23
+   },
+   "loops": {
+    "tp": 21,
+    "fp": 49,
+    "fn": 9,
+    "zombie": 13
+   },
+   "epa": {
+    "ok": 123,
+    "total": 127
+   },
+   "docs": {
+    "ok": 4,
+    "total": 24
+   },
+   "conflicts": {
+    "found": 16,
+    "total": 18
+   },
+   "next_actor": {
+    "ok": 4,
+    "total": 33
+   },
+   "nas": {
+    "ok": 22,
+    "total": 33
+   },
+   "chs": {
+    "ok": 18,
+    "total": 33,
+    "ci": {
+     "mean": 0.5454545454545454,
+     "lo": 0.3939393939393939,
+     "hi": 0.696969696969697
+    }
+   },
+   "safety": 0,
+   "memory_tokens_median": 1134,
+   "actor_input_mean": 3798.4848484848485,
+   "cost_per_decision": 0.0023952387878787883,
+   "ingestion_cost_mean": 0.022604682424242423
+  }
+ ],
+ "comparisons": []
+}

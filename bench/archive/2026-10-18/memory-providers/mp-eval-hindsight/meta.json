@@ -1,0 +1,26 @@
+{
+ "name": "mp-eval-hindsight",
+ "model": "claude-haiku-5-5",
+ "judge_model": "claude-haiku-5-5",
+ "effort": "medium",
+ "trials": 1,
+ "code": {
+  "commit": "3a394be856536dff6f090d4c5b176b6b423f3961",
+  "dirty": true,
+  "tool_budget": 6,
+  "extractor": {
+   "thinking": "off",
+   "effort": "medium",
+   "route": "skip-empty,outbound-plain-rules"
+  }
+ },
+ "splits": "eval",
+ "conditions": [
+  "hindsight"
+ ],
+ "backlog": "0",
+ "mess": "0",
+ "mock": false,
+ "started_at": "2026-10-18T10:47:25.265Z",
+ "cases": 130
+}
