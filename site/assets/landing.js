@@ -3,16 +3,16 @@
 //      (headings rise word by word, section labels decode)
 //   2. hero: "Agents forget." as particles (particles.js) over a looping canvas of agents on one thread
 //   3. Fig. 2, the email → state sequence (mechanism.js)
-//   4. the replayed demo: sticky thread + state readout driven by real engine output (snapshot.json)
+//   4. the replay: a pinned scene of thread → Continuity → agent, from real engine output (relay.js)
 //   5. results: Fig. 3 to scale (tokenfield.js), counters and cell meters
 //   6. footer wordmark, dithered — the page's one dithered moment, kept quiet
 import { dither } from './dither.js';
-import { threadSVG, eventLabel, esc } from './board.js';
 import { setupTheme, token } from './theme.js';
 import { splitWords, scramble, countUp, setupNavThread, stillMotion } from './motion.js';
 import { setupHeroParticles } from './particles.js';
 import { setupMechanism } from './mechanism.js';
 import { setupTokenField } from './tokenfield.js';
+import { setupRelay } from './relay.js';
 
 const one = (sel, root = document) => root.querySelector(sel);
 const all = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -301,74 +301,7 @@ function setupHeroThread(canvas) {
   kick();
 }
 
-// ============================================================ 3 · the replayed demo
-const lightLabel = (label) => label
-  .replace('All units by ', 'All by ')
-  .replace('Unit price within budget', 'Price ≤ budget')
-  .replace('Quantity 500 units', '500 units')
-  .replace('Budget approved', 'Budget OK');
-
-function buildBeats(snap) {
-  const events = snap.timeline.events;
-  const pos = (id) => events.findIndex((e) => e.id === id);
-  const sendingRun = (agent) => snap.runs.find((r) => r.agent_id === agent && r.decision?.action === 'send');
-
-  const killAt = pos('ev_3') + 0.45;
-  const bWakes = pos('ev_7') - 0.45;
-  const cWakes = pos('ev_9') - 0.45;
-
-  const agentA = (to, state) => ({ name: 'agent-a', from: 0, to, state });
-  const deadA = agentA(killAt, 'killed');
-  const agentB = { name: 'agent-b', from: bWakes, to: pos('ev_7'), state: 'done', note: 'memory 0' };
-  const agentC = { name: 'agent-c', from: cWakes, to: pos('ev_9'), state: 'alive', note: 'memory 0' };
-  const sinceKill = (to) => [{ from: killAt, to }];
-
-  // the single sentence agent B wrote that proves the point
-  const bBody = sendingRun('agent-b')?.decision?.messages?.[0]?.body ?? '';
-  const bSentence = bBody.split('\n').find((line) => /doesn't work|does not work|Oct 28/i.test(line)) ?? '';
-
-  return [
-    { at: 'ev_2', head: pos('ev_2'), title: 'Agent A opens the deal.', body: '500 boards, all by Friday, at most $11.50 each.', agents: [agentA(pos('ev_2'), 'alive')] },
-    { at: 'ev_3', head: pos('ev_3'), title: 'The supplier says yes.', body: '500 by Friday at $11.40. Quote attached.', agents: [agentA(pos('ev_3'), 'alive')] },
-    { at: 'ev_3', head: killAt, title: 'Then Agent A is killed.', body: 'No warning. No handoff notes.', agents: [deadA] },
-    { at: 'ev_5', head: pos('ev_5'), title: 'Finance approves.', body: 'Nobody is awake to read it. Continuity is.', agents: [deadA], gaps: sinceKill(pos('ev_5')) },
-    {
-      at: 'ev_6', head: pos('ev_6'), hot: pos('ev_6'), title: 'The supplier changes the deal.',
-      said: { who: 'them', text: '“Only 300 can arrive Friday. The other 200, Wednesday.”' },
-      body: 'The deadline is now missed.', agents: [deadA], gaps: sinceKill(pos('ev_6')),
-    },
-    {
-      at: 'ev_7', head: pos('ev_7'), title: 'Agent B wakes up with zero memory.', body: 'One call to Continuity. Then it writes:',
-      said: { who: 'agent', text: bSentence, caption: 'agent-b · 0 messages in memory' },
-      kicker: 'It never saw the conversation.', agents: [deadA, agentB], gaps: sinceKill(bWakes),
-    },
-    { at: 'ev_8', head: pos('ev_8'), title: 'The supplier fixes it.', body: 'All 500 by Friday, $11.48 each.', agents: [deadA, agentB], gaps: sinceKill(bWakes) },
-    { at: 'ev_9', head: pos('ev_9'), title: 'Agent C closes the deal.', body: 'Another fresh agent. Every check passes.', agents: [deadA, agentB, agentC], gaps: sinceKill(bWakes) },
-  ];
-}
-
-function stepMarkup(beat, i) {
-  const quote = beat.said
-    ? `<div class="said ${beat.said.who}">${beat.said.caption ? `<small>${esc(beat.said.caption)}</small>` : ''}${esc(beat.said.text)}</div>`
-    : '';
-  const kicker = beat.kicker ? `<p class="kicker">${esc(beat.kicker)}</p>` : '';
-  return `<article class="step" data-i="${i}">
-    <div class="step-n">${String(i + 1).padStart(2, '0')}</div>
-    <h3>${esc(beat.title)}</h3>
-    <p>${esc(beat.body)}</p>
-    ${quote}
-    ${kicker}
-  </article>`;
-}
-
-function miniMarkup(c) {
-  const who = c?.next_actor === 'us' ? 'Us' : c?.next_actor === 'them' ? 'Them' : 'Nobody';
-  const lights = (c?.checks ?? []).map((x) => `<div class="light ${esc(x.status)}"><i></i>${esc(lightLabel(x.check))}</div>`).join('')
-    || '<div class="light"><i></i>waiting for an offer</div>';
-  return `<div><div class="mini-k">Next move</div><div class="actor ${esc(c?.next_actor)}">${who}</div></div>
-      <div><div class="mini-k">Requirements</div><div class="lights">${lights}</div></div>`;
-}
-
+// ============================================================ 3 · the replay (relay.js)
 async function setupStory() {
   let snap;
   try {
@@ -376,48 +309,7 @@ async function setupStory() {
   } catch {
     return;
   }
-
-  const beats = buildBeats(snap);
-  one('#story-steps').innerHTML = beats.map(stepMarkup).join('');
-
-  const nodes = snap.timeline.events.map((e) => ({ id: e.id, label: eventLabel(e), dir: e.direction }));
-  const threadBox = one('#story-thread');
-  const mini = one('#story-mini');
-  const steps = all('.step');
-  let shown = -1;
-
-  function show(i) {
-    if (i === shown) return;
-    shown = i;
-    const beat = beats[i];
-    const c = snap.as_of[beat.at]?.context;
-    const model = { slots: nodes.length, nodes: nodes.map((n, k) => ({ ...n, hot: k === beat.hot })), head: beat.head, agents: beat.agents, gaps: beat.gaps };
-    threadBox.innerHTML = threadSVG(model, { width: Math.max(320, threadBox.clientWidth), height: 150, labels: innerWidth > 520 });
-    const before = one('.actor', mini)?.textContent;
-    mini.className = `mini ${(c?.checks ?? []).some((x) => x.status === 'fail') ? 'bad' : ''}`;
-    mini.innerHTML = miniMarkup(c);
-    const actor = one('.actor', mini);
-    if (before && actor.textContent !== before) actor.classList.add('roll');
-    one('#stage-v').textContent = `${beat.at} · state v${c?.meta?.state_version ?? '—'}`;
-    steps.forEach((s) => s.classList.toggle('on', Number(s.dataset.i) === i));
-  }
-
-  // the step whose centre is closest to the reading line wins
-  function choose() {
-    const readingLine = innerHeight * (innerWidth < 960 ? 0.65 : 0.5);
-    let best = 0;
-    let bestDist = Infinity;
-    steps.forEach((s, i) => {
-      const box = s.getBoundingClientRect();
-      const dist = Math.abs(box.top + box.height / 2 - readingLine);
-      if (dist < bestDist) { bestDist = dist; best = i; }
-    });
-    show(best);
-  }
-
-  show(0);
-  addEventListener('scroll', () => requestAnimationFrame(choose), { passive: true });
-  addEventListener('resize', () => { shown = -1; choose(); });
+  setupRelay(one('#relay'), snap);
   one('#foot-src').textContent = `story: real engine output, ${snap.captured_at.slice(0, 10)}`;
 }
 
