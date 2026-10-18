@@ -152,26 +152,30 @@
               <span class="rl-count">01 / 08</span>
             </div>
 
-            <div class="rl-stage">
-              <div class="rl-st rl-thread">
-                <div class="rl-h"><span>The thread</span><b>email</b></div>
-                <div class="rl-bubs"></div>
+            <div class="rl-body">
+              <div class="rl-cap" aria-live="polite">
+                <span class="rl-cap-n">01</span>
+                <h3></h3>
+                <p></p>
               </div>
-              <div class="rl-st rl-corest">
-                <div class="rl-h"><span><i class="rl-mark"></i>Continuity</span><b data-ver>state v—</b></div>
-                <div class="rl-core"></div>
-              </div>
-              <div class="rl-st rl-agentst">
-                <div class="rl-h"><span>The agent</span><b data-agent-chip>idle</b></div>
-                <div class="rl-agent"></div>
-                <canvas class="rl-burst" aria-hidden="true"></canvas>
-              </div>
-            </div>
 
-            <div class="rl-cap" aria-live="polite">
-              <span class="rl-cap-n">01</span>
-              <h3></h3>
-              <p></p>
+              <!-- the latest email → the state, as a departures board → the agent, top to bottom -->
+              <div class="rl-scene">
+                <div class="rl-lab"><span>The thread</span><b data-mails>—</b></div>
+                <div class="rl-ticket"></div>
+                <div class="rl-wire" data-wire="in" aria-hidden="true"><i></i></div>
+                <div class="rl-board">
+                  <div class="rl-bh"><span><i class="rl-mark"></i>Continuity</span><b data-ver>state v—</b></div>
+                  <div class="rl-rows"></div>
+                  <i class="rl-scan" aria-hidden="true"></i>
+                </div>
+                <div class="rl-wire" data-wire="out" aria-hidden="true"><i></i></div>
+                <div class="rl-lab"><span>The agent</span></div>
+                <div class="rl-agentst">
+                  <div class="rl-agent"></div>
+                  <canvas class="rl-burst" aria-hidden="true"></canvas>
+                </div>
+              </div>
             </div>
           </div>
         </div>
