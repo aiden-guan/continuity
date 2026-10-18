@@ -54,3 +54,16 @@ test('outbound plain by rules: only mail that asks, promises, offers or accepts 
   for (const body of ['ok to go to 13.00/ea on po-9145?', 'PO going out tonight', 'We counter at the original terms.', 'Go ahead and ship.', 'Can you get under budget', 'We accept your quote.']) await ex.extract(input('outbound', body));
   assert.equal(modelCalls, 6);
 });
+
+test('skip empty: routine mail naming the deal by its reference, with no term words, skips the model', async () => {
+  modelCalls = 0;
+  const ex = routedExtractor(model, { skipEmpty: true });
+  await ex.extract(input('inbound', 'Quick update on PO-4817: production is on track.'));
+  await ex.extract(input('inbound', 'Thanks for the call earlier regarding PO-4817.'));
+  await ex.extract(input('inbound', 'Our office closes at 3 on Friday for the holiday.'));
+  assert.equal(modelCalls, 0);
+  await ex.extract(input('inbound', 'PO-4817: boards ship in ESD trays, 50 per tray.'));
+  await ex.extract(input('inbound', 'Price for PO-4817 is now 11.20.'));
+  await ex.extract(input('inbound', 'Can you confirm the address for PO-4817?'));
+  assert.equal(modelCalls, 3, 'a term word with a figure, a price, or a question still goes to the model');
+});

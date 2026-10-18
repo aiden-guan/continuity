@@ -78,6 +78,23 @@ export function labelOf(task: TaskSpec, address: string): string {
 
 const EFFECTIVE_CLAIM_TRANSITIONS = new Set(['claim_added', 'claim_superseded', 'claim_contested', 'claim_held_for_verification', 'claim_verified']);
 
+const COUNT_WORDS: Record<string, number> = { both: 2, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
+
+/** How many documents a promise or request names ("2 signed copies", "all 3 Acme signature pages", "both BEOs"); null for one.
+ *  Between the number and the document noun only document adjectives or capitalised names may stand. */
+export function documentCount(text: string, kind: string): number | null {
+  const noun = `(?:copies|documents?|docs|pages|signature pages|counterparts|versions|entities|invoices|quotes|quotations|beos?|pods?|bols?|certificates|statements|forms|${kind.replace(/[_-]/g, '[ _-]')}s?)`;
+  const rx = new RegExp(`\\b(?:all\\s+)?(\\d{1,2}|both|two|three|four|five|six|seven|eight|nine|ten)\\s+((?:\\S+\\s+){0,4}?)${noun}\\b`, 'gi');
+  const adjective = /^(signed|countersigned|executed|original|revised|updated|separate|scanned|certified|final)$/i;
+  for (const m of text.matchAll(rx)) {
+    const words = m[2].trim().split(/\s+/).filter(Boolean);
+    if (!words.every((w) => adjective.test(w) || /^[A-Z]/.test(w))) continue;
+    const n = COUNT_WORDS[m[1].toLowerCase()] ?? Number(m[1]);
+    return n > 1 && n <= 20 ? n : null;
+  }
+  return null;
+}
+
 function groupOf(task: TaskSpec, address: string): string {
   return partyOf(task, address)?.group ?? address.toLowerCase();
 }
@@ -347,6 +364,15 @@ export function applyProposal(inp: ApplyInput) {
         store.updateObligation(ob.id, { status: 'cancelled', resolved_by_event_id: event.id, resolved_at: at, resolution_note: `${who} withdrew its offer` });
         log('obligation_resolved', `${who}'s commitment "${ob.text}" → cancelled (offer withdrawn)`, ob.id, { status: 'cancelled' });
       }
+      // what we were still asking them (send the contract, confirm a date) is answered by the withdrawal itself:
+      // left open, it had agents chasing a contract for an offer that no longer exists
+      if (!offeredSince) {
+        const asked = store.obligationsForTask(task.id).filter((x) => isOpen(x) && x.debtor === speaker && x.kind !== 'commitment' && cameBefore(x.source_event_id));
+        for (const ob of asked) {
+          store.updateObligation(ob.id, { status: 'answered', resolved_by_event_id: event.id, resolved_at: at, resolution_note: `${who} withdrew its offer` });
+          log('obligation_resolved', `${who}'s ${ob.kind} "${ob.text}" → answered (offer withdrawn)`, ob.id, { status: 'answered' });
+        }
+      }
       const lost = retracted.length ? `: ${retracted.join(', ')} no longer available` : '';
       const since = offeredSince ? `; its later offer (${offeredSince.source_event_id}) stays current` : '';
       log('offer_withdrawn', `${who} withdrew its offer${lost} (history kept${since})`, withdrawal.id, { retracted });
@@ -542,8 +568,9 @@ export function applyProposal(inp: ApplyInput) {
           exclude_sha256: store.artifactsForTask(task.id).filter((a) => a.owner === debtor && a.kind === expects).map((a) => a.sha256),
         };
       }
-      // a promise of N things, or a request for N documents ("return signed pages for all 3 entities")
-      const quantity = (po.kind === 'commitment' || (po.kind === 'request' && expects)) && pack.quantityOf ? pack.quantityOf(po.text) : null;
+      // a promise of N things, or a promise/request of N documents ("return signed pages for all 3 entities"). A
+      // document's count must count documents: "quote 750 units … send a formal quote" asks for one quote, not 750
+      const quantity = expects ? documentCount(po.text, expects) : po.kind === 'commitment' && pack.quantityOf ? pack.quantityOf(po.text) : null;
       // a question's "by Friday" is about its subject matter, not a deadline for replying
       let dueAt: string | null = null;
       if (po.kind !== 'question') {

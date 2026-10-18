@@ -111,6 +111,8 @@ function buildSections(ctx: CompiledContext): Section[] {
     if (held) return bullet(`${t.party} — ${t.term}: now says ${held.value}${evidenceTag([held.source])}, held until a human verifies it; the earlier ${t.value}${evidenceTag(t.stated_in)} no longer stands. Commit to neither until it is verified`);
     return bullet(`${t.party} — ${t.term} = ${t.value}${contestedMark}${alsoIn}${evidenceTag(t.stated_in)}`);
   });
+  // a withdrawal is the party's current position on its offer: state it among the current terms too
+  for (const w of ctx.withdrawn_offers) termLines.push(bullet(`${w.party} — offer.status = withdrawn${evidenceTag([w.withdrawn_in])}`));
   section('current_terms', true, 'Current terms (latest valid statements)', termLines.length ? termLines : [bullet('(none yet)')]);
   if (ctx.withdrawn_offers.length) {
     section('withdrawn', true, 'Withdrawn offers — NOT available (history only)', ctx.withdrawn_offers.map((w) => {
@@ -175,7 +177,9 @@ function buildSections(ctx: CompiledContext): Section[] {
     const docLines = ctx.documents.map((d) => {
       let line = bullet(`${d.filename} (${d.kind}${d.version ? ` ${d.version}` : ''}, from ${d.from}) — ${d.status.toUpperCase()}${d.superseded_by ? ` by ${d.superseded_by}` : ''}${evidenceTag([d.received_in])}`);
       if (d.still_current_terms.length && d.status !== 'superseded' && d.status !== 'withdrawn') line += `\n  - still current: ${d.still_current_terms.join('; ')}`;
-      for (const s of d.stale_terms) line += `\n  - STALE: ${s.term} says ${s.document_says}, now ${s.now}${evidenceTag([s.changed_by])}`;
+      // a withdrawn document is withdrawn as a whole: one line says so instead of every term "now (withdrawn)"
+      if (d.status === 'withdrawn') line += '\n  - none of its terms are available any more';
+      else for (const s of d.stale_terms) line += `\n  - STALE: ${s.term} says ${s.document_says}, now ${s.now}${evidenceTag([s.changed_by])}`;
       return line;
     });
     section('documents', false, 'Documents', [...olderOmitted(omitted.superseded_documents, 'superseded documents', stateDrill), ...docLines]);

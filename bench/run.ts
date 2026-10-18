@@ -24,6 +24,7 @@
 //   --max-sends 300 (hard cap)  --per-hour <n> (default 90% of the account limit)  --live-concurrency 4
 //   --fake (in-memory Primitive: deliver and run in one process, nothing sent)  --allow-processing
 import { parseArgs } from 'node:util';
+import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -40,6 +41,7 @@ import { DEFAULT_MODEL, Llm, PRICING, estimateTokens } from './core/llm.ts';
 import { runCell, type Row } from './core/pipeline.ts';
 import { deliverAll, describePreflight, liveMailboxes, liveSkipReason, manifestPath, openClient, reverifyAll } from './live/run-live.ts';
 import { loadManifest, type LiveManifest } from './live/deliver.ts';
+import { TOOL_BUDGET } from './conditions/primitive.ts';
 import type { LiveClient } from './live/client.ts';
 import { renderReport } from './core/report.ts';
 
@@ -290,7 +292,10 @@ async function main() {
         if (diff.length) throw new Error(`${dir} was run with ${diff.map(([k, x, y]) => `${k} ${x} (now ${y})`).join(', ')}; pick a new --name`);
       }
       const done = new Set(latestRows(readRows(rowsFile)).filter((r) => !r.error).map((r) => r.key));
-      const meta = { name, model: a.model, judge_model: judgeLlm.model, effort, trials, splits: a.split || 'golden,dev,eval', conditions: conds.map((c) => c.id), backlog: a.backlog, mess: a.mess, mock: a.mock, started_at: new Date().toISOString(), cases: cases.length, ...(live ? { live: { name: live.manifest.name, run_tag: live.manifest.run_tag, domain: live.manifest.domain, fake: a.fake } } : {}) };
+      // the code a run measured: commit, and whether the tree had uncommitted changes
+      const git = (args: string) => { try { return execSync(`git ${args}`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); } catch { return null; } };
+      const code = { commit: git('rev-parse HEAD'), dirty: (git('status --porcelain') ?? '').length > 0, tool_budget: TOOL_BUDGET, extractor_env: { thinking: process.env.CONTINUITY_EXTRACTOR_THINKING ?? null, effort: process.env.CONTINUITY_EXTRACTOR_EFFORT ?? null, route: process.env.CONTINUITY_EXTRACT_ROUTE ?? null } };
+      const meta = { name, model: a.model, judge_model: judgeLlm.model, effort, trials, code, splits: a.split || 'golden,dev,eval', conditions: conds.map((c) => c.id), backlog: a.backlog, mess: a.mess, mock: a.mock, started_at: new Date().toISOString(), cases: cases.length, ...(live ? { live: { name: live.manifest.name, run_tag: live.manifest.run_tag, domain: live.manifest.domain, fake: a.fake } } : {}) };
       writeFileSync(metaFile, JSON.stringify(meta, null, 1));
       const cells = cases.flatMap(({ mod, case: c }) => conds.flatMap((condition) => Array.from({ length: trials }, (_, t) => ({ mod, c, condition, trial: t + 1 }))))
         .filter((x) => !done.has(`${x.c.id}|${x.condition.id}|${x.trial}`));

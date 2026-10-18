@@ -92,8 +92,10 @@ export function runChecks(task: TaskSpec, active: Claim[]): CheckResult[] {
     const schedule = term('delivery.schedule', who);
     const price = term('price.unit', who);
     const qtyClaim = term('order.quantity', who);
+    // a party is only checked on what it may set: a freight forwarder (delivery only) owes no price or quantity
+    const mays = (prefix: string) => party.authority.some((a) => a.startsWith(prefix) || prefix.startsWith(a));
 
-    if (deadline) {
+    if (deadline && mays('delivery.')) {
       const label = `All units by ${deadline.display}`;
       const id = `delivery_deadline:${who}`;
       if (!schedule) {
@@ -118,7 +120,7 @@ export function runChecks(task: TaskSpec, active: Claim[]): CheckResult[] {
       }
     }
 
-    if (quantity) {
+    if (quantity && (mays('order.') || mays('delivery.'))) {
       const label = `Quantity ${quantity.display}`;
       const id = `quantity:${who}`;
       const source = schedule ?? qtyClaim;
@@ -135,7 +137,7 @@ export function runChecks(task: TaskSpec, active: Claim[]): CheckResult[] {
       }
     }
 
-    if (maxPrice || budget) {
+    if ((maxPrice || budget) && mays('price.')) {
       const label = 'Unit price within budget';
       const id = `price_budget:${who}`;
       const requirementKey = maxPrice?.key ?? 'budget.max_unit_price';
@@ -330,7 +332,7 @@ export const procurement: DomainPack = {
       const party = task.participants.find((p) => p.address === c.party);
       actions.push({
         priority: 1, kind: 'offer_withdrawn', to: null, to_address: null, check_id: c.id,
-        action: `${party?.label ?? c.party} withdrew its offer — do not accept or rely on its earlier terms; find another source or escalate to the requester`,
+        action: `${party?.label ?? c.party} withdrew its offer — acknowledge the withdrawal to them, do not accept or rely on its earlier terms, and find another source or escalate to the requester`,
         why: c.detail,
         evidence: c.evidence.map((id) => live.find((l) => l.id === id)?.source_event_id).filter((x): x is string => !!x),
       });

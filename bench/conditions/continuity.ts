@@ -87,7 +87,7 @@ function outboundInput(m: MailMessage, taskId: string): EventInput {
 /** Wraps an extractor: caches proposals on disk (per trial) and records provider usage as ingestion cost.
  *  The rule extractor is free and deterministic, so it is never cached (a cache keyed by its name would
  *  serve stale proposals after its rules change). */
-function metered(inner: Extractor, cacheDir: string, trial: number, calls: CallRecord[], refresh = false): Extractor {
+function metered(inner: Extractor, cacheDir: string, trial: number, calls: CallRecord[], refresh = false, failures?: { n: number }): Extractor {
   if (inner.name.startsWith('heuristic')) return inner;
   mkdirSync(cacheDir, { recursive: true });
   return {
@@ -103,7 +103,13 @@ function metered(inner: Extractor, cacheDir: string, trial: number, calls: CallR
         proposal = JSON.parse(readFileSync(file, 'utf8'));
         cached = true;
       } else {
-        proposal = await inner.extract(input);
+        // a failed read falls back to the rule extractor inside the engine: count it, or the run looks cheaper than it was
+        try {
+          proposal = await inner.extract(input);
+        } catch (err) {
+          if (failures) failures.n++;
+          throw err;
+        }
         writeFileSync(file, JSON.stringify(proposal));
       }
       const u = proposal.meta?.usage as { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number } | undefined;
@@ -223,6 +229,8 @@ async function replay(mb: Mailbox, ctx: ConditionCtx, extractor: Extractor) {
   const rewrite = (s: string) => s.replace(/\bev_\d+\b/g, (id) => idOf.get(id) ?? id);
   const briefing = rewrite(renderBriefing(context));
   const engineState = engineReport(h, context, idOf, domain!);
+  // emails the engine read with the rule extractor because the model call failed or its circuit was open
+  const fallbackReads = h.store.flagsForTask(spec.id).filter((f) => f.kind === 'extractor_fallback').length;
   const linked = new Set(h.store.eventsForTask(spec.id).map((e) => idOf.get(e.id)));
   const linkage = {
     task_linked: mb.messages.filter((m) => m.task && linked.has(m.id)).length,
@@ -230,7 +238,7 @@ async function replay(mb: Mailbox, ctx: ConditionCtx, extractor: Extractor) {
     background_linked: mb.messages.filter((m) => !m.task && linked.has(m.id)).length,
     background_total: mb.messages.filter((m) => !m.task).length,
   };
-  return { briefing, engineState, linkage };
+  return { briefing, engineState, linkage, fallbackReads };
 }
 
 function continuityCondition(id: string, label: string, description: string, pick: (ctx: ConditionCtx) => Extractor): Condition {
@@ -242,9 +250,10 @@ function continuityCondition(id: string, label: string, description: string, pic
         return { label: 'briefing', memory: '', ingestion: [], retrieval: [], unsupported: `no Continuity domain pack "${domain}" for vertical ${ctx.vertical.id}` };
       }
       const calls: CallRecord[] = [];
-      const extractor = metered(pick(ctx), join(ctx.cacheDir, 'extractions'), ctx.trial, calls, ctx.refresh);
-      const { briefing, engineState, linkage } = await replay(mb, ctx, extractor);
-      return { label: 'briefing', memory: briefing, ingestion: calls, retrieval: [], engineState, diag: { extractor: extractor.name, linkage } };
+      const failures = { n: 0 };
+      const extractor = metered(pick(ctx), join(ctx.cacheDir, 'extractions'), ctx.trial, calls, ctx.refresh, failures);
+      const { briefing, engineState, linkage, fallbackReads } = await replay(mb, ctx, extractor);
+      return { label: 'briefing', memory: briefing, ingestion: calls, retrieval: [], engineState, diag: { extractor: extractor.name, linkage, failed_reads: failures.n, fallback_reads: fallbackReads } };
     },
   };
 }

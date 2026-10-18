@@ -18,7 +18,8 @@ import type { CallRecord } from '../core/llm.ts';
 import { bm25 } from '../core/bm25.ts';
 import { liveTool, liveTriggerDetail } from '../live/view.ts';
 
-export const TOOL_BUDGET = 6;
+/** Read-tool calls the agent may make (BENCH_TOOL_BUDGET overrides, for a budget sweep; recorded in meta.json). */
+export const TOOL_BUDGET = Number(process.env.BENCH_TOOL_BUDGET) || 6;
 
 const tool = (name: string, description: string, properties: Record<string, unknown>, required: string[] = []) => ({
   name, description, input_schema: { type: 'object', additionalProperties: false, properties, required },

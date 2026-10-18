@@ -391,3 +391,35 @@ test('a known party writing about another deal of the same kind, or a stranger n
   assert.equal(await link('deals@bulk-electronics.example', 'Flash sale: AX-200 boards from $24.56!'), null, 'a stranger naming our part number');
   assert.equal(await link('billing@brightline.example', 'Statement', 'Covers AX-200 for your order.'), 'task_po', 'same supplier domain naming a reference the task names');
 });
+
+test('a request for a document counts documents, not the goods it is about', async () => {
+  const { documentCount } = await import('../src/engine/resolver.ts');
+  assert.equal(documentCount('Please quote 750 units by Fri Nov 20 and send a formal quote.', 'quote'), null, 'one quote, not 750');
+  assert.equal(documentCount("I'll send the revised quote for 500 units tomorrow", 'quote'), null);
+  assert.equal(documentCount('Please return signed pages for all 3 entities', 'document'), 3);
+  assert.equal(documentCount('send all 3 Acme Holdings signature pages', 'document'), 3);
+  assert.equal(documentCount('We will send both BEOs today', 'beo'), 2);
+
+  // end to end: the RFQ's request for a formal quote is fulfilled by the one quote that arrives
+  const h = new Harness(procurementTask(addr));
+  const rfq = await h.out(addr.supplier, 'RFQ — PO-4817', 'Hi Dana, please quote 750 units by Fri Oct 23 and send a formal quote.', '2026-10-19T09:00:00Z');
+  await h.in({ from: addr.supplier, fromName: 'Dana', to: addr.self, subject: 'Re: RFQ — PO-4817', body: 'Quote attached.', at: '2026-10-19T10:00:00Z', threadKey: 's', inReplyTo: rfq.messageId, attachments: [{ filename: 'Q-2291.pdf', content_type: 'application/pdf', bytes: quoteV1() }] });
+  const quoteRequest = h.obligations().find((o) => o.expects_artifact === 'quote');
+  assert.ok(quoteRequest, 'the request for a quote is tracked');
+  assert.equal(quoteRequest!.quantity, null);
+  assert.notEqual(quoteRequest!.status, 'partially_fulfilled');
+});
+
+test('a document is stale only while its value differs, and the stale line names today\'s value', async () => {
+  const h = new Harness(procurementTask(addr));
+  const rfq = await h.out(addr.supplier, 'RFQ — PO-4817', 'Hi Dana, please quote 500 units by Fri Oct 23.', '2026-10-19T09:00:00Z');
+  const say = (body: string, at: string) => h.in({ from: addr.supplier, fromName: 'Dana', to: addr.self, subject: 'Re: RFQ — PO-4817', body, at, threadKey: 's', inReplyTo: rfq.messageId });
+  await h.in({ from: addr.supplier, fromName: 'Dana', to: addr.self, subject: 'Re: RFQ — PO-4817', body: 'Quote attached.', at: '2026-10-19T10:00:00Z', threadKey: 's', inReplyTo: rfq.messageId, attachments: [{ filename: 'Q-2291.pdf', content_type: 'application/pdf', bytes: quoteV1() }] });
+  await say('Correction: the unit price is $11.48.', '2026-10-19T11:00:00Z');
+  await say('Correction: the unit price is $11.52.', '2026-10-19T12:00:00Z');
+  const stalePrice = () => h.context().documents[0].stale_terms.find((t: { term: string }) => t.term === 'price.unit');
+  assert.equal(stalePrice()?.now, '$11.52', 'today\'s value, not the first replacement');
+  await say('Correction: back to the quoted $11.40 per unit.', '2026-10-19T13:00:00Z');
+  assert.equal(h.active('price.unit')[0].value, 11.4);
+  assert.equal(stalePrice(), undefined, 'the quote says $11.40 again: not stale on price');
+});
