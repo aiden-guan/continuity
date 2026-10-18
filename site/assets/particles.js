@@ -88,15 +88,7 @@ export function setupHeroParticles({ hero, line, thread, nodes = [], head = () =
       g.restore();
     }
 
-    // the thread line in Fig. 1 (landing.js draws it at 60% of the canvas height)
-    const tb = thread.getBoundingClientRect();
-    const margin = Math.max(20, Math.min(tb.width * 0.05, 64));
-    const lineY = tb.top - box.top + Math.round(tb.height * 0.6);
-    const lineA = tb.left - box.left + margin;
-    const lineB = tb.right - box.left - margin;
-    view.lineY = lineY;
-    view.lineA = lineA;
-    view.lineB = lineB;
+    measureThread(box);
 
     const step = Math.max(2, Math.round(size / 42));
     dot = Math.max(1.3, step * 0.74);
@@ -118,7 +110,7 @@ export function setupHeroParticles({ hero, line, thread, nodes = [], head = () =
           hx: x, hy: y,
           across, jx,
           tx: targetX(across, lit0, at0) + jx,
-          ty: lineY + (Math.random() - 0.5) * 3,
+          jy: (Math.random() - 0.5) * 3,
           // assembly runs left to right; dissolving starts at the end of "forget."
           inDelay: across * 0.55 + Math.random() * 0.45,
           outDelay: (1 - across) * 0.7 + Math.random() * 0.3,
@@ -136,6 +128,17 @@ export function setupHeroParticles({ hero, line, thread, nodes = [], head = () =
   }
 
   // ------------------------------------------------------------ targets
+  // Fig. 1's line, where landing.js draws it (60% of its canvas height, inset by its margin).
+  // Measured every frame: the figure slides in after load, and a cached position lands the
+  // particles below the line.
+  function measureThread(box) {
+    const tb = thread.getBoundingClientRect();
+    const margin = Math.max(20, Math.min(tb.width * 0.05, 64));
+    view.lineY = tb.top - box.top + Math.round(tb.height * 0.6);
+    view.lineA = Math.round(tb.left - box.left + margin);
+    view.lineB = Math.round(tb.right - box.left - margin);
+  }
+
   // only the nodes Fig. 1's playhead has passed (drawn in ink) take particles; before the first
   // one is reached, everything pools at the playhead itself
   const litNodes = (at) => nodes.filter((n) => n <= at);
@@ -156,7 +159,9 @@ export function setupHeroParticles({ hero, line, thread, nodes = [], head = () =
     ctx.clearRect(0, 0, w, h);
 
     // done by the time the thread has risen to 30% of the screen, so the landing is always in view
-    const heroTop = hero.getBoundingClientRect().top;
+    const heroBox = hero.getBoundingClientRect();
+    const heroTop = heroBox.top;
+    measureThread(heroBox);
     const scrolled = clamp01(-heroTop / Math.max(260, view.lineY - innerHeight * 0.3));
     const dt = lastNow ? Math.min(64, now - lastNow) : 16;
     lastNow = now;
@@ -189,7 +194,7 @@ export function setupHeroParticles({ hero, line, thread, nodes = [], head = () =
       const arc = Math.sin(Math.PI * t) * p.swirl;
       const ang = p.angle + t * p.spin + now * 0.00035;
       let x = p.hx + (p.tx - p.hx) * e + Math.cos(ang) * arc;
-      let y = p.hy + (p.ty - p.hy) * e + Math.sin(ang) * arc * 0.55;
+      let y = p.hy + (view.lineY + p.jy - p.hy) * e + Math.sin(ang) * arc * 0.55;
 
       // the pointer pushes letters aside; they spring back
       let pushX = 0;
