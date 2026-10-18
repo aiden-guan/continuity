@@ -9,6 +9,7 @@
 import type { StateStore } from '../store/state.ts';
 import type { Artifact, CheckResult, Claim, Obligation, StoredEvent, TaskSpec, Transition } from '../types.ts';
 import { isOpen, labelOf, partyOf } from '../engine/resolver.ts';
+import { openApprovals } from '../engine/approval-log.ts';
 import { domainFor, termOf, type SuggestedAction } from '../domain/pack.ts';
 import '../domain/index.ts';
 import { stripQuoted } from '../extract/heuristic.ts';
@@ -16,6 +17,8 @@ import { nowIso } from '../clock.ts';
 import type { Lot } from '../domain/procurement.ts';
 
 export type ContextPurpose = 'act' | 'reply' | 'review' | 'accept' | 'follow_up';
+/** Who moves next; "human" while a decision is held for a person and nothing urgent is ours to do. */
+export type NextActor = 'us' | 'them' | 'none' | 'human';
 
 export interface CompileOptions {
   agentId?: string; // the agent whose cursor marks "changes since last action"
@@ -42,6 +45,7 @@ const REPORTABLE_TRANSITIONS = new Set([
   'obligation_opened', 'obligation_resolved', 'obligation_unverified', 'obligation_partially_fulfilled', 'obligation_condition_met', 'obligation_overdue',
   'artifact_added', 'artifact_status', 'artifact_superseded', 'offer_withdrawn', 'offer_reinstated', 'delivery_reported',
   'conflict_detected', 'conflict_resolved', 'injection_quarantined', 'interpretation_failed',
+  'claim_held_for_verification', 'claim_verified', 'claim_rejected', 'approval_requested', 'approval_decided', 'approval_expired',
 ]);
 
 // Flags that must survive the history cap no matter how many there are.
@@ -234,9 +238,23 @@ export function compileContext(store: StateStore, taskId: string, opts: CompileO
     .map((t) => ({ seq: t.seq, at: t.at, type: t.type, summary: t.summary, event: t.event_id }));
   const changes = capNewest(changeList, 30);
 
+  // ---- decisions held for a human (an agent never commits on its own while one is open)
+  const pending_approvals = (opts.asOf ? [] : openApprovals(store, task.id, opts.now ?? nowIso())).map((a) => ({
+    id: a.id, kind: a.kind, status: a.status, title: a.title,
+    asked_because: a.reasons, since: a.created_at, expires_at: a.expires_at, to: a.draft ? label(a.draft.to) : null,
+  }));
+
   // ---- who moves next and what they might do (derived from state; the agent decides)
   const tentativeClaims = claims.filter((c) => c.status === 'proposed');
-  const { next_actor, reason, actions } = suggestActions(store, task, { failing, contested, openObs, events, checks, allTransitions: transitions, live, tentative: tentativeClaims, today });
+  const suggested = suggestActions(store, task, { failing, contested, openObs, events, checks, allTransitions: transitions, live, tentative: tentativeClaims, today });
+  const commitPending = pending_approvals.some((p) => p.kind === 'send' && p.asked_because.some((r) => r.startsWith('commitment')));
+  const actions = commitPending ? suggested.actions.filter((x) => x.kind !== 'accept_offer') : suggested.actions;
+  let next_actor: NextActor = suggested.next_actor;
+  let reason = suggested.reason;
+  if (pending_approvals.length && !actions.some((x) => x.priority === 1)) {
+    next_actor = 'human';
+    reason = `Waiting on a human: ${pending_approvals.map((p) => `${p.title} (${p.id}${p.status === 'held' ? ', held to verify' : ''})`).join('; ')}`;
+  }
   for (const a of actions) {
     for (const id of a.evidence) if (id.startsWith('ev_')) cite(id);
   }
@@ -307,6 +325,7 @@ export function compileContext(store: StateStore, taskId: string, opts: CompileO
     next_actor,
     next_actor_reason: reason,
     suggested_actions: actions,
+    pending_approvals,
     conflicts,
     current_terms,
     withdrawn_offers,
@@ -533,7 +552,7 @@ function suggestActions(store: StateStore, task: TaskSpec, s: SuggestInput) {
   const waitingOn = s.openObs.filter((o) => o.debtor !== self);
   const urgent = actions.filter((a) => a.priority === 1);
   const decided = !!pack.decisionKey && s.live.some((c) => c.key === pack.decisionKey && c.speaker === self);
-  const next_actor = urgent.length ? 'us' : waitingOn.length ? 'them' : 'none';
+  const next_actor: NextActor = urgent.length ? 'us' : waitingOn.length ? 'them' : 'none';
   let reason: string;
   if (urgent.length) reason = `We need to act: ${urgent.map((a) => a.action).join(' | ')}`;
   else if (waitingOn.length) reason = `Waiting on: ${waitingOn.map((o) => `${label(o.debtor)} (${o.text})`).join('; ')}`;

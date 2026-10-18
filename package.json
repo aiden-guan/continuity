@@ -16,6 +16,8 @@
     "demo": "node --env-file-if-exists=.env scripts/demo.ts",
     "demo:supabase": "node --env-file-if-exists=.env scripts/demo.ts --store postgres",
     "demo:live": "node --env-file-if-exists=.env scripts/demo-live.ts",
+    "demo:deal": "node --env-file-if-exists=.env scripts/demo-deal.ts",
+    "demo:portfolio": "node --env-file-if-exists=.env scripts/demo-portfolio.ts",
     "stage": "node --env-file-if-exists=.env scripts/stage.ts",
     "eval": "node --env-file-if-exists=.env eval/run.ts",
     "agent": "node --env-file-if-exists=.env src/agent/run.ts",

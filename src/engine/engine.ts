@@ -14,15 +14,17 @@ import type { Backend, JobInput, JobRow, ReceiveResult, TaskSnapshot } from '../
 import { backoffMs } from '../store/backend.ts';
 import type { MemoryStore } from '../store/state.ts';
 import type { Artifact, EventInput, StoredEvent, TaskSpec } from '../types.ts';
-import type { Extractor, Proposal } from '../extract/types.ts';
+import type { ExtractInput, Extractor, Proposal } from '../extract/types.ts';
 import { heuristicExtractor, classifyArtifact } from '../extract/heuristic.ts';
 import { attachmentText } from '../ingest/attachments.ts';
 import { resolveTask } from '../ingest/link.ts';
 import { applyProposal, isOpen, labelOf, partyOf, refreshDerived } from './resolver.ts';
 import { domainFor } from '../domain/pack.ts';
 import { nowIso } from '../clock.ts';
+import { parseSenderAuth, senderAuthMode } from '../ingest/sender-auth.ts';
+import { Breaker, isTransient, limiter, withDeadline } from './limit.ts';
 
-export type AttachmentFetcher = (event: StoredEvent, partIndex: number) => Promise<Buffer | null>;
+export type AttachmentFetcher = (event: StoredEvent, partIndex: number, signal?: AbortSignal) => Promise<Buffer | null>;
 
 export interface IngestResult {
   event: StoredEvent;
@@ -38,7 +40,16 @@ export interface EngineOptions {
   maxStaleRetries?: number;
   /** wait for inline processing (ingest/send) before giving up and leaving it to the worker */
   inlineTimeoutMs?: number;
+  /** overall deadline for one extraction, retries included (CONTINUITY_EXTRACT_DEADLINE_MS, default 150 s) */
+  extractDeadlineMs?: number;
+  /** extractions running at once in this process (CONTINUITY_EXTRACT_CONCURRENCY, default 4) */
+  extractConcurrency?: number;
+  /** per attachment download (CONTINUITY_ATTACHMENT_TIMEOUT_MS, default 30 s) */
+  attachmentTimeoutMs?: number;
+  breaker?: Breaker;
 }
+
+const envNum = (key: string, fallback: number) => (process.env[key] ? Number(process.env[key]) : fallback);
 
 type Listener = (org: string, taskId: string) => void;
 
@@ -66,6 +77,11 @@ export class Engine {
   #stopped = true;
   #wake: (() => void) | null = null;
   stats = { processed: 0, stale_retries: 0, failures: 0 };
+  /** opens after repeated outages of the primary extractor; events then fall back to the rules at once */
+  breaker: Breaker;
+  #limit: ReturnType<typeof limiter>;
+  #extractDeadlineMs: number;
+  #attachmentTimeoutMs: number;
 
   constructor(backend: Backend, extractor: Extractor, fetchAttachment: AttachmentFetcher | null = null, opts: EngineOptions = {}) {
     this.backend = backend;
@@ -75,6 +91,10 @@ export class Engine {
     this.leaseMs = opts.leaseMs ?? 120_000;
     this.maxStaleRetries = opts.maxStaleRetries ?? 4;
     this.inlineTimeoutMs = opts.inlineTimeoutMs ?? 120_000;
+    this.#extractDeadlineMs = opts.extractDeadlineMs ?? envNum('CONTINUITY_EXTRACT_DEADLINE_MS', 150_000);
+    this.#attachmentTimeoutMs = opts.attachmentTimeoutMs ?? envNum('CONTINUITY_ATTACHMENT_TIMEOUT_MS', 30_000);
+    this.#limit = limiter(opts.extractConcurrency ?? envNum('CONTINUITY_EXTRACT_CONCURRENCY', 4));
+    this.breaker = opts.breaker ?? new Breaker();
   }
 
   async createTask(org: string, spec: TaskSpec, at: string) {
@@ -276,17 +296,7 @@ export class Engine {
           .map((c) => [c.id, snap.store.claimEvidence(c.id).map((r) => r.quote)])),
       } as const;
 
-      let proposal: Proposal;
-      let extractorName = this.extractor.name;
-      let fallback: string | null = null;
-      try {
-        proposal = await this.extractor.extract(input);
-      } catch (err) {
-        // an event is never lost because interpretation failed: fall back to the rules and flag it
-        fallback = `${this.extractor.name} failed: ${(err as Error).message}`;
-        proposal = await heuristicExtractor.extract(input);
-        extractorName = heuristicExtractor.name;
-      }
+      const { proposal, extractorName, fallback } = await this.#extract(input);
 
       if (this.beforeCommit) await this.beforeCommit(job, snap);
       const committed = await this.backend.commit(
@@ -315,7 +325,7 @@ export class Engine {
       }
       let bytes = await this.backend.getBlob(org, { event_id: event.id, part_index: meta.part_index });
       if (!bytes && this.fetchAttachment) {
-        bytes = await this.fetchAttachment(event, meta.part_index).catch(() => null);
+        bytes = await this.fetchAttachment(event, meta.part_index, AbortSignal.timeout(this.#attachmentTimeoutMs)).catch(() => null);
         if (bytes) {
           // cache it privately, keyed by the Primitive source and the content hash
           const digest = sha256Hex(bytes);
@@ -336,6 +346,32 @@ export class Engine {
       });
     }
     return out;
+  }
+
+  /**
+   * Interpretation with a hard deadline. Any failure (deadline, outage, bad output) falls back to the
+   * rule-based extractor and is flagged, so one email never holds its task for long and an event is
+   * never lost because interpretation failed. During an outage the breaker skips the primary entirely.
+   */
+  async #extract(input: ExtractInput): Promise<{ proposal: Proposal; extractorName: string; fallback: string | null }> {
+    const primary = this.extractor;
+    if (primary === heuristicExtractor) return { proposal: await primary.extract(input), extractorName: primary.name, fallback: null };
+    if (!this.breaker.allow()) {
+      return { proposal: await heuristicExtractor.extract(input), extractorName: heuristicExtractor.name, fallback: `${primary.name} skipped: circuit open after repeated failures` };
+    }
+    try {
+      // the deadline starts once a concurrency slot is free, so queueing does not eat into it
+      const proposal = await this.#limit(() => {
+        const signal = AbortSignal.timeout(this.#extractDeadlineMs);
+        return withDeadline(primary.extract(input, { signal }), signal);
+      });
+      this.breaker.success();
+      return { proposal, extractorName: primary.name, fallback: null };
+    } catch (err) {
+      if (isTransient(err)) this.breaker.failure();
+      const why = (err as Error)?.name === 'TimeoutError' ? `deadline of ${this.#extractDeadlineMs} ms exceeded` : (err as Error)?.message;
+      return { proposal: await heuristicExtractor.extract(input), extractorName: heuristicExtractor.name, fallback: `${primary.name} failed: ${why}` };
+    }
   }
 
   async #deadline(job: JobRow) {
@@ -388,9 +424,11 @@ export function applyInterpretation(s: MemoryStore, task: TaskSpec, event: Store
     summary: `${route}: "${event.subject}"${attachmentNote}`,
     detail: { link_reason: event.link_reason, thread_id: event.thread_id, direction: event.direction },
   });
-  if (!partyOf(task, event.from)) {
+  const party = partyOf(task, event.from);
+  if (!party) {
     s.addFlag(task.id, event.id, 'unknown_sender', `${event.from} is not a task participant; their statements are recorded as tentative`, event.received_at);
   }
+  flagEvidence(s, task, event, party?.role ?? null);
 
   const artifacts: Artifact[] = texts.map((t) => {
     const classified = proposal.artifacts.find((a) => a.filename === t.filename) ?? { ...classifyArtifact(t.filename, t.text, domainFor(task)) };
@@ -402,6 +440,25 @@ export function applyInterpretation(s: MemoryStore, task: TaskSpec, event: Store
     });
   });
   applyProposal({ store: s, task, event, proposal, extractor: extractorName, artifacts });
+}
+
+/** Flags about the evidence itself: repaired times (found at receipt) and an unproven sender identity. */
+function flagEvidence(s: MemoryStore, task: TaskSpec, event: StoredEvent, role: string | null) {
+  const flag = (kind: string, detail: string) => {
+    if (s.flagsForTask(task.id).some((f) => f.event_id === event.id && f.kind === kind)) return;
+    s.addFlag(task.id, event.id, kind, detail, event.received_at);
+  };
+  for (const f of event.time_flags ?? []) flag(f.kind, f.detail);
+  if (event.direction !== 'inbound') return;
+  const auth = parseSenderAuth(event.auth_verdict);
+  if (role && auth && auth.status !== 'pass') {
+    const effect = senderAuthMode() === 'enforce'
+      ? 'its statements are recorded as tentative and it cannot close obligations or replace documents'
+      : 'CONTINUITY_SENDER_AUTH=flag: applied anyway';
+    const how = `${auth.reason}${auth.dmarc ? `, dmarc=${auth.dmarc}` : ''}${auth.dmarc_policy ? ` p=${auth.dmarc_policy}` : ''}`;
+    flag('sender_unauthenticated', `${event.from} is not authenticated (${how}) — ${effect}. Verify with ${labelOf(task, event.from)} through a channel you trust before relying on it`);
+  }
+  if (role === 'self') flag('sender_impersonates_us', `inbound mail claims to be from our own address ${event.from}; ignored as a source of decisions`);
 }
 
 /** One deadline job per (obligation, due date), scheduled once the obligation is actually due (conditions met). */

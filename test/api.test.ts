@@ -17,21 +17,23 @@ delete process.env.ANTHROPIC_API_KEY;
 const addr = defaultAddresses();
 let baseUrl = '';
 let stopServer: () => void;
+const transport = new LocalSimTransport();
+const JSON_HEADERS = { 'content-type': 'application/json' };
 
 before(async () => {
-  const { server } = await buildApp({ backend: new MemoryBackend(), port: 0, auth: 'off', transport: new LocalSimTransport() });
+  const { server } = await buildApp({ backend: new MemoryBackend(), port: 0, auth: 'off', transport });
   await new Promise<void>((resolve) => server.listen(0, resolve));
   const { port } = server.address() as AddressInfo;
   baseUrl = `http://127.0.0.1:${port}`;
   stopServer = () => server.close();
-  await fetch(`${baseUrl}/tasks`, { method: 'POST', body: JSON.stringify(procurementTask(addr)) });
+  await fetch(`${baseUrl}/tasks`, { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(procurementTask(addr)) });
 });
 
 after(() => stopServer());
 
 // Small JSON client: returns the status plus the parsed body.
 async function call(method: string, path: string, body?: unknown) {
-  const res = await fetch(`${baseUrl}${path}`, { method, body: body === undefined ? undefined : JSON.stringify(body) });
+  const res = await fetch(`${baseUrl}${path}`, { method, headers: body === undefined ? {} : JSON_HEADERS, body: body === undefined ? undefined : JSON.stringify(body) });
   return { status: res.status, body: await res.json() };
 }
 
@@ -66,14 +68,19 @@ test('routes accept alias or id; context has both json and text forms', async ()
   assert.match(asText, /^# Task PO-4817/);
 });
 
-test('guard: no mail to non-participants, no binding language while requirements fail', async () => {
+test('guard: no mail to non-participants; a premature commitment is never sent', async () => {
   const toStranger = await call('POST', '/tasks/PO-4817/send', { agent_id: 't', to: 'attacker@evil.example', body: 'hello' });
   assert.equal(toStranger.status, 409);
   assert.match(JSON.stringify(toStranger.body.detail), /not a participant/);
 
+  // nothing is known yet (no offer): not a hard failure but a gray area — held for a human, not sent
   const premature = await call('POST', '/tasks/PO-4817/send', { agent_id: 't', to: addr.supplier, body: 'We accept your offer.' });
-  assert.equal(premature.status, 409);
-  assert.match(JSON.stringify(premature.body.detail), /binding language blocked/);
+  assert.equal(premature.status, 202);
+  assert.equal(premature.body.held, true);
+  assert.match(premature.body.reasons.join(' '), /a human approves every commitment/);
+  assert.equal((await call('GET', '/sim/sent')).body.filter((m: { body: string }) => /accept/i.test(m.body)).length, 0);
+  // an undeclared intent is fine; a made-up one is a client error
+  assert.equal((await call('POST', '/tasks/PO-4817/send', { agent_id: 't', to: addr.supplier, body: 'Hi', intent: 'promise' })).status, 400);
 
   const harmless = await call('POST', '/tasks/PO-4817/send', { agent_id: 't', to: addr.supplier, body: 'Hi Dana, can you quote 500 units?' });
   assert.equal(harmless.status, 200);
@@ -110,7 +117,7 @@ test('offline agent policy: waits when only others owe us something', async () =
   assert.match(decision.rationale, /finance/);
 });
 
-test('live receiver path: a Primitive REST EmailDetail is normalized and linked', async () => {
+test('live receiver path: the server fetches the EmailDetail by id, normalizes and links it', async () => {
   const emailDetail = {
     id: 'em_test_detail_1',
     message_id: '<abc@northwind>',
@@ -128,7 +135,9 @@ test('live receiver path: a Primitive REST EmailDetail is normalized and linked'
     parsed: { in_reply_to: [], references: [], attachments: [], cc: [] },
     auth: { dmarc: 'pass' },
   };
-  const ingested = await call('POST', '/ingest/primitive-email', emailDetail);
+  // the receiver only names the id; the server fetches the email from Primitive (here the sim's stand-in)
+  transport.details.set(emailDetail.id, emailDetail);
+  const ingested = await call('POST', '/ingest/primitive-email', { id: emailDetail.id });
   assert.equal(ingested.status, 200);
   assert.equal(ingested.body.linked, true);
   const stored = await call('GET', `/events/${ingested.body.event_id}`);

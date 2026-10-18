@@ -47,8 +47,9 @@ Open http://localhost:4100 and watch. Everything runs on your machine (see "What
    > *the updated schedule (200 units arrive Wed Oct 28) doesn't work for us: all 500 units need to arrive by Fri Oct 23 …
    > Can you get the remaining units to us by Fri Oct 23 … Also, we're still expecting the revised quote you mentioned.*
 7. The supplier expedites and sends *quote rev 2*. The commitment becomes **fulfilled**, quote v1 becomes **superseded**
-   and the conflict becomes **resolved**. **Agent C**, yet another fresh process, accepts. The send guard lets binding
-   language through only after every check passes.
+   and the conflict becomes **resolved**. **Agent C**, yet another fresh process, drafts the acceptance. The send guard
+   refuses binding language while any check fails; once every check passes it holds the commitment for a **human
+   approver**, who sees a card compiled from state and approves it (the sent email records who approved).
 
 **Whoever wrote that email had never seen the earlier conversation.**
 
@@ -158,22 +159,31 @@ differently. Importing the same file twice changes nothing the second time. Coll
 | Variable | Default | What it does |
 |---|---|---|
 | `PRIMITIVE_API_KEY` | unset → **local simulation** | Turns on real Primitive sending (`client.send`), attachment download and Memories checkpoints. The sim endpoints switch off when it is set. |
-| `PRIMITIVE_WEBHOOK_SECRET` | `local-sim-webhook-secret` in sim; unset in live → **signatures not verified (warning)** | Secret used to check `Primitive-Signature` (SDK `verifyWebhookSignature`). |
+| `PRIMITIVE_WEBHOOK_SECRET` | `local-sim-webhook-secret` in sim; unset in live → **webhook disabled (503)** | Secret used to check `Primitive-Signature` (SDK `verifyWebhookSignature`). Comma-separate several during a rotation. The public sim secret is refused in live mode. |
 | `ANTHROPIC_API_KEY` | unset → rule-based extractor + offline policy agent | Turns on the Claude extractor (`src/extract/llm.ts`) and the LLM agent (`src/agent/llm-agent.ts`). |
 | `ANTHROPIC_WORKSPACE_ID` | unset | Only for keys without a workspace scope (`wrkspc_…`); sent as `anthropic-workspace-id`. |
 | `CONTINUITY_EXTRACTOR` | `auto` | `auto` \| `llm` \| `heuristic` |
 | `CONTINUITY_EXTRACTOR_MODEL` / `CONTINUITY_AGENT_MODEL` | `claude-haiku-5-5` | Model ids. |
 | `CONTINUITY_SELF_ADDRESS` | `procurement@acme-buyer.primitive.email` | The agent's own Primitive address. |
 | `CONTINUITY_SUPPLIER_ADDRESS`, `CONTINUITY_FINANCE_ADDRESS` | made-up `.example` addresses | The scenario's counterparties. |
+| `CONTINUITY_SENDER_AUTH` | `enforce` | `enforce`: a sender's statements carry authority only if Primitive's SPF/DKIM/DMARC results authenticate the From address (SDK `isTrustedSender`); otherwise they stay tentative, cannot close obligations or replace documents, and are flagged. `flag`: apply anyway, flag only (`demo:live` uses this until verified on real mail). |
+| `CONTINUITY_DKIM_WITHOUT_DMARC` | `1` | A domain with no DMARC record still authenticates through a passing DKIM signature by exactly the From domain; `0` turns that off. |
+| `CONTINUITY_AUTH_TEMPERROR_RETRIES` | `3` | Webhook deliveries answered 503 (redeliver) while DMARC reports a temporary DNS error; after that the email is stored with an `unknown` sender and flagged. |
+| `CONTINUITY_AUTH_RETRY_DELAY_MS` | `5000` | Pause between re-fetches on the pull receiver, which has no redelivery. |
 | `SUPABASE_DB_URL` | unset | Supabase Postgres connection string; selects hosted (authoritative) mode. |
 | `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | unset | Private Storage bucket for attachment bytes (without it, bytes stay inline in Postgres). Server-side only. |
 | `CONTINUITY_STORE` | inferred | `postgres` \| `sqlite` \| `memory`. With nothing configured the server fails to start. |
 | `CONTINUITY_DB` | unset | SQLite file; setting it selects offline SQLite mode. |
-| `CONTINUITY_AUTH` | `required` with Postgres, otherwise `off` | Bearer tokens on every API route. |
+| `CONTINUITY_AUTH` | `required` with Postgres, otherwise `off` | Bearer tokens on every API route. `off` is refused in live Primitive mode and on a non-loopback `HOST`; with auth off, requests must carry a loopback `Host` header (DNS rebinding → 421). |
 | `CONTINUITY_ORG` | `org_local` | Org used for signed webhooks and when auth is off. |
 | `CONTINUITY_TOKEN` | unset | Token that `npm run agent`, the MCP server and the scripts send. |
 | `CONTINUITY_WORKER` | on | `off` disables the embedded job worker (run `npm run worker` instead). |
 | `PORT` | `4100` | HTTP port. |
+| `HOST` | `127.0.0.1` | Bind address. |
+| `CONTINUITY_MAX_BODY_BYTES` | `4194304` (4 MB) | Request body cap (413 beyond it). |
+| `CONTINUITY_EXTRACT_DEADLINE_MS` / `CONTINUITY_EXTRACT_ATTEMPT_MS` | `150000` / `90000` | Overall deadline for one Claude extraction (retry included) / per attempt. Past it the event falls back to the rule extractor, flagged. |
+| `CONTINUITY_EXTRACT_CONCURRENCY` | `4` | Claude extractions running at once per process. |
+| `CONTINUITY_ATTACHMENT_TIMEOUT_MS` | `30000` | Per attachment download from Primitive. |
 | `CONTINUITY_URL` | `http://localhost:4100` | Server address for the agent, the MCP server and scripts. |
 
 ## Agent-facing interface
@@ -190,14 +200,17 @@ HTTP. Every task route takes either the id or the alias (e.g. `PO-4817`):
 | Why does the system think the delivery date moved? | `GET /tasks/:id/explain?term=delivery.schedule` |
 | Which quote terms are out of date? | `documents[].stale_terms` in the context, or `GET /tasks/:id/state` |
 | Where did this item come from? | `GET /items/{cl_|ob_|ar_|ev_}*/provenance` |
-| Send a reply (threaded, recorded, guarded) | `POST /tasks/:id/send {agent_id, to, body, subject?, based_on_version}`. Returns 409 while mail is still being interpreted, or when someone else has changed the task since `based_on_version`. Hosted mode requires `based_on_version`. |
+| Send a reply (threaded, recorded, guarded) | `POST /tasks/:id/send {agent_id, to, body, subject?, intent?, based_on_version}`. `intent` is `inform` / `ask` / `negotiate` / `commit`. Returns 409 while mail is still being interpreted, when someone else has changed the task since `based_on_version`, or when a hard limit blocks it; **202 `{held: true, approval_id}`** when a human must approve it first (commitments, payment details, gray areas). Hosted mode requires `based_on_version`. |
+| What is waiting for a human? | `GET /approvals` (or `/tasks/:id/approvals`, `?all=1` for decided ones): each with a card (why, situation, requirements with sources, the draft, options, a recommendation) and its text form |
+| Decide a held card (human approver only) | `POST /tasks/:id/approvals/:ap_id/decide {option, by?, note?, edited_body?, reply_body?}` with a token minted by `npm run token -- --kind approver`. Options: `approve`, `approve_with_edits`, `reject_with_reply`, `reject`, `hold_verify`, `take_over`; verification cards: `verified`, `reject`, `hold_verify`, `take_over`. 409 if the deal changed since the card was made (a fresh card is issued), 410 once expired. |
 | Is the state complete, and how large may it get? | `context.processing` (`complete`, pending/failed events, sends in flight) · `&max_tokens=N` → `budget {unit, used, fits, trimmed}`. Blockers and open obligations are never cut; a result over budget says so. |
 | What became of my send? | `GET /tasks/:id/actions` (`pending` / `attempted` / `delivered` / `replayed` / `failed`) |
 | I have acted; remember my position | `POST /tasks/:id/cursor {agent_id, seq}` |
 | Wake me when something changes | `GET /tasks/:id/wait?since=<seq>` (long-poll) |
 
 Ingestion goes through `POST /webhooks/primitive` (Primitive webhook / Function payloads, signature-verified) and
-`POST /ingest/primitive-email` (REST `EmailDetail`, which the long-poll receiver uses). Mail that matches no task stays
+`POST /ingest/primitive-email {id}` (the long-poll receiver names a Primitive email; the server fetches it with its own
+key and ingests it only when it is addressed to an agent inbox). Mail that matches no task stays
 unlinked: list it with `GET /events?unlinked=1` and attach it with `POST /events/:id/link {task_id}`.
 
 **MCP**: `node src/mcp.ts` runs a stdio MCP server exposing `continuity_get_context`, `continuity_open_loops`,
@@ -216,8 +229,9 @@ confirms they work. Then:
 ```bash
 # .env: PRIMITIVE_API_KEY, CONTINUITY_SELF_ADDRESS=procurement@<you>.primitive.email,
 #       CONTINUITY_SUPPLIER_ADDRESS=supplier@<you>.primitive.email, CONTINUITY_FINANCE_ADDRESS=finance@<you>.primitive.email
+# live mode requires API auth: CONTINUITY_AUTH=required, then mint tokens (npm run token -- --kind operator / --kind ingest)
 npm start &                          # server (sim endpoints off in live mode)
-npm run receive &                    # long-polls the inbox into Continuity; cursor checkpointed in Primitive Memories
+CONTINUITY_TOKEN=<ingest token> npm run receive &   # long-polls the inbox into Continuity; cursor checkpointed in Primitive Memories
 npm run live:task
 npm run live:counterparty &          # plays supplier and finance over real Primitive mail, replying in-thread (restart-safe)
 npm run agent -- --agent agent-a --once     # RFQ + budget request; then wait until the correction has been ingested

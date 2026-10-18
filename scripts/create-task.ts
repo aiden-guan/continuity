@@ -5,5 +5,6 @@ import { defaultAddresses, procurementTask } from '../src/sim/scenario.ts';
 const base = process.env.CONTINUITY_URL || 'http://localhost:4100';
 const spec = procurementTask(defaultAddresses());
 const token = process.env.CONTINUITY_TOKEN;
-const res = await fetch(`${base}/tasks`, { method: 'POST', headers: token ? { authorization: `Bearer ${token}` } : {}, body: JSON.stringify(spec) });
+const headers: Record<string, string> = { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) };
+const res = await fetch(`${base}/tasks`, { method: 'POST', headers, body: JSON.stringify(spec) });
 console.log(res.status, await res.text());

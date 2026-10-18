@@ -44,6 +44,16 @@ export interface SimEmail {
   /** Message-ID of the email this one answers, when it is a reply */
   inReplyTo?: string | null; references?: string[]; threadKey: string;
   attachments?: SimAttachment[];
+  /** when Primitive received it (defaults to `at`); real mail arrives after it was written, sometimes much later */
+  receivedAt?: string;
+  /** raw Date header as the sender's client wrote it (defaults to `at` in RFC 5322 form); may be malformed */
+  dateHeader?: string;
+  /** sender authentication Primitive observes (default 'pass') */
+  auth?: 'pass' | 'spoofed' | 'no_dmarc' | 'dkim_only' | 'dns_temperror';
+  /** webhook delivery attempt number (Primitive increments it on each redelivery) */
+  deliveryAttempt?: number;
+  /** raw From header (defaults to `fromName <from>`), e.g. to test display-name tricks */
+  fromHeader?: string;
 }
 
 /** Northwind's first quote. The last line is a prompt-injection probe that must never be obeyed. */

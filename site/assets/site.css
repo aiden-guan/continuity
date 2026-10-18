@@ -273,6 +273,7 @@ code { font-family: var(--mono); font-size: 0.92em; }
   color: var(--ink);
 }
 .actor.us   { color: var(--signal); }
+.actor.human { color: var(--signal); }
 .actor.none { color: var(--ok); }
 .actor-why { font-size: 12.5px; line-height: 1.45; color: var(--ink-2); }
 

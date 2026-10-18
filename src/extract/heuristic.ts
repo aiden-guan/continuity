@@ -3,7 +3,7 @@
 // quoted reply history. Term patterns come from the task's domain pack. Speech acts (questions, requests,
 // commitments), hedges, corrections and quarantining instruction-like text are generic. The LLM extractor
 // (llm.ts) returns the same Proposal shape.
-import { domainFor, topicKeysFor, type DomainPack, type HeuristicSentence } from '../domain/pack.ts';
+import { documentKindOf, domainFor, promisedDocumentOf, topicKeysFor, type DomainPack, type HeuristicSentence } from '../domain/pack.ts';
 import '../domain/index.ts';
 import type { ExtractInput, Extractor, Proposal, ProposedClaim, ProposedObligation } from './types.ts';
 import { emptyProposal } from './types.ts';
@@ -116,7 +116,7 @@ function extractFromText(text: string, input: ExtractInput, fromAttachment: stri
 
     const topics = topicKeysFor(pack, s);
     // an item of an asks list that names one of the pack's documents is a request for that document
-    const listedDoc = listed.items.includes(s) ? pack.documents?.find((d) => d.mention.test(s.split(' — ').slice(1).join(' — ') || s)) : undefined;
+    const listedDoc = listed.items.includes(s) ? pack.documentKinds?.find((d) => d.promise.test(s.split(' — ').slice(1).join(' — ') || s)) : undefined;
     if (listedDoc) {
       addObligation(p, { kind: 'request', debtor: 'recipient', text: s, topic_keys: topics, expects_artifact: listedDoc.kind, evidence: s, confidence: 0.75 });
       continue;
@@ -136,15 +136,15 @@ function extractFromText(text: string, input: ExtractInput, fromAttachment: stri
       continue;
     }
     // a document promised in the passive ("the revised contract will go out by Friday"), for the pack's own documents
-    const passive = pack.documents && !hedged ? s.match(PASSIVE_PROMISE) : null;
-    const promised = passive ? pack.documents!.find((d) => d.mention.test(passive[1])) : undefined;
+    const passive = pack.documentKinds && !hedged ? s.match(PASSIVE_PROMISE) : null;
+    const promised = passive ? pack.documentKinds!.find((d) => d.promise.test(passive[1])) : undefined;
     if (passive && promised && senderRole !== 'self') {
       addObligation(p, { kind: 'commitment', debtor: 'sender', text: passive[0].trim(), topic_keys: topics, expects_artifact: promised.kind, evidence: s, confidence: 0.75 });
       continue;
     }
     const expects = REQUEST.test(s) && /\b(send|share|attach|forward|return)\b/i.test(s) ? expectsArtifact(s, pack) : null;
     // a request for one of the pack's documents counts even when it names no term ("Please send the contract.")
-    if (REQUEST.test(s) && (topics.length || (expects && pack.documents?.some((d) => d.kind === expects)))) {
+    if (REQUEST.test(s) && (topics.length || (expects && pack.documentKinds?.some((d) => d.kind === expects)))) {
       addObligation(p, { kind: 'request', debtor: 'recipient', text: s, topic_keys: topics, expects_artifact: expects, evidence: s, confidence: 0.7 });
     }
   }
@@ -154,11 +154,11 @@ function extractFromText(text: string, input: ExtractInput, fromAttachment: stri
 const DOCUMENT_WORD = /\b(quote|quotation|invoice|contract|spec(?:ification)?|document|po|purchase order|certificate of insurance|coi|w-9|w9|tax form)\b/i;
 const SENDING_WORD = /\b(send|share|attach|forward|provide|get you|email|issue|upload|return|resend|re-send|circulate|turn around)\b/i;
 
-/** The kind of document a promise or request is about, when it is about sending one. */
+/** The kind of document a promise or request is about, when it is about sending one (the pack's kinds first). */
 export function expectsArtifact(text: string, pack?: DomainPack): string | null {
-  if (pack?.documents && SENDING_WORD.test(text)) {
-    const named = pack.documents.find((d) => d.mention.test(text));
-    if (named) return named.kind;
+  if (pack?.documentKinds && SENDING_WORD.test(text)) {
+    const own = promisedDocumentOf(pack, text);
+    if (own) return own;
   }
   const m = text.match(DOCUMENT_WORD);
   if (!m || !SENDING_WORD.test(text)) return null;
@@ -174,8 +174,8 @@ export function expectsArtifact(text: string, pack?: DomainPack): string | null 
 export function classifyArtifact(filename: string, text: string, pack?: DomainPack): { kind: string; version_label: string | null } {
   const hay = `${filename}\n${text.slice(0, 2000)}`;
   let kind = 'document';
-  const own = pack?.documents?.find((d) => d.match.test(`${filename}\n${text.slice(0, 400)}`));
-  if (own) kind = own.kind;
+  const own = documentKindOf(pack, filename, text);
+  if (own) kind = own;
   else if (/quot/i.test(hay)) kind = 'quote';
   else if (/invoice/i.test(hay)) kind = 'invoice';
   else if (/purchase order|\bPO\b/.test(hay)) kind = 'po';

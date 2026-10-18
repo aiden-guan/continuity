@@ -365,12 +365,11 @@ export const legal: DomainPack = {
   expectedTerms: expectedFrom(TERMS, new Set(['liability.cap_amount', 'indemnity.scope', 'effective.date', 'signature.status', 'signature.remaining_by', 'decision.execute', 'confidentiality.years', 'payment.net_days', 'term.months'])),
   decisionKey: 'decision.execute',
   bindingPatterns: BINDING_PATTERNS,
-  verifiedSenderOnly: ['payment.', 'signature.'],
-  documents: [
-    { kind: 'signature_pages', match: /signature page|signed page/i, mention: /signature pages?|signed pages?|\b(?:all )?\d+ pages\b/i, multipart: true },
-    { kind: 'execution_version', match: /execution (?:version|copy)|clean (?:version|copy)|for signature/i, mention: /execution (?:version|copy)|clean (?:version|copy)|signature version/i },
-    { kind: 'redline', match: /redline|mark-?up|draft\s*v?\d|_draft_|comments|\bv\d\b/i, mention: /\bredline\b|mark-?up|\bdraft\b|\bv\d\b/i },
-    { kind: 'dpa', match: /data processing addendum|\bDPA\b/i, mention: /\bDPA\b|data processing addendum/i },
+  documentKinds: [
+    { kind: 'signature_pages', match: /signature page|signed page/i, promise: /signature pages?|signed pages?|\b(?:all )?\d+ pages\b/i, multipart: true },
+    { kind: 'execution_version', match: /execution (?:version|copy)|clean (?:version|copy)/i, promise: /execution (?:version|copy)|clean (?:version|copy)|signature version/i },
+    { kind: 'redline', match: /redline|mark-?up|draft\s*v?\d|_draft_|comments|\bv\d\b/i, promise: /\bredline\b|mark-?up|\bdraft\b|\bv\d\b/i },
+    { kind: 'dpa', match: /data processing addendum|\bDPA\b/i, promise: /\bDPA\b|data processing addendum/i },
   ],
   loopSubject(o) {
     if (o.expects_artifact) return `document.${o.expects_artifact}`;

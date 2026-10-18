@@ -1,5 +1,9 @@
 // HTTP API, Primitive webhook receiver and observability UI on plain node:http (no framework).
 // A job worker runs inside the server unless CONTINUITY_WORKER=off (then run `npm run worker` separately).
+//
+// The server binds 127.0.0.1 unless HOST says otherwise, and refuses to start where an open (auth off)
+// API would be reachable from elsewhere or would send real mail: on a non-loopback HOST, or with a live
+// Primitive key. Mutating routes take JSON only (a cross-site form or text/plain POST cannot be JSON).
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -12,13 +16,20 @@ import { setSimTime, nowIso } from './clock.ts';
 import type { SimEmail } from './sim/scenario.ts';
 import type { Backend, Principal } from './store/backend.ts';
 import { openBackend, redactUrl, storageConfig, type StorageConfig } from './store/index.ts';
-import { canTask, hashToken, hasScope, localPrincipal, type Scope } from './auth.ts';
+import { canTask, hashToken, hasScope, isLoopback, localPrincipal, loopbackHostHeader, type Scope } from './auth.ts';
 import { Engine } from './engine/engine.ts';
+import { sendClassifierFromEnv } from './engine/send-check.ts';
+import { deriveTimeline, stateAt } from './engine/timeline.ts';
+import { notifyWebhook, runSignal, scheduleSignal } from './signal.ts';
+import { findSimilar, listDeals, query, QueryError, SCHEMA_GUIDE, type PortfolioScope } from './portfolio.ts';
+import { ask } from './ask.ts';
 
 export interface AppOptions {
   backend?: Backend;
   storage?: StorageConfig;
   port?: number;
+  /** bind address (HOST, default 127.0.0.1) */
+  host?: string;
   /** required: a bearer token on every API route; off: everything runs as the local operator (offline modes only) */
   auth?: 'required' | 'off';
   worker?: boolean;
@@ -36,11 +47,47 @@ type TextReply = { __text: string; __headers?: Record<string, string> };
 
 const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object';
 
+const SIM_WEBHOOK_SECRET = 'local-sim-webhook-secret';
+const MAX_BODY = Number(process.env.CONTINUITY_MAX_BODY_BYTES || 4 * 1024 * 1024);
+const WEBHOOK_PATH = '/webhooks/primitive';
+
+/** A request body as a JSON object; anything else is the caller's mistake (400), not a server error. */
+const json = (body: string): any => {
+  let value: unknown;
+  try {
+    value = JSON.parse(body);
+  } catch {
+    throw new HttpError(400, 'request body must be valid JSON');
+  }
+  if (!isObject(value) || Array.isArray(value)) throw new HttpError(400, 'request body must be a JSON object');
+  return value;
+};
+
+/** Buffers at most MAX_BODY bytes. Past that it answers 413 and discards the rest unbuffered (so the client
+ *  reads the 413 rather than a reset), cutting the connection if the sender keeps going far beyond it. */
 function readBody(req: IncomingMessage): Promise<string> {
-  return new Promise<string>((resolve) => {
-    let body = '';
-    req.on('data', (chunk) => (body += chunk));
-    req.on('end', () => resolve(body));
+  return new Promise<string>((resolve, reject) => {
+    const tooBig = () => new HttpError(413, `request body over ${MAX_BODY} bytes`);
+    const chunks: Buffer[] = [];
+    let size = 0;
+    let over = Number(req.headers['content-length'] ?? 0) > MAX_BODY;
+    if (over) reject(tooBig());
+    req.on('data', (chunk: Buffer) => {
+      size += chunk.length;
+      if (over) {
+        if (size > 4 * MAX_BODY) req.destroy();
+        return;
+      }
+      if (size > MAX_BODY) {
+        over = true;
+        chunks.length = 0;
+        reject(tooBig());
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('error', reject);
   });
 }
 
@@ -62,20 +109,37 @@ export async function buildApp(opts: AppOptions = {}) {
     throw new Error('Refusing to serve the hosted (Postgres) store without authentication. Mint a token (npm run token) or set CONTINUITY_ALLOW_UNAUTHENTICATED=1 for a local-only Supabase stack.');
   }
 
+  const host = opts.host ?? (process.env.HOST || '127.0.0.1');
+  if (authMode === 'off' && !sim) {
+    throw new Error('Refusing to serve live Primitive mail without authentication. Set CONTINUITY_AUTH=required and mint tokens (npm run token).');
+  }
+  if (authMode === 'off' && !isLoopback(host)) {
+    throw new Error(`Refusing to bind ${host} without authentication. Set CONTINUITY_AUTH=required and mint tokens (npm run token), or bind 127.0.0.1.`);
+  }
+
   const org = opts.org || process.env.CONTINUITY_ORG || 'org_local';
   await backend.ensureOrg(org);
 
-  const webhookSecret = process.env.PRIMITIVE_WEBHOOK_SECRET || (sim ? 'local-sim-webhook-secret' : null);
-  if (!webhookSecret) {
-    console.warn('[continuity] PRIMITIVE_WEBHOOK_SECRET not set: webhook signatures are NOT verified' + (authMode === 'required' ? ' — webhook endpoint disabled' : ''));
+  // several comma-separated secrets are accepted during a rotation
+  const configuredSecret = process.env.PRIMITIVE_WEBHOOK_SECRET || null;
+  if (!sim && configuredSecret?.split(',').map((s) => s.trim()).includes(SIM_WEBHOOK_SECRET)) {
+    throw new Error('PRIMITIVE_WEBHOOK_SECRET is the public local-sim secret; set the real secret from your Primitive endpoint.');
   }
+  const webhookSecret = configuredSecret || (sim ? SIM_WEBHOOK_SECRET : null);
+  if (!webhookSecret) console.warn('[continuity] PRIMITIVE_WEBHOOK_SECRET not set: POST /webhooks/primitive is disabled (503); use the long-poll receiver');
 
-  const engine = new Engine(backend, extractor, (ev, i) => transport.fetchAttachment(ev, i));
-  const app = new Continuity({ backend, extractor, transport, webhookSecret, requireStateVersion: hosted, ingestOrg: org, engine });
+  const engine = new Engine(backend, extractor, (ev, i, signal) => transport.fetchAttachment(ev, i, signal));
+  const selfAddress = sim ? '' : process.env.CONTINUITY_SELF_ADDRESS;
+  // Claude's second opinion on outgoing wording (CONTINUITY_SEND_CHECK=off to disable)
+  const sendClassifier = sendClassifierFromEnv();
+  const app = new Continuity({ backend, extractor, transport, webhookSecret, selfAddress, requireStateVersion: hosted, ingestOrg: org, engine, sendClassifier });
   const ui = fileURLToPath(new URL('../ui/index.html', import.meta.url));
   const port = opts.port ?? Number(process.env.PORT || 4100);
   const workerOn = opts.worker ?? process.env.CONTINUITY_WORKER !== 'off';
   if (workerOn) engine.start();
+  // Signal on a schedule (CONTINUITY_SIGNAL_INTERVAL_S); new alerts go to CONTINUITY_SIGNAL_WEBHOOK when set
+  const signalEvery = Number(process.env.CONTINUITY_SIGNAL_INTERVAL_S || 0);
+  const stopSignal = signalEvery > 0 ? scheduleSignal(backend, org, signalEvery, process.env.CONTINUITY_SIGNAL_WEBHOOK) : () => undefined;
 
   function attachmentStorage(): string {
     if (!hosted) return backend.mode;
@@ -94,11 +158,13 @@ export async function buildApp(opts: AppOptions = {}) {
       },
       transport: transport.mode,
       extractor: extractor.name,
+      extractor_breaker: engine.breaker.state,
       webhook_signature_verification: !!webhookSecret,
       auth: authMode,
       worker: workerOn ? 'embedded' : 'external',
       jobs: await backend.jobCounts().catch(() => null),
       agent_llm: !!process.env.ANTHROPIC_API_KEY,
+      send_check: sendClassifier ? sendClassifier.model : null,
       primitive_api_key: !!process.env.PRIMITIVE_API_KEY,
     };
   };
@@ -115,17 +181,21 @@ export async function buildApp(opts: AppOptions = {}) {
   const numberParam = (q: URLSearchParams, name: string) => (q.get(name) ? Number(q.get(name)) : undefined);
   /** Item and event lookups: task-bound items need task access; unlinked ones need an unrestricted principal. */
   const itemAccess = (p: Principal) => (t: string) => (t ? canTask(p, t) : !p.task_ids);
+  /** Portfolio reads see the caller's org and, for a task-restricted principal, only its tasks. */
+  const scopeOf = (p: Principal): PortfolioScope => ({ org: p.org, taskIds: p.task_ids });
+  const portfolioError = (err: unknown): never => {
+    if (err instanceof QueryError) throw new HttpError(400, err.message);
+    throw err;
+  };
 
   const routes: Route[] = [
     ['GET', /^\/api\/health$/, null, health],
 
-    ['POST', /^\/webhooks\/primitive$/, null, (_m, q, body, req) => {
-      if (!webhookSecret && authMode === 'required') throw new HttpError(503, 'webhook disabled: set PRIMITIVE_WEBHOOK_SECRET');
-      return app.ingestWebhook(body, req.headers, { wait: q.get('wait') === '1' });
-    }],
+    // signed by Primitive; without a secret the service answers 503 (fails closed)
+    ['POST', /^\/webhooks\/primitive$/, null, (_m, q, body, req) => app.ingestWebhook(body, req.headers, { wait: q.get('wait') === '1' })],
 
-    // the live long-poll receiver (scripts/primitive-receive.ts) posts a Primitive EmailDetail here
-    ['POST', /^\/ingest\/primitive-email$/, 'ingest', (_m, q, body, _r, p) => app.ingestEmailDetail(p.org, JSON.parse(body), { wait: q.get('wait') === '1' })],
+    // the live long-poll receiver (scripts/primitive-receive.ts) posts {id}; the server fetches the email itself
+    ['POST', /^\/ingest\/primitive-email$/, 'ingest', (_m, q, body, _r, p) => app.ingestEmailById(p.org, json(body), { wait: q.get('wait') === '1' })],
 
     ['GET', /^\/tasks$/, 'context:read', async (_m, _q, _b, _r, p) => {
       const tasks = await backend.listTasks(p.org);
@@ -133,7 +203,7 @@ export async function buildApp(opts: AppOptions = {}) {
         .filter((t) => canTask(p, t.spec.id))
         .map((t) => ({ id: t.spec.id, alias: t.spec.alias, goal: t.spec.goal, domain: t.spec.domain, state_version: t.state_version }));
     }],
-    ['POST', /^\/tasks$/, 'tasks:write', (_m, _q, body, _r, p) => app.createTask(p.org, JSON.parse(body))],
+    ['POST', /^\/tasks$/, 'tasks:write', (_m, _q, body, _r, p) => app.createTask(p.org, json(body))],
 
     ['GET', /^\/tasks\/([^/]+)\/context$/, 'context:read', async (m, q, _b, _r, p) => {
       const agentId = q.get('agent') ?? (p.kind === 'agent' ? p.agent_id ?? undefined : undefined);
@@ -167,25 +237,73 @@ export async function buildApp(opts: AppOptions = {}) {
       return { state_version: await app.waitForChange(p.org, m[1], Number(q.get('since') ?? 0), timeout) };
     }],
     ['POST', /^\/tasks\/([^/]+)\/send$/, 'send', (m, _q, body, _r, p) => {
-      const input = JSON.parse(body);
+      const input = json(body);
       assertAgent(p, input.agent_id);
       return app.send(p.org, m[1], input, p);
     }],
     // message bodies are left out of the action list
     ['GET', /^\/tasks\/([^/]+)\/actions$/, 'context:read', async (m, _q, _b, _r, p) => (await backend.listActions(p.org, m[1])).map(({ body: _omit, ...rest }) => rest)],
     ['POST', /^\/tasks\/([^/]+)\/cursor$/, 'agent:write', async (m, _q, body, _r, p) => {
-      const { agent_id, seq } = JSON.parse(body);
+      const { agent_id, seq } = json(body);
+      if (typeof agent_id !== 'string' || !Number.isFinite(Number(seq))) throw new HttpError(400, 'body must be {agent_id, seq}');
       assertAgent(p, agent_id);
       await backend.setCursor(p.org, agent_id, m[1], Number(seq), nowIso());
       // mirror the cursor into Primitive Memories when the live transport offers them (best effort)
       await transport.memory?.set(`continuity:cursor:${m[1]}:${agent_id}`, { seq, at: nowIso() }).catch(() => undefined);
       return { agent_id, seq };
     }],
+    // ---- human approval: held commitments, money details, gray areas, payment-detail changes
+    ['GET', /^\/approvals$/, 'context:read', (_m, q, _b, _r, p) => app.approvals(p.org, { all: q.get('all') === '1', allowTask: (t) => canTask(p, t) })],
+    ['GET', /^\/tasks\/([^/]+)\/approvals$/, 'context:read', (m, q, _b, _r, p) => app.approvals(p.org, { taskId: m[1], all: q.get('all') === '1' })],
+    ['GET', /^\/tasks\/([^/]+)\/approvals\/(ap_\d+)$/, 'context:read', (m, _q, _b, _r, p) => app.approval(p.org, m[1], m[2])],
+    // a separate human credential: agents never hold `approve`, and the operator wildcard does not imply it
+    ['POST', /^\/tasks\/([^/]+)\/approvals\/(ap_\d+)\/decide$/, 'approve', (m, _q, body, _r, p) => app.decide(p.org, m[1], m[2], json(body), p)],
     ['GET', /^\/tasks\/([^/]+)\/agent-runs$/, 'context:read', (m, _q, _b, _r, p) => backend.agentRuns(p.org, m[1])],
     ['POST', /^\/tasks\/([^/]+)\/agent-runs$/, 'agent:write', async (m, _q, body, _r, p) => {
-      const run = JSON.parse(body);
+      const run = json(body);
       assertAgent(p, run.agent_id);
       return { id: await backend.saveAgentRun(p.org, { ...run, task_id: m[1], principal_id: p.id }) };
+    }],
+
+    // ---- typed timeline (the raw per-email view stays at /timeline): ?type=counter_offer,appraisal_received  ?since=<seq>
+    ['GET', /^\/tasks\/([^/]+)\/history$/, 'context:read', async (m, q, _b, _r, p) => {
+      const { snap } = await app.snapshot(p.org, m[1]);
+      const types = q.get('type')?.split(',').filter(Boolean);
+      const since = Number(q.get('since') ?? 0);
+      return { task_id: m[1], state_version: snap.version, events: deriveTimeline(snap.store, m[1]).filter((e) => e.seq > since && (!types || types.includes(e.type))) };
+    }],
+    // the task's terms at a moment: ?at=<ISO time> or ?at=<timeline seq>
+    ['GET', /^\/tasks\/([^/]+)\/state-at$/, 'context:read', async (m, q, _b, _r, p) => {
+      const raw = q.get('at');
+      if (!raw) throw new HttpError(400, 'at=<ISO time | seq> is required');
+      const at = /^\d+$/.test(raw) ? Number(raw) : raw;
+      if (typeof at === 'string' && Number.isNaN(Date.parse(at))) throw new HttpError(400, 'at must be an ISO time or a seq number');
+      const { snap } = await app.snapshot(p.org, m[1]);
+      return stateAt(snap.store, m[1], typeof at === 'string' ? new Date(at).toISOString() : at);
+    }],
+    ['GET', /^\/tasks\/([^/]+)\/similar$/, 'context:read', (m, q, _b, _r, p) =>
+      findSimilar(backend, scopeOf(p), m[1], Math.min(Number(q.get('k') ?? 5), 20)).catch(portfolioError)],
+
+    // ---- portfolio: every task the caller may see, at once
+    ['GET', /^\/deals$/, 'context:read', (_m, _q, _b, _r, p) => listDeals(backend, scopeOf(p))],
+    ['GET', /^\/query\/schema$/, 'context:read', () => SCHEMA_GUIDE],
+    ['POST', /^\/query$/, 'context:read', (_m, _q, body, _r, p) => query(backend, scopeOf(p), JSON.parse(body || '{}').sql).catch(portfolioError)],
+    // a plain-language question across the portfolio, answered by Claude with the read-only tools above
+    ['POST', /^\/ask$/, 'context:read', (_m, _q, body, _r, p) => {
+      if (!process.env.ANTHROPIC_API_KEY) throw new HttpError(503, 'Ask needs ANTHROPIC_API_KEY (the SQL, history, similarity and Signal endpoints work without it)');
+      const question = String(JSON.parse(body || '{}').question ?? '').trim();
+      if (!question || question.length > 2000) throw new HttpError(400, 'body must be {"question": "..."} (at most 2,000 characters)');
+      return ask(backend, scopeOf(p), question);
+    }],
+    // ---- Signal: remembered alerts (?task=<id|alias>, ?all=1 includes resolved ones); POST runs a scan now
+    ['GET', /^\/signals$/, 'context:read', async (_m, q, _b, _r, p) => {
+      const only = q.get('task') ? (await app.task(p.org, q.get('task')!)).id : null;
+      if (only && !canTask(p, only)) throw new HttpError(404, `unknown task ${q.get('task')}`);
+      return (await backend.listSignals(p.org, { includeResolved: q.get('all') === '1' })).filter((s) => canTask(p, s.task_id) && (!only || s.task_id === only));
+    }],
+    ['POST', /^\/signals\/run$/, 'tasks:write', async (_m, _q, _b, _r, p) => {
+      const run = await runSignal(backend, p.org, { taskIds: p.task_ids ?? undefined });
+      return { ...run, notified: await notifyWebhook(process.env.CONTINUITY_SIGNAL_WEBHOOK, run) };
     }],
 
     ['GET', /^\/items\/([^/]+)\/provenance$/, 'evidence:read', (m, _q, _b, _r, p) => app.provenance(p.org, m[1], itemAccess(p))],
@@ -204,25 +322,28 @@ export async function buildApp(opts: AppOptions = {}) {
     ['GET', /^\/events\/([^/]+)$/, 'evidence:read', (m, _q, _b, _r, p) => app.provenance(p.org, m[1], itemAccess(p))],
     ['GET', /^\/events$/, 'evidence:read', async (_m, q, _b, _r, p) => (q.get('unlinked') && !p.task_ids ? backend.unlinkedEvents(p.org) : [])],
     ['POST', /^\/events\/([^/]+)\/link$/, 'tasks:write', async (m, _q, body, _r, p) => {
-      const task = await app.task(p.org, JSON.parse(body).task_id);
+      const task = await app.task(p.org, json(body).task_id);
       const r = await engine.link(p.org, m[1], task.id);
       return { event_id: r.event.id, task_id: r.event.task_id };
     }],
 
     // ---- local simulation only (refused once a real Primitive key is configured)
-    ['POST', /^\/sim\/clock$/, 'tasks:write', (_m, _q, body) => {
+    ['POST', /^\/sim\/clock$/, 'tasks:write', async (_m, _q, body, _r, p) => {
       assertSim();
-      setSimTime(JSON.parse(body).now);
-      return { now: nowIso() };
+      setSimTime(json(body).now);
+      // deadlines that the new time makes due fire before the call returns, so a simulated story never races the worker's poll
+      const jobs = await engine.drain({ org: p.org });
+      return { now: nowIso(), jobs_run: jobs };
     }],
     ['POST', /^\/sim\/deliver$/, 'tasks:write', async (_m, _q, body, _r, p) => {
       assertSim();
-      const e = JSON.parse(body) as Omit<SimEmail, 'attachments'> & { attachments?: { filename: string; content_type: string; base64: string }[] };
+      const e = json(body) as Omit<SimEmail, 'attachments'> & { attachments?: { filename: string; content_type: string; base64: string }[] };
       const mail: SimEmail = {
         ...e,
         attachments: (e.attachments ?? []).map((a) => ({ filename: a.filename, content_type: a.content_type, bytes: Buffer.from(a.base64, 'base64') })),
       };
-      const delivery = (transport as LocalSimTransport).mailbox.inbound(mail, webhookSecret!);
+      // signed with the first configured secret (several may be listed during a rotation)
+      const delivery = (transport as LocalSimTransport).mailbox.inbound(mail, webhookSecret!.split(',')[0].trim());
       // post it over real HTTP to our own webhook endpoint, exactly as Primitive would, then let interpretation settle
       const res = await fetch(`http://127.0.0.1:${port}/webhooks/primitive`, { method: 'POST', headers: delivery.headers, body: delivery.body });
       const result = await res.json() as { event_id?: string; task_id?: string | null; linked?: boolean };
@@ -263,22 +384,37 @@ export async function buildApp(opts: AppOptions = {}) {
       res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', ...(text.__headers ?? {}) });
       return res.end(text.__text);
     }
-    res.writeHead(200, { 'content-type': 'application/json' });
+    // a handler may set the status (202 = held for a human); the marker never reaches the client
+    let status = 200;
+    if (isObject(out) && '__status' in out) {
+      status = Number(out.__status);
+      delete out.__status;
+    }
+    res.writeHead(status, { 'content-type': 'application/json' });
     return res.end(JSON.stringify(out, null, 1));
   }
 
   const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
     const url = new URL(req.url ?? '/', 'http://x');
     try {
+      // with auth off, answer only to loopback names (a DNS-rebinding page would send its own host)
+      if (authMode === 'off' && !loopbackHostHeader(req)) throw new HttpError(421, 'unexpected Host header');
       if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
-        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'x-frame-options': 'DENY' });
         return res.end(readFileSync(ui));
       }
-      const body = await readBody(req);
+      let pathKnown = false;
       for (const [method, pattern, scope, handler] of routes) {
         const m = url.pathname.match(pattern);
-        if (!m || req.method !== method) continue;
+        if (!m) continue;
+        pathKnown = true;
+        if (req.method !== method) continue;
+        // authenticate before anything else, task lookups included, so callers cannot probe ids
         const p = await authorize(req, scope);
+        if (req.method === 'POST' && url.pathname !== WEBHOOK_PATH && !/^application\/json\b/i.test(String(req.headers['content-type'] ?? ''))) {
+          throw new HttpError(415, 'content-type must be application/json');
+        }
+        const body = await readBody(req);
         // task routes take an alias or an id; handlers always receive the canonical id of a task in the caller's org
         if (pattern.source.startsWith('^\\/tasks\\/([^/]+)')) {
           const t = await app.task(p.org, decodeURIComponent(m[1]));
@@ -287,29 +423,33 @@ export async function buildApp(opts: AppOptions = {}) {
         }
         return reply(res, await handler(m, url.searchParams, body, req, p));
       }
-      throw new HttpError(404, `no route ${req.method} ${url.pathname}`);
+      throw new HttpError(pathKnown ? 405 : 404, `no route ${req.method} ${url.pathname}`);
     } catch (err) {
       const status = err instanceof HttpError ? err.status : Number((err as { status?: number }).status) || 500;
       if (status === 500) console.error(err);
+      if (res.headersSent) return res.end();
+      if (status === 401) res.setHeader('www-authenticate', 'Bearer realm="continuity"');
       res.writeHead(status, { 'content-type': 'application/json' });
-      res.end(JSON.stringify({ error: (err as Error).message, detail: err instanceof HttpError ? err.detail : undefined }));
+      // a 500 never leaks internals; the error is in the server log
+      res.end(JSON.stringify({ error: status === 500 ? 'internal error' : (err as Error).message, detail: err instanceof HttpError ? err.detail : undefined }));
     }
   });
-  server.on('close', () => { engine.stop(); });
+  server.on('close', () => { engine.stop(); stopSignal(); });
   const shutdown = async () => {
     engine.stop();
+    stopSignal();
     await backend.close();
   };
-  return { server, app, backend, engine, transport, extractor, port, authMode, shutdown };
+  return { server, app, backend, engine, transport, extractor, port, host, authMode, shutdown };
 }
 
 // started directly (`node src/server.ts`) rather than imported
 const invokedDirectly = !!process.argv[1] && fileURLToPath(import.meta.url) === resolvePath(process.argv[1]);
 if (invokedDirectly) {
   try {
-    const { server, port, transport, extractor, backend, authMode, shutdown } = await buildApp();
-    server.listen(port, () => {
-      console.log(`[continuity] listening on http://localhost:${port}  storage=${backend.mode} (${backend.target}) transport=${transport.mode} extractor=${extractor.name} auth=${authMode}`);
+    const { server, port, host, transport, extractor, backend, authMode, shutdown } = await buildApp();
+    server.listen(port, host, () => {
+      console.log(`[continuity] listening on http://${host.includes(':') ? `[${host}]` : host}:${port}  storage=${backend.mode} (${backend.target}) transport=${transport.mode} extractor=${extractor.name} auth=${authMode}`);
       if (backend.mode !== 'postgres') console.log(`[continuity] OFFLINE STORAGE (${backend.mode}): explicitly selected; not the hosted Supabase store.`);
       if (transport.mode === 'local-sim') console.log('[continuity] LOCAL SIMULATION: no PRIMITIVE_API_KEY — mail is simulated, not sent.');
     });

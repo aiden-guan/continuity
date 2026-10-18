@@ -5,8 +5,12 @@ type EventColumns = Omit<StoredEvent, 'id' | 'seq' | 'task_id' | 'link_reason'>;
 
 /** An event as stored. Attachment bytes live in the blob cache, never in the evidence row. */
 export function stripAttachmentBytes(e: EventInput): EventColumns {
-  const { raw: _raw, preserve_seq: _seq, task_id: _task, link_reason: _reason, ...columns } = e;
-  return { ...columns, attachments: e.attachments.map(({ content_base64: _bytes, ...meta }) => meta) };
+  const { raw: _raw, preserve_seq: _seq, task_id: _task, link_reason: _reason, time_flags: flags, ...columns } = e;
+  return {
+    ...columns,
+    attachments: e.attachments.map(({ content_base64: _bytes, ...meta }) => meta),
+    ...(flags?.length ? { time_flags: flags } : {}), // stored only when the times needed repair
+  };
 }
 
 export function iso(v: unknown): string {

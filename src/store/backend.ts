@@ -126,6 +126,21 @@ export interface Principal {
   label?: string | null;
 }
 
+/** An alert raised by Signal (src/signal.ts). One row per distinct alert, kept after its condition clears. */
+export interface SignalRow {
+  /** stable identity of the condition, e.g. "<task>:overdue:<obligation>" */
+  key: string;
+  task_id: string;
+  rule: string;
+  severity: 'high' | 'medium' | 'low';
+  summary: string;
+  detail: { evidence: string[]; [k: string]: unknown };
+  first_seen: string;
+  last_seen: string;
+  /** null while the condition still holds */
+  resolved_at: string | null;
+}
+
 export type JobOutcome =
   | { status: 'done' }
   | { status: 'retry'; error: string; runAfter: string }
@@ -178,6 +193,11 @@ export interface Backend {
   setCursor(org: string, agentId: string, taskId: string, seq: number, at: string): Promise<void>;
   saveAgentRun(org: string, run: Record<string, unknown>): Promise<string>;
   agentRuns(org: string, taskId: string): Promise<Record<string, unknown>[]>;
+
+  // remembered Signal alerts (not task state: written outside task commits)
+  listSignals(org: string, opts?: { includeResolved?: boolean }): Promise<SignalRow[]>;
+  /** Insert or replace rows by key. */
+  saveSignals(org: string, rows: SignalRow[]): Promise<void>;
 
   // private attachment cache (Supabase Storage in hosted mode)
   putBlob(org: string, blob: BlobIn): Promise<void>;

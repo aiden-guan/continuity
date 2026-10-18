@@ -2,8 +2,8 @@
 // referents such as "the remaining 200", corrections — and returns a Proposal. It never writes
 // state; the resolver validates every proposed change and applies or refuses it.
 import type Anthropic from '@anthropic-ai/sdk';
-import { anthropicClient, responseText } from '../anthropic.ts';
-import { domainFor, type DomainPack, type TermDef } from '../domain/pack.ts';
+import { anthropicClient, responseText, serverFallback } from '../anthropic.ts';
+import { domainFor, type TermDef } from '../domain/pack.ts';
 import '../domain/index.ts';
 import { classifyArtifact, stripQuoted } from './heuristic.ts';
 import type { ExtractInput, Extractor, Proposal } from './types.ts';
@@ -23,10 +23,8 @@ const VALUE_FORMAT: Record<TermDef['type'], string> = {
 };
 
 /** JSON schema for the model's output, with term keys constrained to the domain's vocabulary. */
-function schemaFor(pack: DomainPack) {
-  const TERMS = pack.terms;
+function schemaFor(TERMS: TermDef[], documentKinds: string[] = []) {
   const termKey = { type: 'string', enum: TERMS.map((t) => t.key) };
-  const documentKinds = [...new Set([...(pack.documents ?? []).map((d) => d.kind), 'quote', 'invoice', 'po', 'document'])];
   const claim = {
     type: 'object', additionalProperties: false,
     required: ['key', 'value_json', 'kind', 'mode', 'evidence', 'confidence', 'hedged', 'from_attachment', 'partial'],
@@ -50,7 +48,7 @@ function schemaFor(pack: DomainPack) {
       debtor: { type: 'string', enum: ['sender', 'recipient'] },
       text: { type: 'string' },
       topic_keys: { type: 'array', items: termKey },
-      expects_artifact: { anyOf: [{ type: 'string', enum: documentKinds }, { type: 'null' }] },
+      expects_artifact: { anyOf: [{ type: 'string', enum: [...new Set(['quote', 'invoice', 'po', 'document', ...documentKinds])] }, { type: 'null' }] },
       due: { type: ['string', 'null'], description: 'YYYY-MM-DD deadline stated for this obligation, resolved against the message date; null if none' },
       evidence: { type: 'string' },
       confidence: { type: 'number' },
@@ -148,12 +146,15 @@ function userPrompt(input: ExtractInput, terms: TermDef[]): string {
   ].join('\n\n');
 }
 
+// one attempt; the engine's overall deadline (CONTINUITY_EXTRACT_DEADLINE_MS) bounds attempt + retry
+const ATTEMPT_MS = Number(process.env.CONTINUITY_EXTRACT_ATTEMPT_MS || 90_000);
+
 export function llmExtractor(opts: { apiKey?: string; model?: string } = {}): Extractor {
   const client = anthropicClient(opts.apiKey ?? process.env.ANTHROPIC_API_KEY);
   const model = opts.model ?? (process.env.CONTINUITY_EXTRACTOR_MODEL || 'claude-haiku-5-5');
   return {
     name: `llm:${model}`,
-    async extract(input: ExtractInput): Promise<Proposal> {
+    async extract(input: ExtractInput, callOpts: { signal?: AbortSignal } = {}): Promise<Proposal> {
       const pack = domainFor(input.task);
       const terms = pack.terms;
 
@@ -162,10 +163,9 @@ export function llmExtractor(opts: { apiKey?: string; model?: string } = {}): Ex
         max_tokens: 16000,
         system: `${SYSTEM}\n\nDomain conventions:\n${pack.llmGuidance}`,
         messages: [{ role: 'user', content: userPrompt(input, terms) }],
-        output_config: { effort: 'medium', format: { type: 'json_schema', schema: schemaFor(pack) } },
-        betas: ['server-side-fallback-2026-07-01'],
-        fallbacks: 'default',
-      } as never) as unknown as Anthropic.Message;
+        output_config: { effort: 'medium', format: { type: 'json_schema', schema: schemaFor(terms, pack.documentKinds?.map((d) => d.kind)) } },
+        ...serverFallback(model),
+      } as never, { timeout: ATTEMPT_MS, maxRetries: 1, signal: callOpts.signal }) as unknown as Anthropic.Message;
       if (res.stop_reason === 'refusal') throw new Error('model refused extraction');
 
       const raw = JSON.parse(responseText(res)) as RawOutput;

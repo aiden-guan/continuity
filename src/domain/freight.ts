@@ -328,13 +328,12 @@ export const freight: DomainPack = {
   expectedTerms: expectedFrom(TERMS, new Set(['load.weight_lbs', 'carrier.mc_number', 'capacity.loads', 'decision.tender', 'rate.linehaul', 'rate.fuel_surcharge', 'accessorial.detention_per_hour', 'payment.terms', 'delivery.appointment'])),
   decisionKey: 'decision.tender',
   bindingPatterns: BINDING_PATTERNS,
-  verifiedSenderOnly: ['payment.'],
-  documents: [
-    { kind: 'pod', match: /\bPOD\b|proof of delivery|delivery receipt/i, mention: /\bPODs?\b|proof of delivery/i, multipart: true },
-    { kind: 'bol', match: /\bBOL\b|bill of lading/i, mention: /\bBOLs?\b|bill of lading/i, multipart: true },
-    { kind: 'invoice', match: /invoice/i, mention: /\binvoice\b/i },
-    { kind: 'w9_coi', match: /\bW-?9\b|\bCOI\b|certificate of (?:liability )?insurance|carrier (?:setup )?packet/i, mention: /\bW-?9\b|\bCOI\b|certificate of insurance|(?:setup|carrier) packet|insurance cert/i },
-    { kind: 'rate_confirmation', match: /rate\s?con|rate confirmation/i, mention: /\brate\s?con(?:firmation)?s?\b|\bconfirmation\b/i },
+  documentKinds: [
+    { kind: 'pod', match: /\bPOD\b|proof of delivery|delivery receipt/i, promise: /\bPODs?\b|proof of delivery/i, multipart: true },
+    { kind: 'bol', match: /\bBOL\b|bill of lading/i, promise: /\bBOLs?\b|bill of lading/i, multipart: true },
+    { kind: 'invoice', match: /invoice/i, promise: /\binvoice\b/i },
+    { kind: 'w9_coi', match: /\bW-?9\b|\bCOI\b|certificate of (?:liability )?insurance|carrier (?:setup )?packet/i, promise: /\bW-?9\b|\bCOI\b|certificate of insurance|(?:setup|carrier) packet|insurance cert/i },
+    { kind: 'rate_confirmation', match: /rate\s?con|rate confirmation/i, promise: /\brate\s?con(?:firmation)?s?\b|\bconfirmation\b/i },
   ],
   loopSubject(o) {
     if (o.kind === 'commitment' && o.quantity != null) return 'delivery.remaining_loads';

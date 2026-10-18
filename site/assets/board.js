@@ -19,7 +19,7 @@ const abbreviateCheck = (label) => label
 
 const termKey = (t) => `${t.party}|${t.term}`;
 
-const actorWord = (who) => (who === 'us' ? 'Us' : who === 'them' ? 'Them' : 'Nobody');
+const actorWord = (who) => ({ us: 'Us', them: 'Them', human: 'You' })[who] ?? 'Nobody';
 
 const card = (key, cls, heading, aside, body) =>
   `<div class="b-card ${cls}" data-k="${key}">

@@ -8,7 +8,10 @@
 //    (provided the new evidence is actually newer).
 //  - When two different parties disagree on a term, both claims become "contested"; neither wins.
 //  - Hedged, low-confidence, or non-authoritative claims are kept as "proposed" and change nothing.
-//  - Evidence older than the current claim is recorded but never overwrites it.
+//  - A forwarded copy of older evidence is recorded but never overwrites the current claim; any other
+//    message wins by arrival order (its Date header is the sender's claim), with a date_skew flag.
+//  - Authority needs an authenticated sender: an unproven sender's claims stay tentative, and it
+//    cannot close obligations or replace documents. Inbound mail "from us" carries no authority.
 //  - Withdrawing an offer keeps its history but retracts its terms (so checks fail).
 //  - A compound question becomes one obligation per issue; each closes only when its debtor
 //    actually answers that issue's term.
@@ -24,8 +27,14 @@ import type { Proposal } from '../extract/types.ts';
 import { domainFor, sameValue, termKeys, termOf, type DomainPack } from '../domain/pack.ts';
 import '../domain/index.ts';
 import { findDates } from '../extract/dates.ts';
+import { parseSenderAuth, senderAuthMode } from '../ingest/sender-auth.ts';
 
 export const MIN_CONFIDENCE = 0.6;
+
+// Only a forward can legitimately carry older evidence that arrives after newer evidence.
+const FWD_SUBJECT = /^\s*(?:fwd?|fw)\s*:/i;
+const FWD_BODY = /^-{3,}\s*(?:forwarded message|original message)\s*-{3,}|^begin forwarded message:/im;
+export const isForward = (e: Pick<StoredEvent, 'subject' | 'body_text'>) => FWD_SUBJECT.test(e.subject) || FWD_BODY.test(e.body_text);
 
 /** Deadline phrases ("by tomorrow", "before Oct 22") yield a date; a bare date mention is not a deadline. */
 export function dueFromText(text: string, refIso: string): string | null {
@@ -64,8 +73,6 @@ function groupOf(task: TaskSpec, address: string): string {
 
 export const isOpen = (o: Obligation) => isOpenStatus(o.status);
 
-/** Primitive's sender analysis (or, failing that, DMARC) vouches for the From address. */
-export const senderAuthenticated = (event: Pick<StoredEvent, 'auth_verdict'>) => event.auth_verdict === 'authenticated' || event.auth_verdict === 'pass';
 
 /** Overlap of significant words (longer than two chars), relative to the smaller text. */
 function wordOverlap(a: string, b: string): number {
@@ -128,6 +135,13 @@ export function applyProposal(inp: ApplyInput) {
   const who = labelOf(task, speaker);
   const whoParty = partyOf(task, speaker);
   const nameOf = (address: string) => labelOf(task, address);
+  // Authority needs proof of identity. Outbound events are our own sends, recorded by Continuity itself.
+  // Inbound mail must be authenticated, and inbound mail "from us" is never authoritative: our real
+  // sends are recorded as outbound, so an inbound copy is someone using our name (or a stray loop).
+  const auth = event.direction === 'outbound' ? null : parseSenderAuth(event.auth_verdict);
+  const verified = event.direction === 'outbound'
+    || (whoParty?.role !== 'self' && (auth?.status === 'pass' || senderAuthMode() === 'flag'));
+  const unverifiedWhy = whoParty?.role === 'self' ? 'inbound mail claiming to be from us' : `sender not authenticated (${auth?.reason ?? 'no auth data'})`;
 
   // ---- 0. instruction-like content is quarantined as data
   for (const flag of proposal.injection_flags) {
@@ -138,6 +152,7 @@ export function applyProposal(inp: ApplyInput) {
   // ---- 1. artifacts: a newer doc of the same kind from the same owner replaces the older one
   for (const incoming of inp.artifacts) {
     log('artifact_added', `${who} sent ${incoming.filename} (${incoming.kind}${incoming.version_label ? ` ${incoming.version_label}` : ''})`, incoming.id);
+    if (!verified) continue; // an unproven sender cannot retire the current document
     for (const earlier of store.artifactsForTask(task.id)) {
       if (earlier.id === incoming.id) continue;
       if (earlier.kind !== incoming.kind || earlier.owner !== incoming.owner) continue;
@@ -145,7 +160,7 @@ export function applyProposal(inp: ApplyInput) {
       if (earlier.sha256 === incoming.sha256) continue;
       if (incoming.kind === 'document') continue; // generic documents never supersede; only versioned business docs do
       if (earlier.event_id === incoming.event_id) continue; // documents sent together are a set, not versions
-      if (pack.documents?.find((d) => d.kind === incoming.kind)?.multipart) continue;
+      if (pack.documentKinds?.find((d) => d.kind === incoming.kind)?.multipart) continue;
       store.updateArtifact(earlier.id, 'superseded', incoming.id);
       log('artifact_superseded', `${earlier.filename} superseded by ${incoming.filename}`, earlier.id, { by: incoming.id });
     }
@@ -159,6 +174,7 @@ export function applyProposal(inp: ApplyInput) {
   const claimsInOrder = [...proposal.claims].sort((a, b) => Number(!!a.from_attachment) - Number(!!b.from_attachment));
   const lifecycleKeys = new Set(pack.terms.filter((t) => t.lifecycle).map((t) => t.key));
   let speakerMadeOffer = false;
+  let skewFlagged = false;
 
   for (const pc of claimsInOrder) {
     if (!vocabulary.has(pc.key)) continue;
@@ -191,9 +207,9 @@ export function applyProposal(inp: ApplyInput) {
     const isLifecycle = lifecycleKeys.has(pc.key);
 
     let authoritative = false;
-    if (whoParty) {
-      // our own decisions count, except on a term an internal approver decides (a ceiling we quote is not
-      // finance's approval); a counterparty deciding the same deal from its side does not take ours away
+    if (whoParty && verified) {
+      // our own decisions count, except on a term someone on our side decides (a ceiling we quote is not finance's
+      // approval); a counterparty owning the same term (a price both sides negotiate) does not take it away from us
       if (whoParty.role === 'self') {
         authoritative = pc.kind === 'decision'
           && !task.participants.some((p) => p.role === 'internal' && p.authority.some((prefix) => pc.key.startsWith(prefix)));
@@ -201,15 +217,11 @@ export function applyProposal(inp: ApplyInput) {
       else if (isLifecycle) authoritative = whoParty.role === 'counterparty'; // any counterparty may withdraw its own offer
       else authoritative = whoParty.authority.some((prefix) => pc.key.startsWith(prefix));
     }
-    // payment and bank details count only from a participant whose mail passed sender authentication
-    const unverified = authoritative && event.direction === 'inbound' && !senderAuthenticated(event)
-      && !!pack.verifiedSenderOnly?.some((prefix) => pc.key.startsWith(prefix));
-    if (unverified) authoritative = false;
 
     // 2a. tentative: hedged, low confidence, or not this speaker's term to set
     if (pc.hedged || pc.confidence < MIN_CONFIDENCE || !authoritative) {
       let reason: string;
-      if (unverified) reason = `${pc.key} changes need an authenticated sender (${event.auth_verdict ?? 'no authentication result'})`;
+      if (!verified) reason = unverifiedWhy;
       else if (!authoritative) reason = `${who} is not authoritative for ${pc.key}`;
       else if (pc.hedged) reason = 'hedged language';
       else reason = `low confidence (${pc.confidence})`;
@@ -247,6 +259,21 @@ export function applyProposal(inp: ApplyInput) {
       continue;
     }
 
+    // 2a''. money / identity details (wire or bank details, payment terms): never applied from email alone —
+    // held until a human verifies them out of band (an approval card); a repeat of the current value just corroborates
+    const sensitivity = event.direction === 'inbound' && pc.mode !== 'retraction' ? termOf(pack, pc.key)?.sensitive : undefined;
+    if (sensitivity) {
+      const current = liveClaims().find((c) => c.key === pc.key && c.speaker === speaker);
+      const changed = !current || !sameValue(current.value, value);
+      if (changed && (sensitivity === 'always' || current)) {
+        const held = store.insertClaim({ ...base, status: 'proposed', supersede_reason: `held for human verification: ${pc.key} is a payment/identity detail and is never applied from email alone` });
+        attachEvidence(held.id);
+        const what = current ? `changed ${pc.key} (${current.display} → ${display})` : `new ${pc.key} (${display})`;
+        log('claim_held_for_verification', `${who}'s ${what} is held until a human verifies it`, held.id, { previous: current?.display ?? null });
+        continue;
+      }
+    }
+
     if (pc.kind === 'offer') speakerMadeOffer = true;
 
     const onKey = liveClaims().filter((c) => c.key === pc.key);
@@ -273,11 +300,16 @@ export function applyProposal(inp: ApplyInput) {
     if (own.length) {
       const latest = own[own.length - 1];
       const latestEvent = store.getEvent(latest.source_event_id)!;
-      if (event.occurred_at < latestEvent.occurred_at) {
+      if (event.occurred_at < latestEvent.occurred_at && isForward(event)) {
         const late = store.insertClaim({ ...base, status: 'superseded', superseded_by: latest.id, supersede_reason: `older than current claim ${latest.id} (evidence arrived late)` });
         attachEvidence(late.id);
         log('stale_evidence', `Older ${pc.key} from ${who} (${display}) arrived late; current value ${latest.display} kept`, late.id);
         continue;
+      }
+      // the Date header is sender-controlled and clocks drift: a non-forward that arrived later wins by arrival order
+      if (event.occurred_at < latestEvent.occurred_at && !skewFlagged) {
+        skewFlagged = true;
+        store.addFlag(task.id, event.id, 'date_skew', `${who}'s Date header (${event.occurred_at}) precedes ${latestEvent.id} (${latestEvent.occurred_at}), but it arrived later and is not a forward; applied in arrival order`, at);
       }
       // a live dispute inside the group is not settled by one side restating a new value
       const disputing = peers.filter((c) => c.status === 'contested' && !sameValue(c.value, value));
@@ -413,8 +445,11 @@ export function applyProposal(inp: ApplyInput) {
   };
   const doneStatus = (o: Obligation): Obligation['status'] => (o.kind === 'commitment' ? 'fulfilled' : 'answered');
 
+  // an unproven sender can open obligations (we see what they ask) but cannot close or trigger anyone's
+  const closable = () => (verified ? openNow() : []);
+
   // 4a. conditions: "pay on invoice" becomes due once the creditor's invoice arrives
-  for (const o of openNow()) {
+  for (const o of closable()) {
     if (!o.condition || o.condition_met_at || o.condition.kind !== 'artifact') continue;
     const wantedKind = o.condition.artifact_kind;
     const trigger = inp.artifacts.find((x) => x.kind === wantedKind && x.owner.toLowerCase() === o.creditor);
@@ -424,7 +459,7 @@ export function applyProposal(inp: ApplyInput) {
   }
 
   // 4b. delivered quantities: partial or full fulfilment of quantity-bearing commitments
-  for (const f of proposal.fulfillments ?? []) {
+  for (const f of verified ? proposal.fulfillments ?? [] : []) {
     if (f.confidence < MIN_CONFIDENCE || !f.quantity || f.quantity <= 0) continue;
     const named = f.obligation_id ? store.getObligation(f.obligation_id) : null;
     const namedUsable = named && named.task_id === task.id && isOpen(named) && named.debtor === speaker && named.quantity != null ? named : null;
@@ -452,7 +487,7 @@ export function applyProposal(inp: ApplyInput) {
   }
 
   // 4c. questions/requests close on claims about their issue; document promises on a matching document
-  for (const o of openNow()) {
+  for (const o of closable()) {
     if (openedHere.has(o.id)) continue;
     if (o.debtor !== speaker) continue;
     if (o.expects_artifact && o.quantity != null) {
@@ -490,7 +525,7 @@ export function applyProposal(inp: ApplyInput) {
     }
   }
 
-  for (const r of proposal.resolutions) {
+  for (const r of verified ? proposal.resolutions : []) {
     const o = store.getObligation(r.obligation_id);
     if (!o || o.task_id !== task.id || !isOpen(o) || r.confidence < 0.7) continue;
     if (r.resolution === 'cancelled' && o.creditor === speaker) {
@@ -553,7 +588,7 @@ export function refreshDerived(store: StateStore, task: TaskSpec, eventId: strin
     // a term is stale on the document only while its current value differs (a value that came back is current again)
     const currentAgain = (c: Claim) => claims.some((x) => x.status === 'active' && x.key === c.key && x.speaker === c.speaker && sameValue(x.value, c.value));
     // one part of a set (a credit memo, a signature page) is not made stale by the next part's own figures
-    const multipart = !!pack.documents?.find((d) => d.kind === a.kind)?.multipart;
+    const multipart = !!pack.documentKinds?.find((d) => d.kind === a.kind)?.multipart;
     const outdated = backing.filter((c) => (c.status === 'superseded' && !currentAgain(c) && !multipart) || c.status === 'retracted');
     let status: Artifact['status'];
     if (a.superseded_by) status = 'superseded';

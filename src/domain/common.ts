@@ -72,7 +72,7 @@ export function standardActions(ctx: ActionContext, o: {
   // without authority): never applied; verify with the party who does speak for it, at its known address
   const seen = new Set<string>();
   for (const t of ctx.tentative ?? []) {
-    if (!/not authoritative|authenticated sender/.test(t.supersede_reason ?? '') || seen.has(t.key)) continue;
+    if (!/not authoritative|not authenticated|authenticated sender|held for human verification/.test(t.supersede_reason ?? '') || seen.has(t.key)) continue;
     const current = live.find((c) => c.key === t.key && c.status === 'active');
     if (current && JSON.stringify(current.value) === JSON.stringify(t.value)) continue;
     const owner = task.participants.find((p) => p.address === current?.speaker)

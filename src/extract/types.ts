@@ -83,7 +83,8 @@ export interface ExtractInput {
 
 export interface Extractor {
   name: string;
-  extract(input: ExtractInput): Promise<Proposal>;
+  /** `signal` aborts when the engine's deadline passes; extractors doing I/O should pass it on. */
+  extract(input: ExtractInput, opts?: { signal?: AbortSignal }): Promise<Proposal>;
 }
 
 export function emptyProposal(): Proposal {

@@ -79,12 +79,28 @@ drilling down (`/explain`, `/items/:id/provenance`, `/events/:id`). The briefing
 number of open items, terms and documents, not the number of messages (`eval/scale.ts`).
 
 The compiler reports *what is true and what is open*. It does not write the email; the acting agent (LLM or offline
-policy) picks the words. Every outbound action then passes a **send guard** that checks it against state:
+policy) picks the words, and declares what each email is for (`intent`: inform / ask / negotiate / commit). Every
+outbound action then passes a **send guard** (`src/engine/guard.ts`) that checks it against state, with three outcomes:
 
-- every recipient must be a participant in the task;
-- the body must contain no credentials;
-- binding language (accept / place order / approve payment) is refused as long as any requirement fails or any term is
-  contested.
+- **block** (409, hard limits): a recipient who is not a participant, credentials in the body, a commitment while a
+  requirement fails, or a non-commit whose wording reads as binding while a requirement fails;
+- **hold** (202, a human decides): every commitment by default (`approval.commitments: "human"`; `"auto_when_clear"`
+  lets clean ones through), payment / wire / bank details, and gray areas (contested or unknown terms, reliance on an
+  unverified statement, injected text, a wording check that could not decide, declared intent that the text
+  contradicts);
+- **allow**: everything else.
+
+Whether text commits us is decided by the declared intent plus a clause-aware tripwire (negation, conditions,
+questions, quotes, reported speech, look-alike characters), extended by the domain pack's `bindingPatterns`; an
+optional Claude check (`src/engine/send-check.ts`) gives a second opinion on counterparty mail and fails closed.
+
+A held send becomes an **approval card** (`src/approvals.ts`). Approvals are not a table: the request, each decision
+and each expiry are transitions in the task's log (`src/engine/approval-log.ts`), so all three backends persist them
+in the same version-checked commit as the rest of the task. Payment-detail changes from email (`TermDef.sensitive`)
+are held by the resolver the same way and become verification cards. Deciding needs the `approve` scope, which agents
+never get and the operator wildcard does not imply; a decision on a card whose underlying state changed is refused
+and the draft is re-evaluated; an approving decision writes the outbound action in the same commit and the sent
+email records `approved_by`. While a card is open and nothing urgent is ours, the context's `next_actor` is `human`.
 
 ## How a cold handoff works
 

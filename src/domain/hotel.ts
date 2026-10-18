@@ -342,13 +342,12 @@ export const hotel: DomainPack = {
   expectedTerms: expectedFrom(TERMS, new Set(['decision.contract', 'offer.hold_until', 'cancellation.terms', 'concession.comp_ratio', 'meeting.room_rental', 'deposit.amount', 'deposit.due', 'payment.wire_instructions'])),
   decisionKey: 'decision.contract',
   bindingPatterns: BINDING_PATTERNS,
-  verifiedSenderOnly: ['payment.', 'deposit.'],
-  documents: [
-    { kind: 'banquet_event_order', match: /\bBEOs?\b|banquet event order/i, mention: /\bBEOs?\b|banquet event orders?/i, multipart: true },
-    { kind: 'rooming_list', match: /rooming list/i, mention: /rooming list/i },
-    { kind: 'invoice', match: /invoice/i, mention: /\binvoice\b/i },
-    { kind: 'contract', match: /\bcontract\b|agreement|addendum|amendment/i, mention: /\bcontract\b|\bagreement\b|addendum|amendment/i },
-    { kind: 'proposal', match: /proposal/i, mention: /\bproposal\b/i },
+  documentKinds: [
+    { kind: 'banquet_event_order', match: /\bBEOs?\b|banquet event order/i, promise: /\bBEOs?\b|banquet event orders?/i, multipart: true },
+    { kind: 'rooming_list', match: /rooming list/i, promise: /rooming list/i },
+    { kind: 'invoice', match: /invoice/i, promise: /\binvoice\b/i },
+    { kind: 'proposal', match: /\bproposal\b(?! is not)/i, promise: /\bproposal\b/i },
+    { kind: 'contract', match: /\bcontract\b|agreement|addendum|amendment/i, promise: /\bcontract\b|\bagreement\b|addendum|amendment/i },
   ],
   loopSubject(o) {
     if (o.expects_artifact === 'rooming_list') return 'rooming_list';

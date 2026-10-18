@@ -8,14 +8,14 @@ import { displayTyped as displayShared, mergePartialLots, normalizeTyped, type L
 export type { Lot };
 
 export const TERMS: TermDef[] = [
-  { key: 'price.unit', type: 'money', description: 'Offered unit price in USD', topics: ['price', 'pricing', 'unit cost', 'cost per', 'quote', '$', 'per unit'] },
-  { key: 'delivery.schedule', type: 'schedule', description: 'Offered delivery schedule: list of {qty, date} lots', topics: ['deliver', 'delivery', 'arrive', 'ship', 'lead time', 'schedule', 'when', 'by friday', 'units'] },
-  { key: 'order.quantity', type: 'number', description: 'Quantity offered/available in total', topics: ['quantity', 'how many', 'units', 'volume'] },
-  { key: 'payment.terms', type: 'text', description: 'Payment terms, e.g. Net 30', topics: ['payment', 'terms', 'net 30', 'invoice'] },
-  { key: 'quote.valid_until', type: 'date', description: 'Date the quote expires', topics: ['valid', 'expire', 'expiry'] },
-  { key: 'offer.status', type: 'enum', values: ['withdrawn'], lifecycle: true, description: 'The counterparty withdrew/cancelled its offer or cannot supply (value "withdrawn"). History is kept; the offer is no longer available.', topics: ['withdraw', 'cancel', 'disregard', 'rescind'] },
-  { key: 'budget.max_unit_price', type: 'money', description: 'Internally approved maximum unit price (a decision by finance/approver)', topics: ['budget', 'approve', 'approval', 'authoriz', 'sign off', 'sign-off'] },
-  { key: 'decision.order', type: 'text', description: 'A party accepting/declining/placing the order', topics: ['accept', 'confirm the order', 'place the order', 'go ahead', 'po '] },
+  { key: 'price.unit', type: 'money', description: 'Offered unit price in USD', topics: ['price', 'pricing', 'unit cost', 'cost per', 'quote', '$', 'per unit'], events: { default: 'price_quoted' } },
+  { key: 'delivery.schedule', type: 'schedule', description: 'Offered delivery schedule: list of {qty, date} lots', topics: ['deliver', 'delivery', 'arrive', 'ship', 'lead time', 'schedule', 'when', 'by friday', 'units'], events: { default: 'delivery_scheduled' } },
+  { key: 'order.quantity', type: 'number', description: 'Quantity offered/available in total', topics: ['quantity', 'how many', 'units', 'volume'], events: { default: 'quantity_offered' } },
+  { key: 'payment.terms', type: 'text', description: 'Payment terms, e.g. Net 30', topics: ['payment', 'terms', 'net 30', 'invoice'], sensitive: 'change', events: { default: 'payment_terms_set' } },
+  { key: 'quote.valid_until', type: 'date', description: 'Date the quote expires', topics: ['valid', 'expire', 'expiry'], events: { default: 'quote_expiry_set' }, deadline: true },
+  { key: 'offer.status', type: 'enum', values: ['withdrawn'], lifecycle: true, description: 'The counterparty withdrew/cancelled its offer or cannot supply (value "withdrawn"). History is kept; the offer is no longer available.', topics: ['withdraw', 'cancel', 'disregard', 'rescind'], events: { default: 'offer_withdrawn' } },
+  { key: 'budget.max_unit_price', type: 'money', description: 'Internally approved maximum unit price (a decision by finance/approver)', topics: ['budget', 'approve', 'approval', 'authoriz', 'sign off', 'sign-off'], events: { default: 'budget_approved' } },
+  { key: 'decision.order', type: 'text', description: 'A party accepting/declining/placing the order', topics: ['accept', 'confirm the order', 'place the order', 'go ahead', 'po '], events: { self: 'order_accepted', default: 'order_confirmed' } },
 ];
 
 export const TERM_KEYS = new Set(TERMS.map((t) => t.key));
@@ -286,9 +286,14 @@ function procurementEnd(state: ProcurementState, claim: HeuristicSentence['claim
 }
 
 export const BINDING_PATTERNS = [
-  /\b((?:we|i)\s+(?:hereby\s+)?accepts?\b|accept(?:s|ed)?\s+(?:it|your|the|this)\b(?:\s+(?:offer|quote|proposal|order|terms))?|confirm the order|place the order|we are placing|purchase order is confirmed|approve (?:the )?payment|authori[sz]e (?:the )?payment|wire (?:the )?funds)/gi,
+  /\b((?:we|i)\s+(?:hereby\s+)?accepts?\b|accept(?:s|ed)?\s+(?:it|your|the|this)\b(?:\s+(?:offer|quote|proposal|order|terms))?|place the order|we are placing|purchase order is confirmed|approve (?:the )?payment|authori[sz]e (?:the )?payment|wire (?:the )?funds)/gi,
   // "<Company> accepts …" (case-sensitive: a capitalised name as the subject)
   /\b[A-Z][A-Za-z]+\s+(?:hereby\s+)?accepts\b/g,
+  // confirming or approving an order ourselves; "please confirm the order" asks *them*, so it does not count
+  /\b(?<!(?:please|you|to|can|could|would|will)\s)confirm(?:s|ed|ing)?\s+(?:the|this|our)\s+(?:order|purchase)\b/gi,
+  /\b(?:our|as (?:an?|our)|this is (?:our|the))\s+(?:formal\s+)?order confirmation\b/gi,
+  /\bproceed with (?:the|this|our) (?:order|purchase)\b/gi,
+  /\b(?<!(?:please|you|to|can|could|would|will)\s)approve(?:s|d)? (?:the|this|our) (?:order|purchase)\b/gi,
 ];
 
 export const procurement: DomainPack = {

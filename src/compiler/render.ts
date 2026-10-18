@@ -86,6 +86,11 @@ function buildSections(ctx: CompiledContext): Section[] {
   const lower = ctx.suggested_actions.filter((a) => a.priority !== 1);
   const actionLine = (a: SuggestedRow) => bullet(`P${a.priority}${a.to ? ` → ${a.to}` : ''}: ${a.action}. Why: ${a.why}${evidenceTag(a.evidence)}`);
   section('next_actor', true, `Next actor: ${ctx.next_actor.toUpperCase()}`, [], stateDrill, [ctx.next_actor_reason]);
+  if (ctx.pending_approvals.length) {
+    section('approvals', true, 'Waiting on a human (do not commit or act on these yourself)', ctx.pending_approvals.map((p) => bullet(
+      `${p.id} [${p.status}]: ${p.title} — because ${p.asked_because.join('; ')}. Since ${shortStamp(p.since)}, expires ${shortStamp(p.expires_at)}.`,
+    )));
+  }
   if (ctx.suggested_actions.length) section('actions_p1', true, ACTIONS_TITLE, urgent.map(actionLine));
   // lower-priority actions sit under the same heading unless there were no P1 actions to carry it
   if (lower.length) section('actions_rest', false, urgent.length ? null : ACTIONS_TITLE, lower.map(actionLine));

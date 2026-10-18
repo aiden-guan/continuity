@@ -370,13 +370,12 @@ export const finance: DomainPack = {
   expectedTerms: expectedFrom(TERMS, new Set(['invoice.number', 'invoice.quantity', 'balance.due', 'discount.early_pay_pct', 'discount.deadline', 'credit.memo_amount', 'payment.schedule', 'dispute.status', 'decision.payment', 'payment.terms'])),
   decisionKey: 'decision.payment',
   bindingPatterns: BINDING_PATTERNS,
-  verifiedSenderOnly: ['payment.remit_to'],
   withdrawable: ['discount.', 'balance.'],
-  documents: [
-    { kind: 'credit_memo', match: /credit memo|credit note|\bCM-\d/i, mention: /credit (?:memo|note)s?/i, multipart: true },
-    { kind: 'w9', match: /\bW-?9\b|taxpayer identification/i, mention: /\bW-?9\b/i },
-    { kind: 'statement', match: /statement of account|account statement/i, mention: /\bstatement\b/i },
-    { kind: 'invoice', match: /invoice/i, mention: /\binvoice\b/i },
+  documentKinds: [
+    { kind: 'credit_memo', match: /credit memo|credit note|\bCM-\d/i, promise: /credit (?:memo|note)s?/i, multipart: true },
+    { kind: 'w9', match: /\bW-?9\b|taxpayer identification/i, promise: /\bW-?9\b/i },
+    { kind: 'statement', match: /statement of account|account statement/i, promise: /\bstatement\b/i },
+    { kind: 'invoice', match: /invoice/i, promise: /\binvoice\b/i },
   ],
   loopSubject(o) {
     if (o.kind === 'commitment' && o.quantity != null) return o.topic_keys.some((k) => k.startsWith('credit.')) ? 'credit.remaining_units' : 'payment.remaining_installments';

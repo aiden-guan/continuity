@@ -30,6 +30,8 @@ const DB = 'data/demo.db';
 
 // filled in by preparePostgres() when running against Supabase
 let operatorToken = '';
+// a human approver's token (the operator token does not include approval)
+let approverToken = '';
 const tokensByAgent: Record<string, string> = {};
 const serverEnv: Record<string, string> = {};
 
@@ -68,9 +70,9 @@ async function banner(text: string, color = C.cyan) {
 const say = (text: string) => console.log(`${C.dim}demo:${C.reset} ${text}`);
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function api<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function api<T>(method: string, path: string, body?: unknown, token = operatorToken): Promise<T> {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
-  if (operatorToken) headers.authorization = `Bearer ${operatorToken}`;
+  if (token) headers.authorization = `Bearer ${token}`;
   const res = await fetch(`${API}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
   const payload = await res.json();
   if (!res.ok) throw new Error(`${method} ${path} → ${res.status} ${JSON.stringify(payload)}`);
@@ -208,6 +210,15 @@ async function main() {
     await banner('8. Agent C (another fresh process) closes the loop', C.mag);
     const agentC = startAgent('agent-c', '--once', '[agent-c]', C.mag);
     if ((await exitOf(agentC)) !== 0) throw new Error('agent-c failed');
+
+    // the acceptance commits us, so it waits for a person: agents propose, a human decides
+    const held = await api<{ id: string; text: string; card: { recommended: string } }[]>('GET', `/tasks/${taskPath}/approvals`);
+    if (held.length) {
+      await banner('9. A human approves the commitment Agent C drafted', C.green);
+      console.log(held[0].text.split('\n').map((l) => `  ${l}`).join('\n'));
+      const decided = await api<{ status: string; sent?: { event_id: string } }>('POST', `/tasks/${taskPath}/approvals/${held[0].id}/decide`, { option: held[0].card.recommended, by: 'Sam (ops lead)' }, approverToken || operatorToken);
+      say(`decision: ${decided.status}${decided.sent ? ` — sent ${decided.sent.event_id}, recorded with approved_by` : ''}`);
+    }
   }
 
   await banner('Done', C.green);
@@ -240,11 +251,12 @@ async function preparePostgres() {
   if (!url) throw new Error('--store postgres needs SUPABASE_DB_URL, or a local stack (supabase start && supabase migration up --local)');
 
   const { PostgresBackend } = await import('../src/store/postgres.ts');
-  const { mintToken } = await import('../src/auth.ts');
+  const { mintToken, APPROVER_SCOPES } = await import('../src/auth.ts');
   const backend = new PostgresBackend(url);
   await backend.init();
   const org = `org_demo_${Date.now().toString(36)}`;
   operatorToken = (await mintToken(backend, { org, kind: 'operator', label: 'demo script' })).token;
+  approverToken = (await mintToken(backend, { org, kind: 'operator', scopes: APPROVER_SCOPES, label: 'Sam (ops lead)' })).token;
   for (const name of ['agent-a', 'agent-b', 'agent-c']) {
     tokensByAgent[name] = (await mintToken(backend, { org, kind: 'agent', agent_id: name, task_ids: [task.id], label: `demo ${name}` })).token;
   }
