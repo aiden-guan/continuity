@@ -136,14 +136,14 @@
 }
 
 /* ============================================================ hero */
-/* one full screen: the headline centred in the space above Fig. 1, which sits on the fold */
-.hero { position: relative; display: flex; flex-direction: column; min-height: 100vh; min-height: 100svh; padding-top: 60px; }
+/* the headline fills the first screen on its own; Fig. 1 starts exactly at the fold */
+.hero { position: relative; display: flex; flex-direction: column; }
 
 /* "Agents forget." is drawn by particles.js; its DOM text stays for selection and screen readers */
 .hero-px { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; pointer-events: none; }
 .px .h-forget { color: transparent; }
 /* copy sits above the particles in flight; Fig. 1 sits below them, so they land on its thread */
-.hero > .wrap { position: relative; z-index: 3; display: flex; flex: 1; flex-direction: column; justify-content: center; }
+.hero > .wrap { position: relative; z-index: 3; display: flex; flex-direction: column; justify-content: center; box-sizing: border-box; min-height: 100vh; min-height: 100svh; padding-top: 60px; }
 .h-keep { --d: 0.35s; }
 
 
@@ -173,7 +173,7 @@
 }
 .cta-row { display: flex; flex-wrap: wrap; gap: 10px; }
 
-.hero-fig { margin-top: 0; }
+.fig.hero-fig { margin-top: 0; }
 .hero-fig canvas { display: block; width: 100%; height: clamp(132px, 20vh, 240px); }
 
 /* ============================================================ figures */
@@ -197,6 +197,8 @@
   color: var(--muted);
 }
 .fig-n { flex: none; color: var(--ink); }
+/* a figure that closes its section sits on the next rule, like Fig. 1 */
+.sec:has(> .fig:last-child) { padding-bottom: 0; }
 
 /* ============================================================ sections */
 .sec {
