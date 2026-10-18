@@ -27,7 +27,7 @@ import type { Proposal } from '../extract/types.ts';
 import { domainFor, sameValue, termKeys, termOf, type DomainPack } from '../domain/pack.ts';
 import '../domain/index.ts';
 import { findDates } from '../extract/dates.ts';
-import { parseSenderAuth, senderAuthMode } from '../ingest/sender-auth.ts';
+import { authenticatedEnough, parseSenderAuth, senderAuthPolicyOf } from '../ingest/sender-auth.ts';
 
 export const MIN_CONFIDENCE = 0.6;
 
@@ -136,11 +136,12 @@ export function applyProposal(inp: ApplyInput) {
   const whoParty = partyOf(task, speaker);
   const nameOf = (address: string) => labelOf(task, address);
   // Authority needs proof of identity. Outbound events are our own sends, recorded by Continuity itself.
-  // Inbound mail must be authenticated, and inbound mail "from us" is never authoritative: our real
-  // sends are recorded as outbound, so an inbound copy is someone using our name (or a stray loop).
+  // Inbound mail must be authenticated (or, under the party's sender_auth "flag" policy, at least not fail),
+  // and inbound mail "from us" is never authoritative: our real sends are recorded as outbound, so an
+  // inbound copy is someone using our name (or a stray loop).
   const auth = event.direction === 'outbound' ? null : parseSenderAuth(event.auth_verdict);
   const verified = event.direction === 'outbound'
-    || (whoParty?.role !== 'self' && (auth?.status === 'pass' || senderAuthMode() === 'flag'));
+    || (whoParty?.role !== 'self' && authenticatedEnough(auth, senderAuthPolicyOf(whoParty).policy));
   const unverifiedWhy = whoParty?.role === 'self' ? 'inbound mail claiming to be from us' : `sender not authenticated (${auth?.reason ?? 'no auth data'})`;
 
   // ---- 0. instruction-like content is quarantined as data

@@ -13,7 +13,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import type { Backend, JobInput, JobRow, ReceiveResult, TaskSnapshot } from '../store/backend.ts';
 import { backoffMs } from '../store/backend.ts';
 import type { MemoryStore } from '../store/state.ts';
-import type { Artifact, EventInput, StoredEvent, TaskSpec } from '../types.ts';
+import type { Artifact, EventInput, Participant, StoredEvent, TaskSpec } from '../types.ts';
 import type { ExtractInput, Extractor, Proposal } from '../extract/types.ts';
 import { heuristicExtractor, classifyArtifact } from '../extract/heuristic.ts';
 import { attachmentText } from '../ingest/attachments.ts';
@@ -21,7 +21,7 @@ import { resolveTask } from '../ingest/link.ts';
 import { applyProposal, isOpen, labelOf, partyOf, refreshDerived } from './resolver.ts';
 import { domainFor } from '../domain/pack.ts';
 import { canonicalIso, nowIso } from '../clock.ts';
-import { parseSenderAuth, senderAuthMode } from '../ingest/sender-auth.ts';
+import { authenticatedEnough, parseSenderAuth, senderAuthPolicyOf } from '../ingest/sender-auth.ts';
 import { Breaker, isTransient, limiter, withDeadline } from './limit.ts';
 
 export type AttachmentFetcher = (event: StoredEvent, partIndex: number, signal?: AbortSignal) => Promise<Buffer | null>;
@@ -431,7 +431,7 @@ export function applyInterpretation(s: MemoryStore, task: TaskSpec, event: Store
   if (!party) {
     s.addFlag(task.id, event.id, 'unknown_sender', `${event.from} is not a task participant; their statements are recorded as tentative`, event.received_at);
   }
-  flagEvidence(s, task, event, party?.role ?? null);
+  flagEvidence(s, task, event, party);
 
   const artifacts: Artifact[] = texts.map((t) => {
     const classified = proposal.artifacts.find((a) => a.filename === t.filename) ?? { ...classifyArtifact(t.filename, t.text, domainFor(task)) };
@@ -446,7 +446,7 @@ export function applyInterpretation(s: MemoryStore, task: TaskSpec, event: Store
 }
 
 /** Flags about the evidence itself: repaired times (found at receipt) and an unproven sender identity. */
-function flagEvidence(s: MemoryStore, task: TaskSpec, event: StoredEvent, role: string | null) {
+function flagEvidence(s: MemoryStore, task: TaskSpec, event: StoredEvent, party: Participant | null) {
   const flag = (kind: string, detail: string) => {
     if (s.flagsForTask(task.id).some((f) => f.event_id === event.id && f.kind === kind)) return;
     s.addFlag(task.id, event.id, kind, detail, event.received_at);
@@ -454,14 +454,17 @@ function flagEvidence(s: MemoryStore, task: TaskSpec, event: StoredEvent, role: 
   for (const f of event.time_flags ?? []) flag(f.kind, f.detail);
   if (event.direction !== 'inbound') return;
   const auth = parseSenderAuth(event.auth_verdict);
-  if (role && auth && auth.status !== 'pass') {
-    const effect = senderAuthMode() === 'enforce'
-      ? 'its statements are recorded as tentative and it cannot close obligations or replace documents'
-      : 'CONTINUITY_SENDER_AUTH=flag: applied anyway';
-    const how = `${auth.reason}${auth.dmarc ? `, dmarc=${auth.dmarc}` : ''}${auth.dmarc_policy ? ` p=${auth.dmarc_policy}` : ''}`;
-    flag('sender_unauthenticated', `${event.from} is not authenticated (${how}) — ${effect}. Verify with ${labelOf(task, event.from)} through a channel you trust before relying on it`);
+  if (party && party.role !== 'self' && auth?.status !== 'pass') {
+    // say which policy decided, so a reader knows whether the statements were applied
+    const { policy, source } = senderAuthPolicyOf(party);
+    const rule = source === 'participant' ? `${party.label}'s sender_auth=${policy}` : `default CONTINUITY_SENDER_AUTH=${policy}`;
+    const effect = authenticatedEnough(auth, policy)
+      ? `applied anyway (${rule}; verdict unknown, not failed)`
+      : `${policy === 'flag' ? `a failing verdict is never relaxed (${rule})` : rule}: its statements are recorded as tentative and it cannot close obligations or replace documents`;
+    const how = auth ? `${auth.reason}${auth.dmarc ? `, dmarc=${auth.dmarc}` : ''}${auth.dmarc_policy ? ` p=${auth.dmarc_policy}` : ''}` : 'no auth data';
+    flag('sender_unauthenticated', `${event.from} is not authenticated (${how}) — ${effect}. Verify with ${party.label} through a channel you trust before relying on it`);
   }
-  if (role === 'self') flag('sender_impersonates_us', `inbound mail claims to be from our own address ${event.from}; ignored as a source of decisions`);
+  if (party?.role === 'self') flag('sender_impersonates_us', `inbound mail claims to be from our own address ${event.from}; ignored as a source of decisions`);
 }
 
 /** One deadline job per (obligation, due date), scheduled once the obligation is actually due (conditions met). */

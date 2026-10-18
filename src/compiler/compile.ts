@@ -14,6 +14,7 @@ import { domainFor, termOf, type SuggestedAction } from '../domain/pack.ts';
 import '../domain/index.ts';
 import { stripQuoted } from '../extract/heuristic.ts';
 import { nowIso } from '../clock.ts';
+import { senderAuthPolicyOf } from '../ingest/sender-auth.ts';
 import type { Lot } from '../domain/procurement.ts';
 
 export type ContextPurpose = 'act' | 'reply' | 'review' | 'accept' | 'follow_up';
@@ -48,8 +49,9 @@ const REPORTABLE_TRANSITIONS = new Set([
   'claim_held_for_verification', 'claim_verified', 'claim_rejected', 'approval_requested', 'approval_decided', 'approval_expired',
 ]);
 
-// Flags that must survive the history cap no matter how many there are.
-const SAFETY_FLAG_KINDS = ['prompt_injection_suspected', 'interpretation_failed', 'unknown_sender'];
+// Flags that must survive the history cap no matter how many there are. A sender flag can be the only
+// sign that an applied term rests on unauthenticated mail (a party with sender_auth "flag").
+const SAFETY_FLAG_KINDS = ['prompt_injection_suspected', 'interpretation_failed', 'unknown_sender', 'sender_unauthenticated', 'sender_impersonates_us'];
 
 /** Keep the newest `max` entries and report how many older ones were dropped. */
 function capNewest<T>(list: T[], max: number): { items: T[]; omitted: number } {
@@ -316,6 +318,8 @@ export function compileContext(store: StateStore, taskId: string, opts: CompileO
         const addr = p.address.toLowerCase();
         return {
           label: p.label, name: p.name, address: p.address, role: p.role, speaks_for: p.authority,
+          // only when relaxed: this party's mail counts even when its authentication is unknown (and is flagged)
+          ...(senderAuthPolicyOf(p).policy === 'flag' ? { sender_auth: 'flag' as const } : {}),
           last_message: [...events].reverse().find((e) => e.from === addr || e.to.includes(addr))?.id ?? null,
         };
       }),

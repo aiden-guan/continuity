@@ -206,14 +206,21 @@ async function main() {
   say(`agent inbox: ${C.bold}${addr.self}${C.reset}   supplier: ${addr.supplier}   finance: ${addr.finance}`);
   if (domains.size > 1) say(`${C.yellow}note:${C.reset} the three addresses are on different domains; the counterparties must be inboxes this Primitive account can read and send from.`);
   say(`agents + extraction: ${agentMode === 'llm' ? 'Claude' : 'offline rule-based (--fast or no ANTHROPIC_API_KEY)'}`);
-  // sender authentication is flagged, not enforced, until verified on real mail between these inboxes
-  const senderAuth = process.env.CONTINUITY_SENDER_AUTH || 'flag';
-  start('src/server.ts', [], '[continuity]', C.dim, { CONTINUITY_STORE: 'sqlite', CONTINUITY_DB: DB, CONTINUITY_AUTH: 'required', PORT, CONTINUITY_SENDER_AUTH: senderAuth, ...(flags.fast ? { CONTINUITY_EXTRACTOR: 'heuristic' } : {}) }, true);
+  // Sender authentication stays enforced server-wide (CONTINUITY_SENDER_AUTH from the environment, default
+  // enforce). Only the two scripted counterparties are relaxed: they reply from inboxes on your Primitive
+  // domain, and until mail between those inboxes has been seen to authenticate, an *unknown* verdict from
+  // them still counts and is flagged (sender_auth "flag"); a failing verdict never does.
+  // CONTINUITY_DEMO_SENDER_AUTH=enforce runs them as a hosted deployment would: do that once before hosting.
+  const demoAuth = process.env.CONTINUITY_DEMO_SENDER_AUTH || 'flag';
+  if (demoAuth !== 'flag' && demoAuth !== 'enforce') throw new Error(`CONTINUITY_DEMO_SENDER_AUTH must be flag or enforce (got ${demoAuth})`);
+  const liveTask: typeof task = { ...task, participants: task.participants.map((p) => (p.address === addr.supplier || p.address === addr.finance ? { ...p, sender_auth: demoAuth } : p)) };
+  say(`sender auth: ${process.env.CONTINUITY_SENDER_AUTH === 'flag' ? 'flag' : 'enforce'} by default; supplier + finance sender_auth=${demoAuth}${demoAuth === 'flag' ? ' (unknown verdicts accepted and flagged; CONTINUITY_DEMO_SENDER_AUTH=enforce to check)' : ''}`);
+  start('src/server.ts', [], '[continuity]', C.dim, { CONTINUITY_STORE: 'sqlite', CONTINUITY_DB: DB, CONTINUITY_AUTH: 'required', PORT, ...(flags.fast ? { CONTINUITY_EXTRACTOR: 'heuristic' } : {}) }, true);
   const health = await waitUntil('server', () => api<{ transport: string; extractor: string }>('GET', '/api/health'), 30_000);
   if (health.transport !== 'primitive') throw new Error(`server is not in live mode (transport=${health.transport})`);
   say(`Continuity up: transport=${health.transport} extractor=${health.extractor} — UI: ${API}/`);
   start('scripts/primitive-receive.ts', [], '[receive]', C.dim, { CONTINUITY_URL: API, RECEIVE_SINCE: RUN_STARTED, CONTINUITY_TOKEN: tokens.ingest }, true);
-  await api('POST', '/tasks', task);
+  await api('POST', '/tasks', liveTask);
   say(`task ${task.alias}: ${task.goal}`);
 
   await beat('1. Agent A (long-running) opens the negotiation over Primitive');

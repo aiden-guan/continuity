@@ -166,7 +166,7 @@ differently. Importing the same file twice changes nothing the second time. Coll
 | `CONTINUITY_EXTRACTOR_MODEL` / `CONTINUITY_AGENT_MODEL` | `claude-haiku-5-5` | Model ids. |
 | `CONTINUITY_SELF_ADDRESS` | `procurement@acme-buyer.primitive.email` | The agent's own Primitive address. |
 | `CONTINUITY_SUPPLIER_ADDRESS`, `CONTINUITY_FINANCE_ADDRESS` | made-up `.example` addresses | The scenario's counterparties. |
-| `CONTINUITY_SENDER_AUTH` | `enforce` | `enforce`: a sender's statements carry authority only if Primitive's SPF/DKIM/DMARC results authenticate the From address (SDK `isTrustedSender`); otherwise they stay tentative, cannot close obligations or replace documents, and are flagged. `flag`: apply anyway, flag only (`demo:live` uses this until verified on real mail). |
+| `CONTINUITY_SENDER_AUTH` | `enforce` | The sender-authentication policy for every participant that sets none of its own (see [Sender authentication](#sender-authentication)). `enforce`: a sender's statements carry authority only if Primitive's SPF/DKIM/DMARC results authenticate the From address (SDK `isTrustedSender`); otherwise they stay tentative, cannot close obligations or replace documents, and are flagged. `flag`: an *unknown* verdict keeps its authority and is flagged; a failing one still does not. Prefer a per-participant `sender_auth` over switching this for everyone. |
 | `CONTINUITY_DKIM_WITHOUT_DMARC` | `1` | A domain with no DMARC record still authenticates through a passing DKIM signature by exactly the From domain; `0` turns that off. |
 | `CONTINUITY_AUTH_TEMPERROR_RETRIES` | `3` | Webhook deliveries answered 503 (redeliver) while DMARC reports a temporary DNS error; after that the email is stored with an `unknown` sender and flagged. |
 | `CONTINUITY_AUTH_RETRY_DELAY_MS` | `5000` | Pause between re-fetches on the pull receiver, which has no redelivery. |
@@ -185,6 +185,58 @@ differently. Importing the same file twice changes nothing the second time. Coll
 | `CONTINUITY_EXTRACT_CONCURRENCY` | `4` | Claude extractions running at once per process. |
 | `CONTINUITY_ATTACHMENT_TIMEOUT_MS` | `30000` | Per attachment download from Primitive. |
 | `CONTINUITY_URL` | `http://localhost:4100` | Server address for the agent, the MCP server and scripts. |
+
+### Sender authentication
+
+Authority is granted by address (finance sets the budget, the supplier sets price and delivery), and anyone can type
+a From header. So an inbound email carries its sender's authority only when Primitive's SPF/DKIM/DMARC results prove
+the From address: DMARC passes for exactly that domain and the From header strictly parses to that one address
+(`src/ingest/sender-auth.ts`, built on the SDK's `isTrustedSender`). Each email gets one of three verdicts:
+
+- **pass**: DMARC passed for the From domain, or the domain has no DMARC record but a strong DKIM signature by exactly
+  that domain verifies (`CONTINUITY_DKIM_WITHOUT_DMARC=0` turns this off).
+- **unknown**: nothing proves or disproves the sender. The domain has no DMARC record and no aligned DKIM, a DMARC DNS
+  error persisted through the retries, or the email carries no auth data.
+- **fail**: evidence against the sender. DMARC failed (whatever the domain's policy), the domain has no DMARC record and
+  SPF failed, the From header is malformed or lists several addresses, or the From domain is not the domain that
+  authenticated.
+
+Legitimate parties do not always pass. A small supplier's domain may publish no DMARC record and sign nothing, which
+gives **unknown**. A forwarder or mailing list usually breaks the DKIM signature; when the original domain publishes
+DMARC, that is a **fail**. DMARC also proves the domain, not the mailbox, so two parties on one shared domain cannot be
+told apart by it. For a party whose real mail only reaches **unknown**, set a policy on that participant:
+
+```json
+{ "address": "dana@small-supplier.example", "role": "counterparty", "label": "supplier",
+  "authority": ["price.", "delivery."], "sender_auth": "flag" }
+```
+
+| Verdict | `sender_auth: "enforce"` (default) | `sender_auth: "flag"` |
+|---|---|---|
+| pass | applied | applied |
+| unknown | tentative, flagged | **applied, flagged** |
+| fail | tentative, flagged | tentative, flagged (never relaxed) |
+| any, From is our own address | never authoritative, flagged `sender_impersonates_us` | refused at task creation |
+
+"Tentative" means the statement is recorded but sets no term, closes no obligation and replaces no document. Under
+either policy, every email from a participant that did not pass gets a `sender_unauthenticated` flag. The flag names
+the policy that applied (`finance's sender_auth=flag` or `default CONTINUITY_SENDER_AUTH=enforce`) and says whether
+the email was applied. Mail from non-participants never carries authority and is flagged `unknown_sender`. Sender
+flags are kept past the context's history cap, like injection flags. The send guard treats them as a gray area, so a
+commitment drafted on such a deal goes to a human even with `auto_when_clear`. The briefing's parties line also marks
+a relaxed party.
+`CONTINUITY_SENDER_AUTH` only sets the default for participants without a `sender_auth`. Changing it relaxes everyone,
+including parties nobody checked.
+
+What `flag` does not fix: a forwarded email that fails DMARC stays tentative. Have that party write directly, or add
+the address its mail really comes from (e.g. the list address that rewrote From) as a participant. Two parties on one
+shared domain still look the same to DMARC. The flag tells a human to confirm a change through a channel they trust.
+
+`npm run demo:live` keeps the server on `enforce` and sets `sender_auth: "flag"` only on the scripted supplier and
+finance inboxes, because mail between inboxes on your own Primitive domain has not been confirmed to authenticate on
+every setup. Before hosting, run it once with `CONTINUITY_DEMO_SENDER_AUTH=enforce` against your real inboxes and check
+that no `sender_unauthenticated` flag appears. If one does, its verdict tells you which records (DMARC, DKIM) to fix.
+Use `flag` only for the parties that still need it.
 
 ## Agent-facing interface
 

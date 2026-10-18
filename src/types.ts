@@ -15,6 +15,15 @@ export interface Participant {
   /** Parties sharing a group talk about the same deal (a supplier and its forwarder). A disagreement
    *  inside a group is "contested" and never silently supersedes. Defaults to the party's address. */
   group?: string;
+  /** How strictly this party's mail must be authenticated (SPF/DKIM/DMARC for its From address) before it
+   *  sets terms, closes obligations or replaces documents. Omitted: CONTINUITY_SENDER_AUTH (default "enforce").
+   *  - "enforce": only mail that authenticates as this address carries authority; the rest is tentative and flagged.
+   *  - "flag": mail whose verdict is merely unknown (the domain has no DMARC record, a DNS error persisted,
+   *    no auth data) carries authority too, and every such email is flagged. For a party whose real mail
+   *    cannot pass, e.g. a supplier on a domain without DMARC or DKIM.
+   *  A failing verdict (DMARC fail, a From-header trick, a From outside the authenticated domain) never
+   *  carries authority under either; inbound mail from our own address never does either. */
+  sender_auth?: 'enforce' | 'flag';
 }
 
 export interface Requirement {

@@ -7,6 +7,8 @@
 //
 // Limits: DMARC proves the domain, not the mailbox. Two parties on one shared domain cannot be told
 // apart by it. Forwarded / mailing-list mail usually fails (Primitive exposes no ARC results).
+// For parties whose real mail cannot pass, a task can relax `unknown` verdicts per participant
+// (Participant.sender_auth = 'flag'); a `fail` verdict is never relaxed.
 import { isTrustedSender } from '@primitivedotdev/sdk';
 
 export type SenderAuthStatus = 'pass' | 'fail' | 'unknown';
@@ -66,5 +68,27 @@ export function parseSenderAuth(v: string | null | undefined): SenderAuth | null
   return { status: legacy[v] ?? 'unknown', reason: `legacy:${v}`, detail: [], domain: null, dmarc: v, dmarc_policy: null, retryable: false };
 }
 
-/** enforce (default): unauthenticated senders get no authority. flag: they keep it, but every such email is flagged. */
-export const senderAuthMode = (): 'enforce' | 'flag' => (process.env.CONTINUITY_SENDER_AUTH === 'flag' ? 'flag' : 'enforce');
+/**
+ * How strictly a party's mail must authenticate before it carries authority (see Participant.sender_auth).
+ *   enforce: only a passing verdict carries authority.
+ *   flag:    an `unknown` verdict (no DMARC record, a DNS error that persisted, no auth data) carries it too,
+ *            and every such email is flagged. A `fail` verdict (DMARC fail, From-header tricks, a From outside
+ *            the authenticated domain) never does, under either policy.
+ */
+export type SenderAuthPolicy = 'enforce' | 'flag';
+export const SENDER_AUTH_POLICIES: readonly SenderAuthPolicy[] = ['enforce', 'flag'];
+
+/** The default policy for parties that set none: CONTINUITY_SENDER_AUTH (enforce unless it says flag). */
+export const senderAuthMode = (): SenderAuthPolicy => (process.env.CONTINUITY_SENDER_AUTH === 'flag' ? 'flag' : 'enforce');
+
+/** The policy that applies to a party (null: not a participant), and whether it was set on the party or is the default. */
+export function senderAuthPolicyOf(party: { sender_auth?: SenderAuthPolicy } | null | undefined): { policy: SenderAuthPolicy; source: 'participant' | 'default' } {
+  return party?.sender_auth ? { policy: party.sender_auth, source: 'participant' } : { policy: senderAuthMode(), source: 'default' };
+}
+
+/** Does an inbound email with this verdict carry its sender's authority under `policy`? (A missing verdict counts as unknown.) */
+export function authenticatedEnough(auth: SenderAuth | null, policy: SenderAuthPolicy): boolean {
+  if (auth?.status === 'pass') return true;
+  if (auth?.status === 'fail') return false;
+  return policy === 'flag';
+}
