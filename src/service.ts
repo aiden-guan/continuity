@@ -18,7 +18,7 @@ import { compileContext, estimateTokens, artifactSummary, TOKEN_UNIT, type Conte
 import { renderWithBudget } from './compiler/render.ts';
 import { replayTask } from './engine/replay.ts';
 import { fromPrimitiveEmailDetail, fromPrimitiveWebhook } from './ingest/normalize.ts';
-import { parseSenderAuth } from './ingest/sender-auth.ts';
+import { parseSenderAuth, SENDER_AUTH_POLICIES } from './ingest/sender-auth.ts';
 import { labelOf } from './engine/resolver.ts';
 import { nowIso } from './clock.ts';
 import { PermanentSendError, type Transport, type SendOutcome } from './transport/transport.ts';
@@ -965,9 +965,12 @@ export function validateTaskSpec(input: unknown, selfAddress = ''): TaskSpec {
     seen.add(address);
     if (!['self', 'counterparty', 'internal'].includes(p.role)) bad(`participants[${i}].role must be self | counterparty | internal`);
     if (!Array.isArray(p.authority) || !p.authority.every((a: unknown) => typeof a === 'string' && a.length <= 64)) bad(`participants[${i}].authority must be a list of term prefixes`);
+    if (p.sender_auth !== undefined && !SENDER_AUTH_POLICIES.includes(p.sender_auth)) bad(`participants[${i}].sender_auth must be ${SENDER_AUTH_POLICIES.join(' | ')}`);
+    if (p.role === 'self' && p.sender_auth === 'flag') bad(`participants[${i}].sender_auth: "flag" cannot apply to self; inbound mail from our own address is never authoritative`);
     return {
       address, name: str(p.name, `participants[${i}].name`, 200), role: p.role, label: str(p.label, `participants[${i}].label`, 64),
       authority: [...p.authority], ...(typeof p.group === 'string' ? { group: p.group } : {}),
+      ...(p.sender_auth !== undefined ? { sender_auth: p.sender_auth } : {}),
     };
   });
   const selves = participants.filter((p) => p.role === 'self');

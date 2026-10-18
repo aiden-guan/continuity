@@ -64,7 +64,7 @@ function buildSections(ctx: CompiledContext): Section[] {
     `# Task ${ctx.meta.alias} — state v${ctx.meta.state_version}${ctx.meta.as_of ? ` (as of ${ctx.meta.as_of})` : ''}`,
     `Goal: ${ctx.task.goal}`,
     `You are: ${ctx.task.you_are}`,
-    `Parties: ${ctx.task.parties.map((p) => `${p.label} <${p.address}>`).join('; ')}`,
+    `Parties: ${ctx.task.parties.map((p) => `${p.label} <${p.address}>${p.sender_auth === 'flag' ? ' (unauthenticated mail accepted but flagged)' : ''}`).join('; ')}`,
     `\n> ${ctx.safety}`,
   ];
   const pending = ctx.meta.pending_events;
