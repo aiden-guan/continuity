@@ -1,38 +1,38 @@
 [
  {
   "messages": 10,
-  "transcript": 1563,
-  "briefing": 856,
-  "ratio": "0.55"
+  "transcript": 1569,
+  "briefing": 989,
+  "ratio": "0.63"
  },
  {
   "messages": 17,
-  "transcript": 3902,
-  "briefing": 938,
-  "ratio": "0.24"
+  "transcript": 3908,
+  "briefing": 1058,
+  "ratio": "0.27"
  },
  {
   "messages": 37,
-  "transcript": 19369,
-  "briefing": 1032,
-  "ratio": "0.05"
+  "transcript": 19375,
+  "briefing": 1165,
+  "ratio": "0.06"
  },
  {
   "messages": 73,
-  "transcript": 84603,
-  "briefing": 1255,
-  "ratio": "0.01"
+  "transcript": 84609,
+  "briefing": 1375,
+  "ratio": "0.02"
  },
  {
   "messages": 137,
-  "transcript": 448620,
-  "briefing": 1632,
+  "transcript": 448626,
+  "briefing": 1481,
   "ratio": "0.00"
  },
  {
   "messages": 267,
-  "transcript": 2769083,
-  "briefing": 2442,
+  "transcript": 2769089,
+  "briefing": 1596,
   "ratio": "0.00"
  }
 ]
