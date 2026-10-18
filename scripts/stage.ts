@@ -8,9 +8,8 @@
 // scripts/demo.ts: every agent is its own OS process, Agent A really gets SIGKILLed, and B and C start
 // with no memory at all. Child output and process lifecycle are pushed to the site over SSE.
 //
-// A person is in the loop: when the supplier breaks the deadline, Agent B asks how to respond instead of
-// guessing, and Agent C's order confirmation is held until someone approves it. Both are answered from
-// the page. Choosing anything but "hold firm" ends the story early: the scripted supplier fix no longer applies.
+// A person is in the loop: Agent C's order confirmation is held as an approval card until someone
+// approves or rejects it from the page (A / R).
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { existsSync, readFileSync, rmSync, statSync } from 'node:fs';
@@ -37,7 +36,7 @@ const SITE_DIR = join(REPO, 'site');
 // (they read cleanly on screen) even if live addresses are configured.
 for (const name of ['CONTINUITY_SELF_ADDRESS', 'CONTINUITY_SUPPLIER_ADDRESS', 'CONTINUITY_FINANCE_ADDRESS']) delete process.env[name];
 const parties = defaultAddresses();
-const task = { ...procurementTask(parties), human: { approve_binding: true, direction_on_broken_requirements: true } };
+const task = procurementTask(parties);
 const taskPath = encodeURIComponent(task.id);
 
 const baseEnv: Record<string, string | undefined> = { ...process.env, CONTINUITY_TRANSPORT: 'sim' };
@@ -158,10 +157,7 @@ const narrate = (text: string) => emit({ type: 'say', text });
 
 // ---------------------------------------------------------------- the story
 interface Beat { title: string; caption: string; run: () => Promise<void> }
-const memo: { offerMsg?: string; ending?: { option: string; label: string } } = {};
-
-type HumanRequestView = { kind: string; status: string; answer: { option: string; label: string } | null };
-const lastDirection = async () => (await call<HumanRequestView[]>('GET', `/tasks/${taskPath}/human`)).filter((r) => r.kind === 'direction' && r.answer).at(-1) ?? null;
+const memo: { offerMsg?: string } = {};
 
 const beats: Beat[] = [
   {
@@ -221,15 +217,10 @@ const beats: Beat[] = [
   },
   {
     title: 'Agent B wakes up with zero memory.',
-    caption: 'A requirement broke. It asks you before it writes.',
+    caption: 'One call to Continuity. Then it writes.',
     run: async () => {
       const b = startAgent('agent-b', '--once');
       if ((await exitCode(b)) !== 0) throw new Error('agent-b failed');
-      const direction = await lastDirection();
-      if (direction && direction.answer!.option !== 'hold_firm') {
-        memo.ending = { option: direction.answer!.option, label: direction.answer!.label };
-        narrate(`you chose "${direction.answer!.label}" — the story ends here`);
-      }
     },
   },
   {
@@ -306,8 +297,6 @@ async function reset() {
   running = true;
   nextBeat = 0;
   failure = null;
-  delete memo.offerMsg;
-  delete memo.ending;
   history.length = 0;
   emit({ type: 'reset' });
   try {
@@ -328,8 +317,7 @@ async function advance() {
   try {
     await beat.run();
     if (myEpoch !== epoch) return;
-    // a choice that leaves the scripted path finishes the story
-    nextBeat = memo.ending ? beats.length : index + 1;
+    nextBeat = index + 1;
     emit({ type: 'beat', index, status: 'done', title: beat.title });
   } catch (err) {
     if (myEpoch !== epoch) return;
@@ -347,7 +335,6 @@ function snapshot() {
     busy: running,
     error: failure,
     offline: !!opts.offline,
-    ending: memo.ending ?? null,
     beats: beats.map((b, index) => ({ index, title: b.title, caption: b.caption, done: index < nextBeat })),
     procs: [...processes.values()].map((p) => ({ name: p.name, pid: p.pid, state: p.state, code: p.code, started: p.started })),
   };

@@ -445,7 +445,7 @@ body.details .pres { display: none; }
 .hfacts small { font: 11px var(--mono); color: var(--muted); }
 .hdraft { margin-top: 8px; font: 13px/1.5 var(--mono); color: var(--ink-2); }
 .hopts { display: grid; gap: 6px; margin-top: 12px; }
-.hopts.approval { grid-template-columns: 1fr auto; }
+.hopts.approval, .hopts.verify { grid-template-columns: 1fr auto; }
 .hopt {
   display: flex;
   align-items: center;

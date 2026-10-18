@@ -25,7 +25,7 @@ const app = {
   task: null,
   version: -1,
   // engine data
-  health: null, state: null, timeline: null, ctx: null, runs: [],
+  health: null, state: null, timeline: null, ctx: null, runs: [], approvals: [],
   briefing: '', briefingTokens: 0, transcriptTokens: 0,
   prevCtx: null,
   // stage + processes
@@ -93,16 +93,17 @@ async function refresh() {
   }
   app.task = tasks[0].id;
   const base = `/tasks/${encodeURIComponent(app.task)}`;
-  const [health, state, timeline, live, runs] = await Promise.all([
+  const [health, state, timeline, live, runs, approvals] = await Promise.all([
     getJSON('/api/health'),
     getJSON(`${base}/state`),
     getJSON(`${base}/timeline`),
     getJSON(`${base}/context`),
     getJSON(`${base}/agent-runs`),
+    getJSON(`${base}/approvals`).catch(() => []),
   ]);
   app.version = state.state_version;
   ingest({
-    health, state, timeline, runs,
+    health, state, timeline, runs, approvals,
     ctx: live.context,
     briefing: live.briefing,
     briefingTokens: live.briefing_tokens,
@@ -237,8 +238,8 @@ function onKey(e) {
   if (ask && !e.metaKey && !e.ctrlKey) {
     const k = e.key.toLowerCase();
     let option = null;
-    if (ask.kind === 'approval') option = k === 'a' ? 'approve' : k === 'r' && !e.shiftKey ? 'reject' : null;
-    else if (/^[1-9]$/.test(k)) option = ask.options[Number(k) - 1]?.id ?? null;
+    if (k === 'a') option = ask.kind === 'approval' ? 'approve' : 'verified';
+    else if (k === 'r' && !e.shiftKey) option = 'reject';
     if (option) {
       e.preventDefault();
       answerHuman(ask.id, option);
@@ -272,7 +273,7 @@ function onKey(e) {
 // ============================================================ ingest + render
 function ingest(data) {
   if (!data) {
-    Object.assign(app, { state: null, timeline: null, ctx: null, briefing: '', runs: [] });
+    Object.assign(app, { state: null, timeline: null, ctx: null, briefing: '', runs: [], approvals: [] });
     render();
     return;
   }
@@ -612,8 +613,18 @@ function killPoint(feed) {
 
 const isCold = (run) => run && run.agent_id !== 'agent-a';
 
-/** What waits on a person right now (approvals of held sends, directions on broken requirements). */
-const openHuman = () => app.ctx?.human?.waiting_on_human ?? [];
+/**
+ * What waits on a person right now: approval cards (a held send, or a payment detail to verify), in the
+ * shape the page draws. `draft.to` is the party label.
+ */
+const openHuman = () => (app.approvals ?? []).filter((a) => a.status === 'pending' || a.status === 'held').map((a) => {
+  const party = (app.ctx?.task?.parties ?? []).find((p) => p.address.toLowerCase() === a.draft?.to?.toLowerCase());
+  return {
+    id: a.id, kind: a.kind === 'send' ? 'approval' : 'verify', asked_by: a.draft?.agent_id ?? 'Continuity', since: a.created_at, title: a.title,
+    party: party?.label ?? null,
+    draft: a.draft ? { to: party?.label ?? a.draft.to, subject: a.draft.subject ?? '', body: a.draft.body } : null,
+  };
+});
 
 /** The message the beat is about: the newest task mail that just arrived (a stray promo never steals focus). */
 function focusItem(feed) {
@@ -898,24 +909,18 @@ function humanCard(r, head) {
     const qty = parseFloat(String(term('order.quantity') ?? ''));
     const total = price && qty ? `$${(price * qty).toLocaleString('en-US', { maximumFractionDigits: 2 })}` : null;
     const checks = c?.checks ?? [];
-    const met = checks.filter((x) => x.status === 'pass' || x.status === 'waived').length;
+    const met = checks.filter((x) => x.status === 'pass').length;
     facts = `<div class="hfacts">${total ? `<span><b>${esc(total)}</b><small>${esc(term('order.quantity'))} × ${esc(term('price.unit'))}</small></span>` : ''}<span><b>${met}/${checks.length}</b><small>requirements met</small></span></div>`;
     options = [{ id: 'approve', lead: 'Approve and send', key: 'A' }, { id: 'reject', lead: 'Reject', key: 'R' }];
   } else {
-    const broken = c?.checks?.find((x) => x.status === 'fail' && r.question.startsWith(x.check));
-    question = `${(broken?.detail ?? r.question).split(' — ')[0]}. What now?`;
-    const SHORT = {
-      hold_firm: ['Hold firm', `Ask ${name} to make the deadline`],
-      accept_deviation: ['Accept the delay', 'Take the late units'],
-      walk_away: ['Walk away', `Cancel with ${name}`],
-    };
-    options = r.options.map((o, i) => ({ id: o.id, lead: SHORT[o.id]?.[0] ?? o.label, sub: SHORT[o.id]?.[1] ?? '', key: String(i + 1) }));
+    question = `${r.title}?`;
+    options = [{ id: 'verified', lead: 'Verified by phone', sub: 'Apply the new detail', key: 'A' }, { id: 'reject', lead: 'Reject', sub: 'Not genuine', key: 'R' }];
   }
   const buttons = options.map((o, i) => `<button class="hopt ${i === 0 ? 'primary' : ''}" data-req="${esc(r.id)}" data-opt="${esc(o.id)}"${app.answering ? ' disabled' : ''}>
       <span class="kbd">${o.key}</span><span><b>${esc(o.lead)}</b>${o.sub ? `<small>${esc(o.sub)}</small>` : ''}</span></button>`).join('');
   return {
     cls: 'human',
-    html: head(r.kind === 'approval' ? `${esc(r.asked_by)} needs your OK` : `${esc(r.asked_by)} is asking you`, 'paused')
+    html: head(r.kind === 'approval' ? `${esc(r.asked_by)} needs your OK` : 'Continuity needs you to verify', 'paused')
       + `<div class="hq">${esc(question)}</div>${facts}<div class="hopts ${r.kind}">${buttons}</div>`,
   };
 }
@@ -926,11 +931,11 @@ async function answerHuman(id, option) {
   if (!req || app.answering || !app.task) return;
   app.answering = true;
   document.querySelectorAll('.hopt').forEach((b) => { b.disabled = true; });
-  const label = req.kind === 'approval' ? (option === 'approve' ? 'Approved and sent.' : 'Rejected.') : req.options.find((o) => o.id === option)?.label ?? option;
+  const label = { approve: 'Approved and sent.', verified: 'Verified and applied.', reject: 'Rejected.' }[option] ?? option;
   // measured before answering: an approval sends right away, so the email may land before the reply
   const feedLen = mailFeed().filter((i) => !i.held).length;
   try {
-    await getJSON(`/tasks/${encodeURIComponent(app.task)}/human/${encodeURIComponent(id)}`, {
+    await getJSON(`/tasks/${encodeURIComponent(app.task)}/approvals/${encodeURIComponent(id)}/decide`, {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ option, by: 'the procurement lead' }),
     });
     app.answered = { id, kind: req.kind, option, label, asker: req.asked_by, feedLen };
@@ -978,7 +983,7 @@ function renderEngine(feed) {
 
   const checks = c.checks ?? [];
   const passing = checks.filter((x) => x.status === 'pass').length;
-  const lights = checks.map((x) => `<div class="light ${esc(x.status)}"><i></i>${esc(presenterCheck(x.check))}${x.status === 'waived' ? ' <small>waived by a person</small>' : ''}</div>`).join('')
+  const lights = checks.map((x) => `<div class="light ${esc(x.status)}"><i></i>${esc(presenterCheck(x.check))}</div>`).join('')
     || '<div class="light"><i></i>no offer yet</div>';
   setCard(el('#en-checks'), `${k('Requirements', checks.length ? `${passing}/${checks.length} pass` : '')}<div class="lights">${lights}</div>`,
     checks.some((x) => x.status === 'fail') ? 'bad' : '');
@@ -1017,14 +1022,9 @@ function renderPresenter() {
   const busy = app.mode === 'replay' ? app.running != null : Boolean(app.stage?.busy);
   const current = busy ? beats[app.running ?? cursor] : beats[cursor - 1];
 
-  // headline: the beat in flight or the last one finished — or the ending a person's choice led to
-  const ENDINGS = {
-    walk_away: ['You walked away from the deal.', 'Your call. An agent told the supplier.'],
-    accept_deviation: ['You accepted the late delivery.', 'Your call. Every agent follows it.'],
-  };
-  const ending = !busy && cursor >= beats.length ? ENDINGS[app.stage?.ending?.option] : null;
-  const title = ending?.[0] ?? current?.title ?? (app.mode === 'engine' ? 'Following the engine.' : 'Agents forget.');
-  const sub = ending?.[1] ?? current?.caption ?? (app.mode === 'engine' ? (app.state?.task?.goal ?? '') : 'Continuity remembers for them.');
+  // headline: the beat in flight or the last one finished
+  const title = current?.title ?? (app.mode === 'engine' ? 'Following the engine.' : 'Agents forget.');
+  const sub = current?.caption ?? (app.mode === 'engine' ? (app.state?.task?.goal ?? '') : 'Continuity remembers for them.');
   const titleEl = el('#p-title');
   const subEl = el('#p-sub');
   if (titleEl.textContent !== title) {
@@ -1040,7 +1040,7 @@ function renderPresenter() {
 
   let hint = '';
   const ask = openHuman()[0];
-  if (ask) hint = `<span class="you">Your call</span> ${ask.kind === 'approval' ? 'press <span class="kbd">A</span> or <span class="kbd">R</span>' : `press <span class="kbd">1</span>–<span class="kbd">${ask.options.length}</span>`}`;
+  if (ask) hint = '<span class="you">Your call</span> press <span class="kbd">A</span> or <span class="kbd">R</span>';
   else if (busy) hint = `<span class="spin"></span>${usesClaude() && app.mode !== 'replay' ? 'Claude is working' : 'working'}`;
   else if (cursor < beats.length && app.mode !== 'engine') hint = `press <span class="kbd">→</span> ${cursor ? 'next' : 'to start'}`;
   el('#p-hint').innerHTML = hint;
