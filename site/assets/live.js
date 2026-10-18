@@ -6,6 +6,7 @@
 // and the details console (D).
 import { renderBoard, threadSVG, eventLabel, esc } from './board.js';
 import { setupTheme } from './theme.js';
+import { createGraph } from './graph.js';
 
 const el = (sel) => document.querySelector(sel);
 const pause = (ms) => new Promise((done) => setTimeout(done, ms));
@@ -56,45 +57,45 @@ const REPLAY_SCRIPT = [
   { title: 'Agent C closes.', caption: 'Agents propose. You decide.', at: 'ev_9', procs: { 'agent-a': 'killed', 'agent-b': 'exited', 'agent-c': 'exited' }, runs: 4, moment: 'agent-c' },
 ];
 
-// Captions and a spotlight, beat by beat: what to say while it runs, then what to point at once it lands.
-// Each cue is [selector, text]; a cue whose element is missing still shows its caption.
+// Captions, beat by beat: what to say while it runs, then what to point at once it lands. Each cue is
+// [target, text]: a CSS selector gets a spotlight ring; "g:a,b" zooms the memory graph onto those nodes.
 const tok = () => (app.briefingTokens ? `~${(Math.round(app.briefingTokens / 100) / 10).toFixed(1)}k tokens` : 'a short briefing');
 const CUES = [
   {
     running: () => `Agent A emails the supplier and finance.${app.health?.transport === 'primitive' ? ' Real mail.' : ''}`,
     done: [
-      ['#mail-open', 'The supplier quotes. PDF attached.'],
-      ['#en-mem .mem', 'Continuity reads it into memory, with sources.'],
-      ['#en-mem [data-k="flags"]', 'A hidden instruction in the PDF. Quarantined.'],
+      ['#mail-open', 'The supplier quotes, with a PDF.'],
+      ['g:price,quote,budget,deal', 'Each term becomes a fact, linked to its email.'],
+      ['g:blocked', 'A hidden instruction in the PDF. Kept out.'],
     ],
   },
   {
     running: 'Agent A is killed. Its memory is gone.',
     done: [
       ['#mail', 'Mail keeps coming. Nobody is reading.'],
-      ['#en-mem [data-k="delivery.schedule"]', 'Delivery changed. The old value is kept, struck out.'],
-      ['#en-mem [data-k="owed"]', 'The supplier now owes a revised quote.'],
+      ['g:delivery,delivery:was', 'Delivery changed. The old value stays linked.'],
+      ['g:owed', 'The supplier now owes a revised quote.'],
     ],
   },
   {
-    running: 'Agent B starts. Zero messages in memory.',
-    retrieve: 'One call: Continuity hands it the state.',
+    running: 'Agent B starts with zero memory.',
+    retrieve: 'One call. The facts flow in.',
     done: [
-      ['#en-now', () => `It reads ${tok()} of state, not the inbox.`],
-      ['#mail-open', 'Then writes the right email. Never saw the thread.'],
+      ['g:agent', () => `${tok()} of state. Not the inbox.`],
+      ['#mail-open', 'It writes the right email. Never saw the thread.'],
     ],
   },
   {
     running: 'The supplier answers Agent B.',
     done: [
-      ['#en-mem [data-k="owed"]', 'Promise kept. The loop closes itself.'],
-      ['#en-mem [data-k="checks"]', 'Every requirement passes.'],
+      ['g:owed,quote,quote:was', 'Promise kept. The new quote replaces the old.'],
+      ['g:deal', 'Every requirement passes.'],
     ],
   },
   {
     running: 'Agent C, another fresh process, drafts the order.',
     human: ['#en-now', 'Committing money waits for a human.'],
-    answered: ['#mail-list .mrow.open', () => (app.health?.transport === 'primitive' ? 'Approved. Sent through Primitive.' : 'Approved. Sent.')],
+    answered: ['#mail-open', () => (app.health?.transport === 'primitive' ? 'Approved. Sent through Primitive.' : 'Approved. Sent.')],
     done: [],
   },
 ];
@@ -208,9 +209,10 @@ const STREAM_HANDLERS = {
       if (e.proc !== 'agent-a') {
         // the "new process" moment covers the page for a beat; show the retrieval once it lifts
         const beat = app.running;
-        pause(el('#flashover').classList.contains('on') ? 1700 : 0).then(() => {
-          cue(CUES[beat]?.retrieve, '#en-mem');
-          retrieveSweep();
+        pause(el('#flashover').classList.contains('on') ? 1700 : 300).then(() => {
+          // shown without cancelling the beat's own captions, which wait for the retrieval to finish
+          showCue(CUES[beat]?.retrieve);
+          graph?.retrieve();
         });
       }
     }
@@ -230,7 +232,6 @@ const STREAM_HANDLERS = {
     render();
     if (e.replay) return;
     if (e.state === 'killed') moment('kill', 'SIGKILL', `${e.name} · pid ${e.pid}`, 'agents running: 0 · the thread keeps going');
-    else if (e.state === 'running' && e.name !== 'agent-a') moment('born', `${e.name}`, 'new process', `pid ${e.pid} · prior messages in memory: 0`);
   },
   reset() {
     app.procs.clear();
@@ -365,7 +366,6 @@ function ingest(data) {
   freshRuns.forEach((r) => app.seenRuns.add(r.id));
   render();
   if (firstLoad) return;
-  animateArrivals(mailFeed().filter((item) => app.freshMail.has(item.id) && freshMail.includes(item.id)));
 
   // replay what just happened through the pipeline, in causal order
   (async () => {
@@ -711,256 +711,200 @@ function cleanBody(text) {
   return { main, quoted: cut >= 0 };
 }
 
-// ---------------------------------------------------------------- A: the inbox
-function renderMail(feed) {
+// ---------------------------------------------------------------- A: the inbox, as Gmail shows it
+// Conversations, not messages: one row per thread, newest first; the open thread below the list (Gmail's
+// horizontal reading pane), older messages collapsed to one line and the one that matters expanded.
+const GM_COLORS = { supplier: '#1e8e3e', finance: '#a142f4', 'Acme (us)': '#1a73e8' };
+const shortDate = (iso) => {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const now = new Date();
+  if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+};
+const baseSubject = (subject) => String(subject ?? '').replace(/^(re|fwd?):\s*/i, '');
+
+/** Group the feed into Gmail conversations; a held draft joins the thread with the party it answers. */
+function mailThreads(feed) {
+  const threads = new Map();
   const cut = killPoint(feed);
-  const unread = (item, i) => !item.out && cut != null && i >= cut;
-  const alive = [...app.procs.values()].some((p) => p.state === 'running');
-  const orphaned = !alive && [...app.procs.values()].some((p) => p.state === 'killed');
-
-  el('#mail-addr').textContent = app.ctx?.task?.you_are?.match(/<(.*)>/)?.[1] ?? '';
-  const unreadCount = feed.filter(unread).length;
-  const counter = el('#mail-unread');
-  counter.textContent = feed.length ? `${unreadCount ? `${unreadCount} unread · ` : ''}${feed.length} messages` : '';
-  counter.classList.toggle('some', unreadCount > 0);
-  el('#mail').classList.toggle('orphaned', orphaned);
-  el('#mail-dead').hidden = !orphaned;
-
-  const openId = feed.some((i) => i.id === app.openMail) ? app.openMail : focusItem(feed)?.id;
-  const rows = feed.map((item, i) => {
-    const run = item.run;
-    let by = item.out && run ? `<span class="by ${isCold(run) ? 'cold' : ''}">${esc(run.agent_id)}</span>` : '';
-    if (item.held) by = `<span class="by held">held · ${esc(item.asker)}</span>`;
-    const clip = item.files.length ? '📎' : '';
-    const snippet = item.stray ? '' : firstSentences(cleanBody(item.body).main, 1);
-    const cls = [
-      'mrow',
-      item.out ? 'out' : '',
-      item.stray ? 'stray' : '',
-      item.held ? 'held' : '',
-      unread(item, i) ? 'unread' : '',
-      item.id === openId ? 'open' : '',
-      app.freshMail.has(item.id) && !shownRows.has(item.id) ? 'fresh' : '',
-    ].join(' ');
-    shownRows.add(item.id);
-    return `<li class="${cls}" data-id="${esc(item.id)}">
-      <span class="dot"></span><span class="av">${esc(initials(item.face))}</span>
-      <span class="who">${esc(item.who)}</span>
-      <span class="line"><span class="subj">${esc(item.subject)}</span>${snippet ? `<span class="snip"> — ${esc(snippet)}</span>` : ''}</span>
-      <span class="meta">${by}${clip}<span>${esc(mailTime(item.at))}</span></span>
-    </li>`;
-  }).reverse().join('');
-  const list = el('#mail-list');
-  list.innerHTML = rows || `<li class="mail-empty">${app.mode === 'engine' ? 'No mail yet.' : 'Empty inbox. Press → to start.'}</li>`;
-  list.scrollTop = 0;
-
-  renderOpenMail(feed.find((i) => i.id === openId));
+  feed.forEach((item, i) => {
+    if (item.stray) return;
+    let key = item.event?.thread_id;
+    if (!key) {
+      const to = (item.to[0] ?? '').toLowerCase();
+      key = [...threads.values()].find((t) => t.items.some((x) => x.addr?.toLowerCase() === to || x.to.some((y) => y.toLowerCase() === to)))?.id ?? item.id;
+    }
+    if (!threads.has(key)) threads.set(key, { id: key, items: [] });
+    const unread = !item.out && cut != null && i >= cut;
+    threads.get(key).items.push({ ...item, unread });
+  });
+  return [...threads.values()].map((t) => {
+    const last = t.items.at(-1);
+    return {
+      ...t,
+      subject: baseSubject(t.items[0].subject),
+      last,
+      unread: t.items.some((x) => x.unread),
+      fresh: t.items.some((x) => app.freshMail.has(x.id)),
+      draft: t.items.some((x) => x.held),
+      files: t.items.flatMap((x) => x.files),
+    };
+  }).sort((x, y) => String(y.last.at).localeCompare(String(x.last.at)));
 }
 
-function renderOpenMail(item) {
+const avatar = (item, size = '') => {
+  const label = item.out ? 'Acme (us)' : item.event?.from_label ?? '';
+  return `<span class="gm-av ${size}" style="--c:${GM_COLORS[label] ?? '#5f6368'}">${esc((item.out ? 'A' : personName(item.who)[0] ?? '?').toUpperCase())}</span>`;
+};
+
+function renderMail(feed) {
+  const threads = mailThreads(feed);
+  el('#mail-addr').textContent = app.ctx?.task?.you_are?.match(/<(.*)>/)?.[1] ?? '';
+  el('#mail-unread').textContent = threads.length ? `1–${threads.length} of ${threads.length}` : '';
+
+  const focus = focusItem(feed);
+  const openId = threads.some((t) => t.id === app.openMail) ? app.openMail : threads.find((t) => t.items.some((x) => x.id === focus?.id))?.id;
+  const rows = threads.map((t) => {
+    const names = [];
+    for (const x of t.items) {
+      if (x.held) continue;
+      const n = x.out ? 'me' : personName(x.who);
+      if (!names.includes(n)) names.push(n);
+    }
+    const who = names.map((n) => (t.items.some((x) => x.unread && personName(x.who) === n) ? `<b>${esc(n)}</b>` : esc(n))).join(', ');
+    const count = t.items.filter((x) => !x.held).length;
+    const snippet = firstSentences(cleanBody(t.last.body).main, 1);
+    const chip = t.files.length ? `<span class="gm-chip"><i>PDF</i>${esc(t.files.at(-1).filename)}</span>` : '';
+    const cls = ['mrow', t.unread ? 'unread' : '', t.id === openId ? 'open' : '', t.fresh && !shownRows.has(`${t.id}:${t.items.length}`) ? 'fresh' : ''].join(' ');
+    shownRows.add(`${t.id}:${t.items.length}`);
+    return `<li class="${cls}" data-id="${esc(t.id)}">
+      <span class="gm-box"></span><span class="gm-star">☆</span>
+      <span class="who">${who}${count > 1 ? ` <small>${count}</small>` : ''}${t.draft ? ', <em class="gm-draft">Draft</em>' : ''}</span>
+      <span class="line"><span class="subj">${esc(t.subject)}</span><span class="snip"> - ${esc(snippet)}</span>${chip}</span>
+      <span class="meta">${esc(shortDate(t.last.at))}</span>
+    </li>`;
+  }).join('');
+  const list = el('#mail-list');
+  list.innerHTML = rows || '<li class="mail-empty">No conversations yet.</li>';
+  renderOpenMail(threads.find((t) => t.id === openId), focus);
+}
+
+function renderOpenMail(thread, focus) {
   const box = el('#mail-open');
-  if (!item) {
+  if (!thread) {
     box.innerHTML = '';
+    box.dataset.key = '';
     return;
   }
-  if (box.dataset.id === item.id && box.dataset.v === String(app.runs.length) && !item.held === !box.dataset.held) return;
-  box.dataset.held = item.held ? '1' : '';
-  box.dataset.id = item.id;
-  box.dataset.v = String(app.runs.length);
-
-  const { main, quoted } = cleanBody(item.body);
-  const from = item.out ? 'Acme Procurement' : item.who;
-  const to = item.out ? item.who.replace(/^To: /, '') : 'me';
-  const files = item.files.map((f) => `<span class="mo-file"><i>PDF</i>${esc(f.filename)}</span>`).join('');
-  const run = item.run;
-  const held = item.held
-    ? `<div class="mo-held"><b>Not sent yet.</b> Waiting for your OK.</div>`
-    : '';
-  const cold = isCold(run)
-    ? `<div class="mo-by">Written by <b>${esc(run.agent_id)}</b>, which never opened this inbox.</div>`
-    : '';
-  box.innerHTML = `
-    ${held}
-    <h2 class="mo-subj">${esc(item.subject)}</h2>
-    <div class="mo-from"><b>${esc(from)}</b><span>&lt;${esc(item.addr)}&gt; to ${esc(to)}</span><span class="when">${esc(mailTime(item.at))}</span></div>
-    ${item.stray
-      ? '<div class="mo-stray">A promo from a sender this task has never written to. Same topic, different thread.</div>'
-      : `<pre class="mo-body">${esc(main)}</pre>${quoted ? '<div class="mo-quoted">··· quoted text hidden</div>' : ''}`}
-    ${files ? `<div class="mo-files">${files}</div>` : ''}
-    ${cold}`;
-  box.scrollTop = 0;
-}
-
-// ---------------------------------------------------------------- B: Continuity
-const PRES_PIPE = ['Primitive', 'Read', 'Resolve', 'State', 'Brief'];
-
-function buildPresPipe() {
-  el('#en-pipe').innerHTML = PRES_PIPE.map((name) => `<li><b>${name}</b><span></span></li>`).join('');
-}
-
-function renderPresPipe() {
-  const steps = [...el('#en-pipe').children];
-  if (!steps.length) return;
-  const extractor = app.health?.extractor ?? '';
-  const version = app.state?.state_version ?? app.ctx?.meta?.state_version;
-  const notes = [
-    app.health?.transport === 'primitive' ? 'live mail' : app.mode === 'replay' ? 'recorded' : 'local sim',
-    /^llm/.test(extractor) ? 'Claude reads' : 'rules read',
-    'claims → facts',
-    version != null ? `v${version}` : 'empty',
-    app.briefingTokens ? `~${app.briefingTokens.toLocaleString()} tok` : '—',
-  ];
-  steps.forEach((li, i) => { li.querySelector('span').textContent = notes[i]; });
-  const pending = app.ctx?.processing?.pending_events?.length > 0;
-  steps[1].classList.toggle('busy', pending);
-  const agentBeat = app.running != null && AGENT_BEATS.includes(app.running);
-  steps[4].classList.toggle('busy', agentBeat && !pending);
-}
-
-/** Light the steps one after another: inbound mail goes left to right, an agent's send right to left. */
-async function lightPresPipe(outbound) {
-  const steps = [...el('#en-pipe').children];
-  const order = outbound ? [4, 3, 0] : [0, 1, 2, 3];
-  for (const i of order) {
-    steps[i]?.classList.add('lit');
-    setTimeout(() => steps[i]?.classList.remove('lit'), 1400);
-    await pause(noMotion ? 0 : 160);
-  }
-}
-
-/** A packet crosses the seam between a row in the inbox and the Continuity side. */
-async function crossSeam(id, outbound) {
-  const split = el('#split');
-  const row = split.querySelector(`.mrow[data-id="${CSS.escape(id)}"]`);
-  if (!row || noMotion || !split.clientWidth) return;
-  const origin = split.getBoundingClientRect();
-  const rowBox = row.getBoundingClientRect();
-  const engineBox = split.querySelector('.engine-side').getBoundingClientRect();
-  const y = rowBox.top - origin.top + rowBox.height / 2;
-  const left = rowBox.right - origin.left - 6;
-  const right = engineBox.left - origin.left + 6;
-  const pipeY = el('#en-pipe').getBoundingClientRect().top - origin.top + 4;
-  const packet = document.createElement('div');
-  packet.className = `pkt-x ${outbound ? 'out' : ''}`;
-  split.appendChild(packet);
-  const path = outbound
-    ? [{ left: `${right}px`, top: `${pipeY}px` }, { left: `${left}px`, top: `${y}px` }]
-    : [{ left: `${left}px`, top: `${y}px` }, { left: `${right}px`, top: `${pipeY}px` }];
-  await packet.animate(path, { duration: 520, easing: 'cubic-bezier(.65,0,.35,1)', fill: 'forwards' }).finished;
-  packet.remove();
-}
-
-let presQueue = Promise.resolve();
-function animateArrivals(items) {
-  for (const item of items) {
-    presQueue = presQueue.then(async () => {
-      if (item.out) {
-        await lightPresPipe(true);
-        await crossSeam(item.id, true);
-      } else {
-        await crossSeam(item.id, false);
-        if (!item.stray) await lightPresPipe(false);
-      }
-    });
-  }
-}
-
-function claimChips(event) {
-  const transitions = event.transitions ?? [];
-  const backed = new Set(transitions.filter((t) => t.type === 'claim_corroborated').map((t) => t.summary.match(/^\S+ ([\w.]+) =/)?.[1]));
-  return transitions.filter((t) => t.type === 'claim_added').map((t, i) => {
-    const hit = t.summary.match(/^[^:]+: ([\w.]+) = (.*?)(?: \(from (.*)\))?$/);
-    if (!hit || hit[1] === 'decision.order') return '';
-    const [, key, value, file] = hit;
-    const source = backed.has(key) ? 'email + PDF' : file ? 'PDF' : 'email';
-    return `<span class="chip ${file ? 'pdf' : ''}" style="--i:${i}">${esc(TERM_NAMES[key] ?? key)} <b>${esc(value)}</b><small>${source}</small></span>`;
-  }).join('');
-}
-
-function nowCard(feed) {
-  const head = (k, b = '') => `<div class="nk"><span>${k}</span><b>${b}</b></div>`;
-  const line = (cls, html, i) => `<div class="ln ${cls}" style="--i:${i}">${html}</div>`;
-  const events = app.timeline?.events ?? [];
-  const killed = [...app.procs.values()].find((p) => p.state === 'killed' && p.killedAt != null && p.killedAt > events.length - 1);
-  if (killed) {
-    return {
-      cls: 'bad',
-      html: head('Just now', `${esc(killed.name)} · pid ${esc(killed.pid ?? '')}`)
-        + line('bad', 'Agent A is gone, memory and all.', 0)
-        + line('', 'Continuity keeps reading the mail.', 1),
-    };
-  }
-
-  const asks = openHuman();
-  if (asks.length) return humanCard(asks[0], head);
-
-  // the answer just given from this page, until the agent's next email shows up
-  const a = app.answered;
-  if (a && feed.filter((i) => !i.held).length <= a.feedLen && !openHuman().length) {
-    let next = `${esc(a.asker)} is acting on it…`;
-    if (a.kind === 'approval') next = a.option === 'approve' ? 'Sending it now.' : 'Nothing was sent.';
-    return { cls: 'human done', html: head('You decided', esc(a.asker)) + line('', esc(a.label), 0) + line('quiet', next, 1) };
-  }
-
-  const pending = app.ctx?.processing?.pending_events ?? [];
-  if (pending.length) {
-    return { cls: 'quiet', html: head('Reading', esc(pending.join(', '))) + line('quiet', `${usesClaude() ? 'Claude' : 'The rule extractor'} is reading the new email…`, 0) };
-  }
-
-  const last = focusItem(feed);
-  if (!last) {
-    return { cls: 'empty', html: '' };
-  }
-
-  if (last.stray) {
-    return {
-      cls: 'quiet',
-      html: head('Just arrived', esc(last.addr))
-        + line('', 'Not part of this deal. Ignored.', 0),
-    };
-  }
-
-  if (last.out && isCold(last.run)) {
-    const run = last.run;
-    const d = run.decision ?? {};
-    return {
-      cls: 'agent',
-      html: head(`${esc(run.agent_id)} · a brand-new process`, `pid ${esc(d.pid ?? '?')}`)
-        + `<div class="ho-n"><div class="zero"><b>${esc(d.prior_messages_in_process_memory ?? 0)}</b><span>messages in memory</span></div><div><b>${esc((run.context_tokens ?? 0).toLocaleString())}</b><span>briefing tokens</span></div></div>`
-        + `<div class="ho-wrote">${esc(clip(firstSentences(d.messages?.[0]?.body ?? '', 1), 120))}</div>`,
-    };
-  }
-
-  if (last.out) {
-    const sent = feed.filter((i) => i.out && app.freshMail.has(i.id));
-    const batch = sent.length ? sent : [last];
-    const asks = [...new Set(batch.flatMap((i) => (i.event.transitions ?? [])
-      .filter((t) => t.type === 'obligation_opened')
-      .map((t) => t.summary.replace(/ \[issue: .*\]$/, '').replace(/^Acme \(us\) (asked|requested) (\w+): /, (_, __, who) => `${who}: `))))];
-    return {
-      cls: '',
-      html: head(`${esc(last.run?.agent_id ?? 'Acme')} sent ${batch.length} email${batch.length === 1 ? '' : 's'}`, esc(batch.map((i) => i.id).join(', ')))
-        + asks.slice(0, 2).map((a, i) => line('quiet', `→ ${esc(clip(a, 80))}`, i)).join(''),
-    };
-  }
-
-  const said = [...(last.event.transitions ?? [])]
-    .sort((a, b) => priorityOf(a.type) - priorityOf(b.type))
-    .map(sayPlainly)
-    .filter(Boolean);
-  const seen = new Set();
-  const lines = said.filter(([, html]) => !seen.has(html) && seen.add(html)).slice(0, 3);
-  const passed = (last.event.transitions ?? []).filter((t) => t.type === 'check_passed').length;
-  if (passed && lines.length < 4) lines.push(['ok', `✓ ${passed} requirement${passed === 1 ? '' : 's'} now pass${passed === 1 ? 'es' : ''}`]);
-  const chips = claimChips(last.event);
-  const stray = feed.find((i) => i.stray && app.freshMail.has(i.id));
-  if (stray) lines.push(['quiet', 'A promo also arrived. Ignored: not part of this deal.']);
-  return {
-    cls: lines.some(([k]) => k === 'bad') ? 'bad' : '',
-    html: head(`Read ${esc(last.id)} from ${esc(last.who)}`, esc(last.event.link_reason?.replace(/^Primitive thread \S+ belongs to task$/, 'linked by Primitive thread') ?? ''))
-      + (chips ? `<div class="chips">${chips}</div>` : '')
-      + lines.map(([k, h], i) => line(k, h, i + 1)).join(''),
+  const expandId = thread.items.some((x) => x.id === focus?.id) ? focus.id : thread.items.at(-1).id;
+  const key = `${thread.id}:${thread.items.length}:${expandId}:${app.runs.length}`;
+  if (box.dataset.key === key) return;
+  box.dataset.key = key;
+  const msg = (x) => {
+    const by = x.out && x.run ? `<span class="gm-by">${esc(x.run.agent_id)}</span>` : x.held ? `<span class="gm-by">${esc(x.asker)}</span>` : '';
+    const name = x.out ? 'Acme Procurement' : personName(x.who);
+    if (x.id !== expandId) {
+      return `<div class="gm-msg min">${avatar(x, 'sm')}<b>${esc(x.out ? 'me' : name)}</b>${by}<span class="gm-sn">${esc(firstSentences(cleanBody(x.body).main, 1))}</span><span class="gm-when">${esc(shortDate(x.at))}</span></div>`;
+    }
+    const files = x.files.map((f) => `<span class="gm-file"><i>PDF</i><span>${esc(f.filename)}</span></span>`).join('');
+    return `<div class="gm-msg">
+      <div class="gm-head">${avatar(x)}<div class="gm-from"><b>${esc(name)}</b>${by}${x.held ? '<em class="gm-draft">Draft</em>' : ''}<small>&lt;${esc(x.addr)}&gt;</small><span class="gm-to">to ${esc(x.out ? x.who.replace(/^To: /, '') : 'me')}</span></div><span class="gm-when">${esc(shortDate(x.at))}</span></div>
+      <pre class="gm-body">${esc(cleanBody(x.body).main)}</pre>
+      ${files ? `<div class="gm-files">${files}</div>` : ''}
+    </div>`;
   };
+  box.innerHTML = `<h2 class="gm-subj">${esc(thread.subject)} <span class="gm-label">Inbox</span></h2>${thread.items.map(msg).join('')}`;
+  box.querySelector('.gm-msg:not(.min)')?.scrollIntoView({ block: 'nearest' });
+}
+
+// ---------------------------------------------------------------- B: Continuity, as a graph
+let graph = null;
+
+const shortDelivery = (v) => String(v ?? '').replace(/ units/g, '');
+const docName = (d) => d.filename.match(/Q-[\w-]+?(?=\.pdf$)/i)?.[0]?.replace(/-rev/, ' rev ') ?? d.filename;
+
+/** What the graph draws, from the compiled context: the few facts that decide the deal, and their sources. */
+function graphModel() {
+  const c = app.ctx;
+  if (!c || !(c.current_terms ?? []).length) {
+    const agent = graphAgent();
+    if (!agent) return null;
+    return { hub: { label: c?.meta?.alias ?? 'PO-4817', checks: [] }, facts: [], mails: graphMails([]), blocked: [], agent };
+  }
+  const terms = c.current_terms ?? [];
+  const term = (key) => terms.find((t) => t.term === key);
+  const was = (key) => (c.superseded_terms_do_not_use ?? []).filter((x) => x.term === key).at(-1);
+  const facts = [];
+  const add = (id, label, t, opts = {}) => {
+    if (!t) return;
+    const old = was(t.term);
+    facts.push({ id, label, value: opts.value ?? t.value, old: old ? (opts.short ?? String)(old.old_value) : null, tone: opts.tone ?? null, state: opts.state ?? null, src: [...new Set([...(t.stated_in ?? []), old?.changed_in].filter(Boolean))] });
+  };
+  add('price', 'Price', term('price.unit'));
+  add('delivery', 'Delivery', term('delivery.schedule'), { value: shortDelivery(term('delivery.schedule')?.value), short: shortDelivery, tone: (c.conflicts ?? []).length ? 'bad' : null });
+  add('budget', 'Budget', term('budget.max_unit_price'));
+  const docs = (c.documents ?? []).filter((d) => d.kind === 'quote');
+  const doc = docs.filter((d) => d.status !== 'superseded').at(-1) ?? docs.at(-1);
+  if (doc) {
+    const old = docs.find((d) => d.superseded_by === doc.filename);
+    facts.push({ id: 'quote', label: 'Quote', value: doc.status === 'partially_stale' ? `${docName(doc)} · stale` : docName(doc), old: old ? docName(old) : null, tone: doc.status === 'partially_stale' ? 'bad' : null, src: [doc.received_in, old?.received_in].filter(Boolean) });
+  }
+  const owed = (c.waiting_on_them ?? []).find((o) => o.kind === 'commitment');
+  const kept = (c.resolved_commitments ?? []).at(-1);
+  const what = (t) => String(t ?? '').replace(/^send (a |the )?/i, '').replace(/ by (tomorrow|\w+ \w+ \d+)$/i, '');
+  if (owed) facts.push({ id: 'owed', label: 'Owed to us', value: what(owed.what), state: 'open', src: [owed.source] });
+  else if (kept) facts.push({ id: 'owed', label: 'Promise kept', value: `✓ ${what(kept.what)}`, state: 'kept', src: [kept.resolved_in] });
+  const order = term('decision.order');
+  if (order) facts.push({ id: 'order', label: 'Order', value: 'accepted', tone: 'ok', src: order.stated_in ?? [] });
+
+  const blocked = (c.flags ?? []).filter((f) => f.kind === 'prompt_injection_suspected').slice(0, 1)
+    .map((f) => ({ id: 'blocked', label: 'Hidden instruction', value: 'kept out', src: f.event }));
+  return {
+    hub: { label: c.meta?.alias ?? 'PO-4817', checks: (c.checks ?? []).map((x) => x.status) },
+    facts,
+    mails: graphMails(facts),
+    blocked,
+    agent: graphAgent(),
+  };
+}
+
+function graphMails(facts) {
+  const writer = new Map();
+  for (const run of app.runs) for (const id of run.decision?.sent ?? []) writer.set(id, run.agent_id);
+  return (app.timeline?.events ?? []).map((e) => ({
+    id: e.id,
+    out: e.direction === 'outbound',
+    pdf: (e.attachments ?? []).length > 0,
+    by: writer.get(e.id) ?? null,
+    facts: facts.filter((f) => f.src.includes(e.id)).map((f) => f.id),
+  }));
+}
+
+/** The newest agent, as the node below the deal: what it holds in memory, and how big its briefing was. */
+function graphAgent() {
+  const p = [...app.procs.values()].at(-1);
+  if (!p) return null;
+  const name = `Agent ${p.name.replace(/^agent-/, '').toUpperCase()}`;
+  const run = app.runs.filter((r) => r.agent_id === p.name).at(-1);
+  const waiting = openHuman().some((r) => r.asked_by === p.name);
+  let sub = p.state === 'killed' ? 'killed · memory gone' : p.state === 'running' ? 'running' : 'done';
+  if (p.name !== 'agent-a' && run) sub = `0 msgs in memory · ${(run.context_tokens ?? 0).toLocaleString()} tokens`;
+  if (waiting) sub = 'waiting on you';
+  return { id: p.name, label: name, sub, state: p.state === 'running' ? 'running' : p.state };
+}
+
+/** The one card the right side ever shows: a person being asked (and their answer, until it lands). */
+function nowCard(feed) {
+  const asks = openHuman();
+  const head = (k, b = '') => `<div class="nk"><span>${k}</span><b>${b}</b></div>`;
+  if (asks.length) return humanCard(asks[0], head);
+  const a = app.answered;
+  if (a && feed.filter((i) => !i.held).length <= a.feedLen) {
+    const next = a.kind === 'approval' ? (a.option === 'approve' ? 'Sending it now.' : 'Nothing was sent.') : `${esc(a.asker)} is acting on it…`;
+    return { cls: 'human done', html: head('You decided', esc(a.asker)) + `<div class="ln">${esc(a.label)}</div><div class="ln quiet">${next}</div>` };
+  }
+  return { cls: 'empty', html: '' };
 }
 
 /** The moment an agent hands over to a person: one question, what is at stake, and the choices as buttons. */
@@ -976,16 +920,14 @@ function humanCard(r, head) {
     const price = parseFloat(String(term('price.unit') ?? '').replace(/[$,]/g, ''));
     const qty = parseFloat(String(term('order.quantity') ?? ''));
     const total = price && qty ? `$${(price * qty).toLocaleString('en-US', { maximumFractionDigits: 2 })}` : null;
-    const checks = c?.checks ?? [];
-    const met = checks.filter((x) => x.status === 'pass').length;
-    facts = `<div class="hfacts">${total ? `<span><b>${esc(total)}</b><small>${esc(term('order.quantity'))} × ${esc(term('price.unit'))}</small></span>` : ''}<span><b>${met}/${checks.length}</b><small>requirements met</small></span></div>`;
+    facts = total ? `<div class="hfacts"><span><b>${esc(total)}</b><small>${esc(term('order.quantity'))} × ${esc(term('price.unit'))}</small></span></div>` : '';
     options = [{ id: 'approve', lead: 'Approve and send', key: 'A' }, { id: 'reject', lead: 'Reject', key: 'R' }];
   } else {
     question = `${r.title}?`;
-    options = [{ id: 'verified', lead: 'Verified by phone', sub: 'Apply the new detail', key: 'A' }, { id: 'reject', lead: 'Reject', sub: 'Not genuine', key: 'R' }];
+    options = [{ id: 'verified', lead: 'Verified by phone', key: 'A' }, { id: 'reject', lead: 'Reject', key: 'R' }];
   }
   const buttons = options.map((o, i) => `<button class="hopt ${i === 0 ? 'primary' : ''}" data-req="${esc(r.id)}" data-opt="${esc(o.id)}"${app.answering ? ' disabled' : ''}>
-      <span class="kbd">${o.key}</span><span><b>${esc(o.lead)}</b>${o.sub ? `<small>${esc(o.sub)}</small>` : ''}</span></button>`).join('');
+      <span class="kbd">${o.key}</span><span><b>${esc(o.lead)}</b></span></button>`).join('');
   return {
     cls: 'human',
     html: head(r.kind === 'approval' ? `${esc(r.asked_by)} needs your OK` : 'Continuity needs you to verify', 'paused')
@@ -1024,120 +966,15 @@ async function answerHuman(id, option) {
   }
 }
 
-/** Write a card only when its content changes, and flash it when that happens mid-story. */
-function setCard(node, html, cls = '') {
-  if (node.dataset.key === html) return;
-  const changed = node.dataset.key != null;
-  node.dataset.key = html;
-  node.innerHTML = html;
-  node.className = `${node.id === 'en-now' ? 'en-now' : 'en-card'} ${cls}`;
-  if (changed && node.id !== 'en-now') {
-    node.classList.add('chg');
-    restartAnimation(node);
-  }
-}
-
 function renderEngine(feed) {
-  const c = app.ctx;
-  const version = app.state?.state_version ?? c?.meta?.state_version;
-  el('#en-ver').textContent = version != null ? `state v${version}` : '';
-  renderPresPipe();
-
   const { cls, html } = nowCard(feed);
-  setCard(el('#en-now'), html, cls);
-
-  renderMemory(c);
-}
-
-/**
- * What Continuity remembers, as one ledger: each row is a current fact with the email it came from.
- * Superseded values stay visible (struck through); a row that changed this beat flashes.
- */
-const memPrev = new Map();
-function memoryRows(c) {
-  const terms = c.current_terms ?? [];
-  const term = (key) => terms.find((t) => t.term === key);
-  const src = (t) => t?.stated_in?.at(-1) ?? '';
-  const rows = [];
-  const order = term('decision.order');
-  if (order) rows.push({ k: 'order', label: 'Order', html: '<span class="tag ok">accepted</span>', src: src(order) });
-  const price = term('price.unit');
-  if (price) {
-    const old = (c.superseded_terms_do_not_use ?? []).filter((x) => x.term === 'price.unit').at(-1);
-    rows.push({ k: 'price.unit', label: 'Price', html: `${old ? `<s>${esc(old.old_value)}</s> → ` : ''}${esc(price.value)}`, src: old?.changed_in ?? src(price), via: price.documents?.length ? 'email + PDF' : 'email' });
+  const card = el('#en-now');
+  if (card.dataset.key !== html) {
+    card.dataset.key = html;
+    card.innerHTML = html;
+    card.className = `en-now ${cls}`;
   }
-  const delivery = term('delivery.schedule');
-  if (delivery) {
-    const old = (c.superseded_terms_do_not_use ?? []).filter((x) => x.term === 'delivery.schedule').at(-1);
-    const late = (c.conflicts ?? []).length > 0;
-    rows.push({
-      k: 'delivery.schedule', label: 'Delivery', bad: late,
-      html: `${old ? `<s>${esc(old.old_value)}</s> → ` : ''}${esc(delivery.value)}${late ? ' <span class="tag fail">late</span>' : ''}`,
-      src: old?.changed_in ?? src(delivery),
-    });
-  }
-  const budget = term('budget.max_unit_price');
-  if (budget) rows.push({ k: 'budget', label: 'Budget', html: `up to ${esc(budget.value)} <small>finance</small>`, src: src(budget) });
-  const doc = (c.documents ?? []).filter((d) => d.kind === 'quote' && d.status !== 'superseded').at(-1) ?? (c.documents ?? []).filter((d) => d.kind === 'quote').at(-1);
-  if (doc) {
-    const status = { partially_stale: 'partly stale', current: 'current', superseded: 'superseded' }[doc.status] ?? doc.status;
-    const name = doc.filename.match(/Q-[\w-]+?(?=\.pdf$)/i)?.[0]?.replace(/-rev/, ' rev ') ?? doc.filename;
-    rows.push({ k: 'quote', label: 'Quote', bad: doc.status === 'partially_stale', html: `${esc(name)} <span class="tag ${esc(doc.status)}">${esc(status)}</span>`, src: doc.received_in });
-  }
-  const owed = (c.waiting_on_them ?? []).find((o) => o.kind === 'commitment');
-  const kept = (c.resolved_commitments ?? []).at(-1);
-  if (owed) rows.push({ k: 'owed', label: 'Owed', html: `${esc(owed.owed_by)} → ${esc(clip(owed.what.replace(/ by tomorrow$/, ''), 40))}${owed.due ? ` <small>due ${esc(dueDay(owed.due))}</small>` : ''}`, src: owed.source });
-  else if (kept) rows.push({ k: 'owed', label: 'Owed', ok: true, html: `✓ ${esc(kept.by ?? 'they')} kept it: ${esc(clip(kept.what.replace(/ by tomorrow$/, ''), 36))}`, src: kept.resolved_in });
-  const injected = (c.flags ?? []).filter((f) => f.kind === 'prompt_injection_suspected');
-  if (injected.length) rows.push({ k: 'flags', label: 'Blocked', bad: true, html: `${injected.length === 1 ? 'Hidden instruction in PDF' : `${injected.length} hidden instructions`} <span class="tag fail">quarantined</span>`, src: injected[0].event });
-  return rows;
-}
-
-function renderMemory(c) {
-  const box = el('#en-mem');
-  if (!c || !(c.current_terms ?? []).length) {
-    memPrev.clear();
-    box.innerHTML = '<div class="mem-empty">Empty. Nothing learned yet.</div>';
-    return;
-  }
-  const checks = c.checks ?? [];
-  const passing = checks.filter((x) => x.status === 'pass').length;
-  const rows = memoryRows(c).map((r, i) => {
-    const changed = memPrev.has(r.k) && memPrev.get(r.k) !== r.html;
-    const fresh = memPrev.size > 0 && !memPrev.has(r.k);
-    return `<div class="mm ${r.bad ? 'bad' : ''} ${r.ok ? 'ok' : ''} ${changed ? 'chg' : ''} ${fresh ? 'new' : ''}" data-k="${esc(r.k)}" data-src="${esc(r.src ?? '')}" style="--i:${i}">
-      <dt>${esc(r.label)}</dt><dd>${r.html}</dd><cite>${esc(r.src ?? '')}${r.via ? `<small>${esc(r.via)}</small>` : ''}</cite></div>`;
-  });
-  // requirements only show once they say something: one is broken, or all of them pass
-  const failing = checks.some((x) => x.status === 'fail');
-  const allPass = checks.length > 0 && passing === checks.length;
-  const lights = failing || allPass ? checks.map((x) => `<span class="light ${esc(x.status)}"><i></i>${esc(presenterCheck(x.check))}</span>`).join('') : '';
-  const html = `
-    <div class="mem-h"><span>Memory</span><span class="mem-next" data-k="next">next: <b class="actor ${esc(c.next_actor ?? '')}">${actorWord(c.next_actor)}</b></span></div>
-    <dl class="mem">${rows.join('')}</dl>
-    ${lights ? `<div class="mem-checks ${failing ? 'bad' : ''}" data-k="checks">${lights}</div>` : ''}`;
-  if (box.dataset.key === html) return;
-  box.dataset.key = html;
-  box.innerHTML = html;
-  memPrev.clear();
-  for (const r of memoryRows(c)) memPrev.set(r.k, r.html);
-}
-
-/** Retrieval: an agent asks Continuity for its context; every remembered fact is pulled into the briefing. */
-async function retrieveSweep() {
-  if (noMotion) return;
-  const rows = [...document.querySelectorAll('#en-mem .mm, #en-mem .mem-next, #en-mem .mem-checks')];
-  rows.forEach((row, i) => {
-    setTimeout(() => {
-      row.classList.remove('pull');
-      void row.offsetWidth;
-      row.classList.add('pull');
-    }, i * 90);
-  });
-  await pause(rows.length * 90 + 200);
-  const brief = el('#en-pipe').children[4];
-  brief?.classList.add('lit');
-  setTimeout(() => brief?.classList.remove('lit'), 1600);
+  graph?.update(graphModel());
 }
 
 function renderPresenter() {
@@ -1145,21 +982,12 @@ function renderPresenter() {
   const busy = app.mode === 'replay' ? app.running != null : Boolean(app.stage?.busy);
   const current = busy ? beats[app.running ?? cursor] : beats[cursor - 1];
 
-  // headline: the beat in flight or the last one finished
   const title = current?.title ?? (app.mode === 'engine' ? 'Following the engine.' : 'Agents forget.');
-  const sub = current?.caption ?? (app.mode === 'engine' ? (app.state?.task?.goal ?? '') : 'Continuity remembers for them.');
   const titleEl = el('#p-title');
-  const subEl = el('#p-sub');
   if (titleEl.textContent !== title) {
     titleEl.textContent = title;
-    subEl.textContent = sub;
     restartAnimation(titleEl);
-    restartAnimation(subEl);
   }
-
-  el('#p-count').textContent = beats.length
-    ? `${pad2(Math.min(cursor + (busy ? 1 : 0), beats.length))} / ${pad2(beats.length)}`
-    : '';
 
   let hint = '';
   const ask = openHuman()[0];
@@ -1167,15 +995,6 @@ function renderPresenter() {
   else if (busy) hint = `<span class="spin"></span>${usesClaude() && app.mode !== 'replay' ? 'Claude is working' : 'working'}`;
   else if (cursor < beats.length && app.mode !== 'engine') hint = `press <span class="kbd">→</span> ${cursor ? 'next' : 'to start'}`;
   el('#p-hint').innerHTML = hint;
-
-  const askers = new Set(openHuman().map((r) => r.asked_by));
-  // only the agent the story is about right now: the newest one
-  el('#ib-agents').innerHTML = [...app.procs.values()].slice(-1).map((p) => {
-    const waiting = p.state === 'running' && askers.has(p.name);
-    let note = p.state === 'killed' ? 'killed' : p.state === 'running' ? 'running' : 'done';
-    if (waiting) note = 'waiting on you';
-    return `<span class="ag ${esc(p.state)} ${waiting ? 'wait' : ''}"><i></i>${esc(p.name)} · ${note}</span>`;
-  }).join('');
 
   const feed = mailFeed();
   renderMail(feed);
@@ -1395,7 +1214,15 @@ function showCue(text, selector) {
   if (!line) {
     cap.classList.remove('on');
     spotOn(null);
+    graph?.unfocus();
     return;
+  }
+  // graph targets zoom the camera instead of drawing a ring
+  if (selector?.startsWith('g:')) {
+    graph?.focus(selector.slice(2).split(','));
+    selector = null;
+  } else {
+    graph?.unfocus();
   }
   el('#cap-t').textContent = line;
   cap.classList.remove('on');
@@ -1408,15 +1235,18 @@ async function playCues(index) {
   const steps = CUES[index]?.done ?? [];
   if (!steps.length) return;
   const mine = ++cueToken;
-  await pause(700);
+  await pause(CUES[index].retrieve ? 2800 : 700);
   for (const [selector, text] of steps) {
     if (mine !== cueToken) return;
     // a cue about something that is not on screen this run is skipped
-    if (selector && !document.querySelector(selector)) continue;
+    if (selector && !(selector.startsWith('g:') ? graph?.has(selector.slice(2).split(',')[0]) : document.querySelector(selector))) continue;
     showCue(text, selector);
-    await pause(3000);
+    await pause(3200);
   }
-  if (mine === cueToken) spotOn(null);
+  if (mine === cueToken) {
+    spotOn(null);
+    graph?.unfocus();
+  }
 }
 
 function spotOn(selector) {
@@ -1438,7 +1268,7 @@ function placeSpot() {
   });
 }
 setInterval(placeSpot, 250);
-// for scripted recordings: drive a caption by hand, e.g. stageCue('Text', '#en-mem')
+// for scripted recordings: drive a caption by hand, e.g. stageCue('Text', 'g:price')
 window.stageCue = cue;
 
 // the person in the loop: say so when an agent hands over, and again once they answered
@@ -1524,13 +1354,16 @@ async function replayAdvance() {
 
   if (step.moment && step.moment !== 'kill') {
     const firstRun = snap.runs.find((r) => r.agent_id === step.moment);
-    moment('born', step.moment, 'new process', `pid ${firstRun?.decision?.pid ?? ''} · prior messages in memory: 0`);
-    await pause(1600);
+    // the new agent appears, then the facts flow into it
+    app.procs.set(step.moment, { name: step.moment, pid: firstRun?.decision?.pid, state: 'running' });
+    renderPresenter();
+    await pause(900);
     if (CUES[i]?.retrieve) {
-      cue(CUES[i].retrieve, '#en-mem');
-      await retrieveSweep();
-      await pause(900);
+      cue(CUES[i].retrieve);
+      graph?.retrieve();
+      await pause(2200);
     }
+    app.procs.get(step.moment).state = step.procs[step.moment];
   }
 
   for (const r of runs.filter((x) => !app.seenRuns.has(x.id))) {
@@ -1569,13 +1402,6 @@ el('#en-now').addEventListener('click', (e) => {
   const button = e.target.closest('[data-opt]');
   if (button && !button.disabled) answerHuman(button.dataset.req, button.dataset.opt);
 });
-// hovering a remembered fact lights the email it came from
-el('#en-mem').addEventListener('mouseover', (e) => {
-  const row = e.target.closest('[data-src]');
-  document.querySelectorAll('.mrow.cited').forEach((r) => r.classList.remove('cited'));
-  if (row?.dataset.src) document.querySelector(`.mrow[data-id="${CSS.escape(row.dataset.src)}"]`)?.classList.add('cited');
-});
-el('#en-mem').addEventListener('mouseleave', () => document.querySelectorAll('.mrow.cited').forEach((r) => r.classList.remove('cited')));
 // any message in the presenter inbox opens on click
 el('#mail-list').addEventListener('click', (e) => {
   const row = e.target.closest('.mrow');
@@ -1611,7 +1437,7 @@ async function detectMode() {
   tag.textContent = MODE_LABEL[app.mode];
   tag.className = `tag ${app.mode === 'replay' ? 'open' : 'ok'}`;
   buildPipe();
-  buildPresPipe();
+  graph = createGraph(el('#g'));
   if (app.mode === 'replay') return startReplay();
   if (app.mode === 'stage') {
     openStream();

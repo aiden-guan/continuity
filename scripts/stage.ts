@@ -121,7 +121,10 @@ function exitCode(proc: Proc): Promise<number | null> {
 }
 
 function startAgent(name: string, mode: '--once' | '--watch') {
-  return launch(name, 'src/agent/run.ts', ['--task', task.alias, '--agent', name, mode, '--api', ENGINE_URL], { ...baseEnv, CONTINUITY_TOKEN: tokens[name] ?? '' });
+  // Agent A only opens the deal, and the story needs both of its emails (the RFQ and the budget request),
+  // so it runs the deterministic policy agent; B and C, the cold handoffs, decide with Claude when a key is set
+  const decide = name === 'agent-a' ? ['--mode', 'policy'] : [];
+  return launch(name, 'src/agent/run.ts', ['--task', task.alias, '--agent', name, mode, '--api', ENGINE_URL, ...decide], { ...baseEnv, CONTINUITY_TOKEN: tokens[name] ?? '' });
 }
 
 // ---------------------------------------------------------------- tokens (live mail only)
@@ -212,11 +215,19 @@ const STARTED = Date.now();
 let runStarted = new Date().toISOString();
 const seen: Inbound[] = [];
 if (primitive) {
+  // a long-poll can drop (network timeouts happen); start it again rather than leaving the story stuck
   (async () => {
-    for await (const email of primitive.inbox.stream({ waitSeconds: 10 })) {
-      if (Date.parse(email.receivedAt) >= STARTED - 60_000) seen.push(email as unknown as Inbound);
+    for (;;) {
+      try {
+        for await (const email of primitive.inbox.stream({ waitSeconds: 10 })) {
+          if (Date.parse(email.receivedAt) >= STARTED - 60_000 && !seen.some((m) => m.id === email.id)) seen.push(email as unknown as Inbound);
+        }
+      } catch (err) {
+        narrate(`counterparty mail watcher: ${(err as Error).message}; retrying`);
+      }
+      await wait(2000);
     }
-  })().catch((err) => narrate(`counterparty mail watcher stopped: ${(err as Error).message}`));
+  })();
 }
 
 const lower = (s: string) => s.toLowerCase();
@@ -267,7 +278,8 @@ const beats: Beat[] = [
     title: 'A deal begins.',
     caption: 'Agent A emails the supplier and finance.',
     run: async () => {
-      startAgent('agent-a', '--watch');
+      // a retried beat keeps the Agent A that is already running
+      if (processes.get('agent-a')?.state !== 'running') startAgent('agent-a', '--watch');
       const rfq = await agentMail(parties.supplier, 0, 'the RFQ to reach the supplier');
       await agentMail(parties.finance, 0, 'the budget request to reach finance');
       const runs = await agentRunCount();
@@ -391,14 +403,23 @@ async function bootEngine() {
   // seen to authenticate, an *unknown* sender verdict from them is accepted and flagged (a failing one never is).
   const demoAuth = process.env.CONTINUITY_DEMO_SENDER_AUTH === 'enforce' ? 'enforce' : 'flag';
   await call('POST', '/tasks', { ...task, participants: task.participants.map((p) => (p.address === parties.supplier || p.address === parties.finance ? { ...p, sender_auth: demoAuth } : p)) });
-  receiver = spawn(process.execPath, ['scripts/primitive-receive.ts'], {
+  startReceiver();
+}
+
+/** The receiver exits when its long-poll fails; it keeps its cursor in Primitive, so it is simply restarted. */
+function startReceiver() {
+  const child = spawn(process.execPath, ['scripts/primitive-receive.ts'], {
     cwd: REPO,
     env: { ...baseEnv, CONTINUITY_URL: ENGINE_URL, RECEIVE_SINCE: runStarted, CONTINUITY_TOKEN: tokens.ingest } as NodeJS.ProcessEnv,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
-  const forwardReceiver = forwardLines('receive', receiver.pid);
-  receiver.stdout!.on('data', forwardReceiver);
-  receiver.stderr!.on('data', forwardReceiver);
+  receiver = child;
+  const forwardReceiver = forwardLines('receive', child.pid);
+  child.stdout!.on('data', forwardReceiver);
+  child.stderr!.on('data', forwardReceiver);
+  child.on('exit', () => {
+    if (receiver === child) setTimeout(() => { if (receiver === child) startReceiver(); }, 2000);
+  });
 }
 
 async function reset() {

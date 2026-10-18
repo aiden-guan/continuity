@@ -9,7 +9,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..600&family=Geist+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..600&family=Geist+Mono:wght@400;500&family=Roboto:wght@400;500;700&display=swap">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-.2 -.5 2 2'%3E%3Crect x='-.2' y='-.5' width='2' height='2' rx='.44' fill='%23161513'/%3E%3Cpath d='M.975.975L.025.975A.95.95 0 0 1 .975.025ZM1.025.593L1.025.025A.568.568 0 0 1 1.593.593ZM1.2611.643L1.593.643A.332.332 0 0 1 1.2611.975ZM1.2111.7889L1.2111.975A.1861.1861 0 0 1 1.025.7889Z' fill='%23f3f2ee'/%3E%3Cpath d='M1.1209.7389L1.025.7389A.0959.0959 0 0 1 1.1209.643Z' fill='%23e2501d'/%3E%3C/svg%3E">
 
   <link rel="stylesheet" href="assets/site.css">
@@ -30,7 +30,6 @@
       <span id="p-count" class="p-count"></span>
       <div class="p-beat">
         <h1 id="p-title">Agents forget.</h1>
-        <p id="p-sub"></p>
       </div>
       <div id="p-hint" class="p-hint"></div>
       <button id="p-details" class="p-details" title="Show the full engine view">Details <span class="kbd">D</span></button>
@@ -38,37 +37,42 @@
     </header>
 
     <main id="split" class="split">
-      <!-- left: what a plain inbox gives an agent -->
+      <!-- left: the agent's mailbox, as Gmail would show it -->
       <section class="side inbox-side">
         <div class="side-h">
-          <span class="side-k"><b>A</b>The inbox</span>
+          <span class="side-k"><b>A</b>Inbox</span>
           <span class="side-q">What the agent sees.</span>
-          <span id="ib-agents" class="ib-agents"></span>
         </div>
-        <div id="mail" class="mail">
-          <div class="mail-bar">
-            <span class="mail-box">Inbox</span>
-            <span id="mail-addr" class="mail-addr"></span>
-            <span id="mail-unread" class="mail-unread"></span>
+        <div id="mail" class="gm">
+          <div class="gm-top">
+            <div class="gm-search">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>
+              Search mail
+            </div>
+            <span id="mail-addr" class="gm-addr"></span>
           </div>
-          <div id="mail-dead" class="mail-dead" hidden>No agent is running. Nobody is reading this inbox.</div>
-          <ol id="mail-list" class="mail-list"></ol>
-          <article id="mail-open" class="mail-open"></article>
+          <div class="gm-bar">
+            <span class="gm-box"></span>
+            <svg class="gm-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12a7 7 0 1 1-2.05-4.95M19 5v4h-4"/></svg>
+            <span id="mail-unread" class="gm-count"></span>
+          </div>
+          <ol id="mail-list" class="gm-list"></ol>
+          <article id="mail-open" class="gm-read"></article>
         </div>
       </section>
 
       <div class="seam" aria-hidden="true"><span>Primitive</span></div>
 
-      <!-- right: what Continuity turns that mail into -->
+      <!-- right: what Continuity remembers, as a graph -->
       <section class="side engine-side">
         <div class="side-h">
           <span class="side-k"><b>B</b>Continuity</span>
           <span class="side-q">What it remembers.</span>
-          <span id="en-ver" class="en-ver"></span>
         </div>
-        <ol id="en-pipe" class="en-pipe"></ol>
-        <div id="en-now" class="en-now"></div>
-        <div id="en-mem" class="en-mem"></div>
+        <div class="graph-wrap">
+          <svg id="g" class="graph" role="img" aria-label="Continuity's memory of the deal"></svg>
+          <div id="en-now" class="en-now empty"></div>
+        </div>
       </section>
     </main>
 
