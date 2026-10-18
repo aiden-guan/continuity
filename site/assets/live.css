@@ -957,3 +957,41 @@ body.no-cap .cap, body.details .cap { display: none; }
 .cap.on #cap-t span { display: inline-block; animation: word-in 0.45s var(--ease) backwards; animation-delay: calc(var(--i) * 45ms); }
 @keyframes word-in { from { opacity: 0; transform: translateY(6px); filter: blur(3px); } }
 @media (prefers-reduced-motion: reduce) { .gm-compose, .cap.on #cap-t span { transition: none; animation: none; } }
+
+/* ---------- the next press is due: a small arrow that breathes, only once a beat has fully landed */
+.next-cue {
+  position: fixed;
+  right: 32px;
+  bottom: 30px;
+  z-index: 41;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  opacity: 0;
+  transform: translateX(-6px) scale(0.9);
+  pointer-events: none;
+  transition: opacity 0.45s var(--ease), transform 0.45s var(--ease);
+}
+.next-cue svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.next-cue.on { opacity: 1; transform: none; pointer-events: auto; }
+.next-cue.on svg { animation: nudge 1.6s var(--ease-in-out) 0.6s infinite; }
+.next-cue.on::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border: 1px solid var(--signal);
+  border-radius: 50%;
+  animation: halo 1.6s var(--ease) 0.6s infinite;
+}
+.next-cue:hover { background: var(--ink); color: var(--on-ink); }
+@keyframes nudge { 0%, 60%, 100% { transform: none; } 30% { transform: translateX(3px); } }
+@keyframes halo { from { opacity: 0.8; transform: scale(1); } to { opacity: 0; transform: scale(1.55); } }
+body.details .next-cue, body.no-hint .next-cue, body.no-hint .p-hint { display: none; }
+@media (prefers-reduced-motion: reduce) { .next-cue.on svg, .next-cue.on::after { animation: none; } }

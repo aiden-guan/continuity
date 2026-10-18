@@ -23,6 +23,7 @@ async function getJSON(path, init) {
 // ============================================================ state
 const app = {
   mode: null,          // 'stage' | 'engine' | 'replay'
+  ready: true,         // the beat on screen has landed: the next press is due
   task: null,
   version: -1,
   // engine data
@@ -54,7 +55,8 @@ const REPLAY_SCRIPT = [
   { title: 'Agent A dies.', caption: 'The deal keeps moving without it.', at: 'ev_6', procs: { 'agent-a': 'killed' }, runs: 2 },
   { title: 'Agent B wakes up.', caption: 'Brand-new process. Zero memory.', at: 'ev_7', procs: { 'agent-a': 'killed', 'agent-b': 'exited' }, runs: 3, moment: 'agent-b' },
   { title: 'The supplier fixes it.', caption: 'All 500 by Friday. Revised quote attached.', at: 'ev_8', procs: { 'agent-a': 'killed', 'agent-b': 'exited' }, runs: 3 },
-  { title: 'Agent C closes.', caption: 'Agents propose. You decide.', at: 'ev_9', procs: { 'agent-a': 'killed', 'agent-b': 'exited', 'agent-c': 'exited' }, runs: 4, moment: 'agent-c' },
+  // the recorded run approved Agent C's order by script; the replay holds it for the viewer instead (A / R)
+  { title: 'Agent C closes.', caption: 'Agents propose. You decide.', at: 'ev_8', hold: 'ev_9', procs: { 'agent-a': 'killed', 'agent-b': 'exited', 'agent-c': 'exited' }, runs: 4, moment: 'agent-c' },
 ];
 
 // Captions, beat by beat: what to say while it runs, then what to point at once it lands. Each cue is
@@ -192,7 +194,11 @@ const STREAM_HANDLERS = {
   beat(e) {
     app.running = e.status === 'running' ? e.index : null;
     if (e.status === 'running' && !e.replay) app.freshMail = new Set();
-    if (!e.replay && e.status === 'running') cue(CUES[e.index]?.running);
+    if (!e.replay && e.status === 'running') {
+      setReady(false);
+      cue(CUES[e.index]?.running);
+    }
+    if (!e.replay && e.status === 'error') setReady(true); // a failed beat can be run again
     if (!e.replay && e.status === 'done') app.cueDone = e.index;
     if (app.stage) app.stage.busy = e.status === 'running';
     if (e.status === 'error') log('stage', `beat ${e.index + 1} failed: ${e.error}`, 'l-kill');
@@ -248,6 +254,7 @@ const STREAM_HANDLERS = {
     app.answered = null;
     askedFor = null;
     app.finaleDue = false;
+    app.ready = true;
     resetReveal();
     cue(null);
     shownRows.clear();
@@ -275,6 +282,7 @@ function mergeProcs(list = []) {
 
 // ============================================================ controls
 async function advance() {
+  if (app.mode !== 'engine') setReady(false);
   if (app.mode === 'replay') return replayAdvance();
   if (app.mode !== 'stage' || app.stage?.busy) return;
   if (app.stage && app.stage.cursor >= app.stage.beats.length) return;
@@ -322,6 +330,10 @@ function onKey(e) {
       break;
     case 'R':
       if (e.shiftKey) restart();
+      break;
+    case 'h':
+    case 'H':
+      document.body.classList.toggle('no-hint'); // e.g. while filming
       break;
     case 'c':
     case 'C':
@@ -1082,16 +1094,20 @@ function humanCard(r, head) {
 /** Answer a request from the page; the agent waiting on it carries on by itself. */
 async function answerHuman(id, option) {
   const req = openHuman().find((r) => r.id === id);
-  if (!req || app.answering || !app.task) return;
+  if (!req || app.answering || (!app.task && app.mode !== 'replay')) return;
   app.answering = true;
   document.querySelectorAll('.hopt').forEach((b) => { b.disabled = true; });
   const label = { approve: 'Approved and sent.', verified: 'Verified and applied.', reject: 'Rejected.' }[option] ?? option;
   // measured before answering: an approval sends right away, so the email may land before the reply
   const feedLen = mailFeed().filter((i) => !i.held).length;
   try {
-    await getJSON(`/tasks/${encodeURIComponent(app.task)}/approvals/${encodeURIComponent(id)}/decide`, {
-      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ option, by: 'the procurement lead' }),
-    });
+    if (app.mode === 'replay') {
+      replayDecide(option);
+    } else {
+      await getJSON(`/tasks/${encodeURIComponent(app.task)}/approvals/${encodeURIComponent(id)}/decide`, {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ option, by: 'the procurement lead' }),
+      });
+    }
     app.answered = { id, kind: req.kind, option, label, asker: req.asked_by, feedLen };
     log('stage', `you answered ${req.asked_by}: ${label}`);
     if (option === 'approve') {
@@ -1140,10 +1156,12 @@ function renderPresenter() {
   }
 
   let hint = '';
+  const ready = renderReady();
   const ask = openHuman()[0];
   if (ask) hint = '<span class="you">Your call</span> press <span class="kbd">A</span> or <span class="kbd">R</span>';
   else if (busy) hint = `<span class="spin"></span>${usesClaude() && app.mode !== 'replay' ? 'Claude is working' : 'working'}`;
-  else if (cursor < beats.length && app.mode !== 'engine') hint = `press <span class="kbd">→</span> ${cursor ? 'next' : 'to start'}`;
+  else if (ready) hint = `press <span class="kbd">→</span> ${cursor ? 'next' : 'to start'}`;
+  else if (cursor >= beats.length && beats.length && app.mode !== 'engine' && !revealing()) hint = 'the end · <span class="kbd">Shift</span> <span class="kbd">R</span> to replay';
   el('#p-hint').innerHTML = hint;
 
   const feed = mailFeed();
@@ -1333,6 +1351,7 @@ function moment(kind, title, kicker, sub) {
 function maybeFinale() {
   if (!app.finaleDue || openHuman().length) return;
   app.finaleDue = false;
+  cue(null);
   finale();
 }
 
@@ -1384,8 +1403,12 @@ function showCue(text, selector) {
 
 async function playCues(index) {
   const steps = CUES[index]?.done ?? [];
-  if (!steps.length) return;
   const mine = ++cueToken;
+  if (!steps.length) {
+    await mailIdle();
+    if (mine === cueToken) setReady(true);
+    return;
+  }
   await pause(CUES[index].retrieve ? 2800 : 700);
   await mailIdle();
   await pause(300);
@@ -1399,7 +1422,25 @@ async function playCues(index) {
   if (mine === cueToken) {
     spotOn(null);
     graph?.unfocus();
+    setReady(true);
   }
+}
+
+/**
+ * Whether the beat on screen has fully landed: then (and only then) a small arrow invites the next press.
+ * It stays off while a beat runs, while mail is still being typed, and while a person is being asked.
+ */
+function setReady(on) {
+  app.ready = on;
+  renderPresenter(); // the header hint and the arrow change together
+}
+function renderReady() {
+  const { beats, cursor } = storyPosition();
+  const busy = app.mode === 'replay' ? app.running != null : Boolean(app.stage?.busy);
+  const asking = openHuman().length > 0;
+  const show = app.ready && !busy && !asking && !revealing() && cursor < beats.length && app.mode !== 'engine';
+  el('#next-cue').classList.toggle('on', show);
+  return show;
 }
 
 function spotOn(selector) {
@@ -1455,6 +1496,9 @@ async function startReplay() {
 
 function replayRestart() {
   app.replayBeat = 0;
+  app.ready = true;
+  app.approvals = [];
+  app.finaleDue = false;
   resetReveal();
   cue(null);
   app.running = null;
@@ -1475,6 +1519,29 @@ function replayRestart() {
   renderBeats();
 }
 
+/** The viewer decided a held draft in the replay: approving sends it, as the engine would have. */
+function replayDecide(option) {
+  const step = REPLAY_SCRIPT[app.replayBeat - 1];
+  app.approvals = [];
+  if (option !== 'approve' || !step?.hold) {
+    renderPresenter();
+    return;
+  }
+  const snap = app.snap;
+  const events = snap.timeline.events;
+  const asOf = snap.as_of[step.hold];
+  ingest({
+    health: snap.health,
+    state: { state_version: asOf.context.meta.state_version, task: { goal: asOf.context.task.goal, alias: asOf.context.meta.alias } },
+    timeline: { ...snap.timeline, events: events.slice(0, events.findIndex((e) => e.id === step.hold) + 1), unlinked: [] },
+    ctx: asOf.context,
+    briefing: asOf.briefing ?? '',
+    briefingTokens: asOf.briefing_tokens,
+    transcriptTokens: asOf.transcript_tokens,
+    runs: snap.runs.slice(0, step.runs),
+  });
+}
+
 async function replayAdvance() {
   if (app.running != null || app.replayBeat >= REPLAY_SCRIPT.length) return;
   const i = app.replayBeat;
@@ -1485,6 +1552,7 @@ async function replayAdvance() {
   renderBeats();
   renderPipeBusy();
   log('stage', `▶ ${i + 1}. ${step.title}`);
+  setReady(false);
   cue(CUES[i]?.running);
   await pause(900);
 
@@ -1525,6 +1593,13 @@ async function replayAdvance() {
   }
 
   const asOf = snap.as_of[step.at];
+  // a held step: the email the agent wrote waits as a draft until the viewer decides
+  const held = step.hold && events.find((e) => e.id === step.hold);
+  app.approvals = held ? [{
+    id: `replay-${held.id}`, kind: 'send', status: 'held', created_at: held.occurred_at,
+    title: "Approve committing to supplier's current terms?",
+    draft: { to: held.to?.[0], subject: held.subject, body: held.body_text, agent_id: step.moment },
+  }] : [];
   ingest({
     health: snap.health,
     state: { state_version: asOf.context.meta.state_version, task: { goal: asOf.context.task.goal, alias: asOf.context.meta.alias } },
@@ -1539,7 +1614,10 @@ async function replayAdvance() {
   app.replayBeat = i + 1;
   app.running = null;
   playCues(i);
-  if (app.replayBeat === REPLAY_SCRIPT.length) setTimeout(finale, 2600);
+  if (app.replayBeat === REPLAY_SCRIPT.length) {
+    app.finaleDue = true;
+    setTimeout(maybeFinale, 2600);
+  }
   renderBeats();
   renderPipeBusy();
   renderProcs();
@@ -1550,6 +1628,7 @@ async function replayAdvance() {
 el('#next').onclick = advance;
 el('#reset').onclick = restart;
 el('#p-details').onclick = () => showDetails(true);
+el('#next-cue').onclick = advance;
 el('#flashover').addEventListener('click', () => el('#flashover').classList.remove('on'));
 // the "needs you" card answers on click
 el('#en-now').addEventListener('click', (e) => {

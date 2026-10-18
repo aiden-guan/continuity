@@ -350,6 +350,8 @@ let epoch = 0;           // incremented by every reset, so a beat from an older 
 async function bootEngine() {
   for (const proc of processes.values()) {
     if (proc.state === 'running') {
+      // stopped for the reset, not killed in the story: no exit event, or the page would play the SIGKILL moment
+      proc.child.removeAllListeners('exit');
       proc.state = 'killed';
       proc.child.kill('SIGKILL');
     }
