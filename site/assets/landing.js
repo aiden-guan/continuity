@@ -362,7 +362,7 @@ setupTheme();
 setupChrome();
 setupHeroThread(one('#hero-thread'));
 if (document.documentElement.classList.contains('px')) {
-  setupHeroParticles({ hero: one('.hero'), line: one('.h-forget'), thread: one('#hero-thread') });
+  setupHeroParticles({ hero: one('.hero'), line: one('.h-forget'), thread: one('#hero-thread'), nodes: HERO_EVENTS.map((e) => e.at) });
 }
 setupMechanism(one('#mech'));
 setupTokenField(one('#field'));

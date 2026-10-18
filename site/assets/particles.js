@@ -4,7 +4,8 @@
 // per grid cell, so at rest it reads as a halftone print of the heading. Every particle has
 // one number, t, between home (0) and the thread (1):
 //   · on load the letters rise out of the Fig. 1 thread (t falls from 1 to 0)
-//   · scrolling dissolves the line back into the thread, right to left, swirling like ink in water
+//   · scrolling dissolves the line back down, right to left, each band pooling into one of the
+//     thread's event nodes
 //   · a few particles of "forget." keep drifting off and coming back
 //   · the pointer pushes particles aside; they spring home
 // Position is a pure function of t and the clock, so scrolling back up reassembles the line.
@@ -24,7 +25,7 @@ const INTRO_MS = 1500;   // one particle's trip from the thread to its letter
 const INTRO_SPREAD = 900; // first to last particle leaving the thread
 const PUSH_RADIUS = 90;
 
-export function setupHeroParticles({ hero, line, thread }) {
+export function setupHeroParticles({ hero, line, thread, nodes = [] }) {
   const canvas = document.createElement('canvas');
   canvas.className = 'hero-px';
   canvas.setAttribute('aria-hidden', 'true');
@@ -108,11 +109,13 @@ export function setupHeroParticles({ hero, line, thread }) {
       for (let x = Math.floor(step / 2); x < off.width; x += step) {
         if (data[(y * off.width + x) * 4 + 3] < 110) continue;
         const across = clamp01((x - left) / span);
-        // letters land in order along the thread: the left of the line to its left end
-        const tx = lineA + across * (lineB - lineA) + (Math.random() - 0.5) * 8;
+        // letters pool into the thread's event nodes, in order: each band of the line feeds one node
+        const node = nodes.length ? nodes[Math.min(nodes.length - 1, Math.floor(across * nodes.length))] : across;
+        const tx = lineA + node * (lineB - lineA) + (Math.random() - 0.5) * 3;
+        const ty = lineY + (Math.random() - 0.5) * 3;
         next.push({
           hx: x, hy: y,
-          tx, ty: lineY,
+          tx, ty,
           // assembly runs left to right; dissolving starts at the end of "forget."
           inDelay: across * 0.55 + Math.random() * 0.45,
           outDelay: (1 - across) * 0.7 + Math.random() * 0.3,
@@ -186,10 +189,10 @@ export function setupHeroParticles({ hero, line, thread }) {
       x += p.ox;
       y += p.oy;
 
-      // fully visible all the way down; they only fade once they are on the thread
+      // fully visible all the way down; they shrink into the node and vanish there
       const alpha = 1 - smooth(0.95, 1, t);
       if (alpha <= 0.01) continue;
-      const s = dot * (1 - 0.3 * t);
+      const s = dot * (1 - 0.55 * t);
       if (alpha > 0.99) {
         ctx.rect(x - s / 2, y - s / 2, s, s);
       } else {
