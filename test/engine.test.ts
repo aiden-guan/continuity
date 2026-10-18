@@ -7,6 +7,7 @@ import type { Extractor, Proposal } from '../src/extract/types.ts';
 import { heuristicExtractor } from '../src/extract/heuristic.ts';
 import { fromPrimitiveWebhook } from '../src/ingest/normalize.ts';
 import { resolveTask } from '../src/ingest/link.ts';
+import { policyDecide } from '../src/agent/policy.ts';
 import type { EventInput } from '../src/types.ts';
 
 const addr = defaultAddresses();
@@ -199,6 +200,11 @@ test('a promise to send a document is not fulfilled by words alone', async () =>
   const afterWords = theCommitment(h);
   assert.equal(afterWords.status, 'open');
   assert.ok(afterWords.notes.some((n) => /no quote attached/.test(n)));
+  // "attached" with nothing attached is ours to answer: tell them it did not come through
+  const tell = h.context(undefined, { now: '2026-10-20T16:00:00Z' }).suggested_actions.find((a) => /MISSING ATTACHMENT/.test(a.action));
+  assert.equal(tell?.priority, 1);
+  assert.equal(tell?.to_address, addr.supplier);
+  assert.match(policyDecide(h.context(undefined, { now: '2026-10-20T16:00:00Z' })).messages.find((m) => m.to === addr.supplier)?.body ?? '', /no attachment came through/);
 
   // 2. A document named like the revision, but its contents are the quote we already had.
   await supplierReply('Oops, attached now.', '2026-10-20T15:05:00Z', [{ filename: 'Q-2291-rev2.pdf', content_type: 'application/pdf', bytes: quoteV1() }]);
@@ -345,4 +351,18 @@ test('a colleague re-sending the replaced quote "for your files" changes nothing
   assert.equal(h.claims().filter((c) => c.status === 'contested').length, 0, 'the old terms do not contest the current ones');
   const after = h.claims().filter((c) => c.status === 'active').map((c) => [c.speaker, c.key, JSON.stringify(c.value)].join(' ')).sort();
   assert.deepEqual(after, before);
+});
+
+test('a dispute we have raised waits for their answer', async () => {
+  const forwarder = 'ops@fastfreight.example';
+  const task = procurementTask(addr);
+  task.participants.push({ address: forwarder, name: 'FastFreight Ops', role: 'counterparty', label: 'freight forwarder', authority: ['delivery.'], group: 'northwind' });
+  const { h, story } = await afterCanonical(task);
+  await h.in({ from: forwarder, fromName: 'FastFreight', to: addr.self, subject: 'PO-4817 shipment', body: 'Our system shows 500 units arriving Thursday, Oct 22.', at: '2026-10-20T12:00:00Z', threadKey: 'ff' });
+  assert.ok(h.context().suggested_actions.some((a) => a.kind === 'resolve_contested' && a.priority === 1));
+
+  await h.out(addr.supplier, `Re: ${story.rfq.subject}`, 'Dana, your freight forwarder says all 500 arrive Oct 22, you said a split. Which is right?', '2026-10-20T13:00:00Z', { messageId: story.correction.messageId });
+  const ctx = h.context();
+  assert.ok(!ctx.suggested_actions.some((a) => a.kind === 'resolve_contested'));
+  assert.ok(ctx.suggested_actions.some((a) => a.kind === 'awaiting_response' && /settle delivery\.schedule/.test(a.action)));
 });

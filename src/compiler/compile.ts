@@ -461,9 +461,19 @@ function suggestActions(store: StateStore, task: TaskSpec, s: SuggestInput) {
     const primary =
       task.participants.find((p) => p.role === 'counterparty' && (group ? p.group === group : p.address === c.speaker)) ??
       task.participants.find((p) => p.address === c.speaker);
-    actions.push({
+    const disagreement = sameKey.map((o) => `${label(o.speaker)} says ${o.display}`).join(' vs ');
+    // raised once, then wait for their answer (as with failing checks): we wrote to their side after it arose
+    const arose = [...s.allTransitions].reverse().find((t) => t.type === 'claim_contested'
+      && ((t.detail as { claims?: string[] }).claims ?? [t.subject_id]).some((id) => sameKey.some((o) => o.id === id)));
+    const side = task.participants.filter((p) => (group ? p.group === group : p.address === c.speaker)).map((p) => p.address);
+    const raised = !!arose && side.some((p) => !notAddressedSince(p, arose.seq));
+    actions.push(raised ? {
+      priority: 3, kind: 'awaiting_response', to: primary ? label(primary.address) : null, to_address: primary?.address ?? null,
+      action: `Already asked ${primary ? label(primary.address) : 'them'} to settle ${c.key} (${disagreement}) — awaiting their answer`,
+      why: 'Parties disagree; we have asked which is right', evidence: sameKey.map((o) => o.source_event_id),
+    } : {
       priority: 1, kind: 'resolve_contested', to: primary ? label(primary.address) : null, to_address: primary?.address ?? null,
-      action: `Resolve contradictory ${c.key}: ${sameKey.map((o) => `${label(o.speaker)} says ${o.display}`).join(' vs ')}`,
+      action: `Resolve contradictory ${c.key}: ${disagreement}`,
       why: 'Parties disagree; do not pick one silently',
       evidence: sameKey.map((o) => o.source_event_id),
     });
@@ -500,6 +510,18 @@ function suggestActions(store: StateStore, task: TaskSpec, s: SuggestInput) {
     const outstanding = o.quantity != null ? o.quantity - (o.fulfilled_quantity ?? 0) : null;
     const overdue = !!o.due_at && o.due_at < s.today;
     const partial = o.status === 'partially_fulfilled' ? ` (${o.fulfilled_quantity} of ${o.quantity} delivered, ${outstanding} outstanding)` : '';
+    // "revised quote attached" with nothing attached (or the wrong file): tell them, unless we already have
+    const unverified = o.expects_artifact
+      ? [...s.allTransitions].reverse().find((t) => t.type === 'obligation_unverified' && t.subject_id === o.id)
+      : undefined;
+    if (unverified && notAddressedSince(o.debtor, unverified.seq)) {
+      actions.push({
+        priority: 1, kind: 'remind_commitment', to: label(o.debtor), to_address: o.debtor, obligation_id: o.id,
+        action: `Tell ${label(o.debtor)} the ${o.expects_artifact} did not come through: "${o.text}" — MISSING ATTACHMENT`,
+        why: unverified.summary, evidence: [o.source_event_id, ...(unverified.event_id ? [unverified.event_id] : [])],
+      });
+      continue;
+    }
     if (overdue) {
       actions.push({
         priority: 1, kind: 'remind_commitment', to: label(o.debtor), to_address: o.debtor, obligation_id: o.id,
@@ -524,13 +546,15 @@ function suggestActions(store: StateStore, task: TaskSpec, s: SuggestInput) {
     const reply = [...s.events].reverse().find((e) => e.direction === 'inbound' && e.from === o.debtor && (ingestSeqOf.get(e.id) ?? 0) > askedAt);
     if (!reply) continue;
     const askedAgain = !notAddressedSince(o.debtor, ingestSeqOf.get(reply.id) ?? 0);
+    // "let me check and get back to you": they promised an answer after we asked, so we wait for it
+    const promisedAnswer = s.openObs.some((x) => x.kind === 'commitment' && x.debtor === o.debtor && x.creditor === self && (ingestSeqOf.get(x.source_event_id) ?? 0) > askedAt);
     const issue = o.issue_key;
     actions.push({
-      priority: askedAgain ? 3 : 1,
-      kind: askedAgain ? 'awaiting_response' : 'follow_up_unanswered',
+      priority: askedAgain ? 3 : promisedAnswer ? 2 : 1,
+      kind: askedAgain || promisedAnswer ? 'awaiting_response' : 'follow_up_unanswered',
       to: label(o.debtor), to_address: o.debtor, obligation_id: o.id,
-      action: askedAgain
-        ? `Already followed up with ${label(o.debtor)} on "${o.text}"${issue ? ` [${issue}]` : ''} — awaiting their answer`
+      action: askedAgain || promisedAnswer
+        ? `${askedAgain ? 'Already followed up with' : 'Promised an answer by'} ${label(o.debtor)} on "${o.text}"${issue ? ` [${issue}]` : ''} — awaiting their answer`
         : `Ask ${label(o.debtor)} again${issue ? ` about ${issue}` : ''}: "${o.text}" — their reply ${reply.id} did not answer it`,
       why: issue ? `Other parts of this question were answered; ${issue} was not` : 'Replied without answering',
       evidence: [o.source_event_id, reply.id],

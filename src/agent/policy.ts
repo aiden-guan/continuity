@@ -173,6 +173,10 @@ export function policyDecide(ctx: CompiledContext): Decision {
       const promised = quotedPart(a.action) ?? '';
       relied.push(a.obligation_id!);
       const thing = promisedThing(promised) || 'item';
+      if (/MISSING ATTACHMENT/.test(a.action)) {
+        lines.push(`Your last email said the ${thing} was attached, but no attachment came through on our side. Could you resend it?`);
+        continue;
+      }
       // a reminder that is the whole email gets its own opening rather than an "Also"
       if (lines.length <= 2) {
         const overdue = /OVERDUE \(due (\d{4}-\d{2}-\d{2})\)/.exec(a.action)?.[1];
