@@ -62,6 +62,8 @@ npm run demo:live              # ~1.5 min with Claude; --step pauses at every be
 This is the same story, except every message (agent to supplier/finance, their replies, the PDF quotes) travels through
 Primitive between three inboxes on your own domain. Put `PRIMITIVE_API_KEY` and `CONTINUITY_{SELF,SUPPLIER,FINANCE}_ADDRESS`
 in `.env`. If `ANTHROPIC_API_KEY` is also set, Claude handles extraction and the agents. The UI on :4100 follows along live.
+Agent C's acceptance commits us, so it is held for a human: the script mints a separate approver token, approves the
+card as "Sam (ops lead)" and waits for the closing email to arrive.
 
 ## Demo-day website (one command)
 
@@ -130,6 +132,7 @@ export SUPABASE_SECRET_KEY=…                   # server-side only; agents neve
 npm start                                      # API plus embedded worker (CONTINUITY_WORKER=off + `npm run worker` to run workers separately)
 npm run token -- --org org_acme --kind operator                                  # prints the token once
 npm run token -- --org org_acme --kind agent --agent agent-b --task PO-4817     # scoped agent token → CONTINUITY_TOKEN
+npm run token -- --org org_acme --kind approver --label "Sam (ops)"             # a human approver (decides held cards)
 ```
 
 Pushing the migration to a **hosted** project is a step someone reviews (`supabase link` then `supabase db push`); no
@@ -140,6 +143,12 @@ script here does it for you. To roll the schema back, run `drop schema continuit
 and may be narrowed to particular tasks and a single agent id. Being allowed to call the API is a different thing from
 a mail sender's authority to set terms (`participants[].authority`). The `continuity` schema is not exposed through the
 Data API, anon/authenticated hold no table grants, every table has RLS enabled, and the attachment bucket is private.
+
+**Approving needs its own token.** Deciding a held card (`POST /tasks/:id/approvals/:ap_id/decide`) requires the
+`approve` scope. The operator wildcard `*` deliberately does not include it and agents never get it, so mint one per
+person with `npm run token -- --kind approver --label "<name>"` (scopes `approve`, `context:read`, `evidence:read`: it
+can read and decide, not send or create tasks). An operator token on the decide route gets 403. With auth off (local
+only) the console user may approve.
 
 **Bringing over existing SQLite data** is an explicit command. The source file is opened read-only and left unchanged:
 
@@ -164,6 +173,11 @@ differently. Importing the same file twice changes nothing the second time. Coll
 | `ANTHROPIC_WORKSPACE_ID` | unset | Only for keys without a workspace scope (`wrkspc_…`); sent as `anthropic-workspace-id`. |
 | `CONTINUITY_EXTRACTOR` | `auto` | `auto` \| `llm` \| `heuristic` |
 | `CONTINUITY_EXTRACTOR_MODEL` / `CONTINUITY_AGENT_MODEL` | `claude-haiku-5-5` | Model ids. |
+| `CONTINUITY_SEND_CHECK` | on with `ANTHROPIC_API_KEY` | Claude's second opinion on whether an outgoing draft commits us; `off` leaves the tripwire and declared intent only. |
+| `CONTINUITY_SEND_CHECK_MODEL` | `claude-haiku-5-5` | Model id for the send check. |
+| `CONTINUITY_ASK_MODEL` | `claude-haiku-5-5` | Model id for `POST /ask`. |
+| `CONTINUITY_APPROVAL_TTL_H` | `48` | Hours a held card stays decidable. Deciding needs an approver token (`npm run token -- --kind approver`); operator tokens cannot approve. |
+| `CONTINUITY_APPROVAL_WEBHOOK` / `CONTINUITY_PUBLIC_URL` | unset / `CONTINUITY_URL` | New cards are posted to the webhook (Slack-style `{"text": ...}`) with a link under the public URL. |
 | `CONTINUITY_SELF_ADDRESS` | `procurement@acme-buyer.primitive.email` | The agent's own Primitive address. |
 | `CONTINUITY_SUPPLIER_ADDRESS`, `CONTINUITY_FINANCE_ADDRESS` | made-up `.example` addresses | The scenario's counterparties. |
 | `CONTINUITY_SENDER_AUTH` | `enforce` | `enforce`: a sender's statements carry authority only if Primitive's SPF/DKIM/DMARC results authenticate the From address (SDK `isTrustedSender`); otherwise they stay tentative, cannot close obligations or replace documents, and are flagged. `flag`: apply anyway, flag only (`demo:live` uses this until verified on real mail). |
@@ -230,13 +244,15 @@ confirms they work. Then:
 # .env: PRIMITIVE_API_KEY, CONTINUITY_SELF_ADDRESS=procurement@<you>.primitive.email,
 #       CONTINUITY_SUPPLIER_ADDRESS=supplier@<you>.primitive.email, CONTINUITY_FINANCE_ADDRESS=finance@<you>.primitive.email
 # live mode requires API auth: CONTINUITY_AUTH=required, then mint tokens (npm run token -- --kind operator / --kind ingest)
+# and one per human approver (npm run token -- --kind approver --label "<name>"): Agent C's acceptance waits for it
 npm start &                          # server (sim endpoints off in live mode)
 CONTINUITY_TOKEN=<ingest token> npm run receive &   # long-polls the inbox into Continuity; cursor checkpointed in Primitive Memories
 npm run live:task
 npm run live:counterparty &          # plays supplier and finance over real Primitive mail, replying in-thread (restart-safe)
 npm run agent -- --agent agent-a --once     # RFQ + budget request; then wait until the correction has been ingested
 npm run agent -- --agent agent-b --once     # fresh process: raises the delivery conflict
-npm run agent -- --agent agent-c --once     # once the revised quote is in: accepts
+npm run agent -- --agent agent-c --once     # once the revised quote is in: drafts the acceptance, held for a human
+# decide it on the dashboard, or: POST /tasks/PO-4817/approvals/<ap_id>/decide {"option":"approve","by":"<name>"} with the approver token
 ```
 
 Instead of long-polling you can aim a Primitive webhook endpoint (or a Function) at `POST /webhooks/primitive` and set
@@ -273,6 +289,12 @@ Instead of long-polling you can aim a Primitive webhook endpoint (or a Function)
 - When `ANTHROPIC_API_KEY` is set, Claude (`claude-haiku-5-5`) performs extraction and makes every agent decision. This
   was checked end to end: the demo runs on Claude agents, and a fresh Claude Agent C kept a promise that Agent A had made
   to finance. Claude extraction passes all 41 state assertions.
+- **Refusals.** Claude Haiku 5.5, the default model, has no server-side refusal fallback (another model re-running a
+  declined request), so a refusal is handled here: extraction falls back to the rule extractor (the event is flagged
+  `extractor_fallback`), the agent falls back to the offline policy, and the send check counts the draft as binding, so
+  it is held for a human (or blocked by a failing hard limit). To use another model, set `CONTINUITY_EXTRACTOR_MODEL`,
+  `CONTINUITY_AGENT_MODEL`, `CONTINUITY_SEND_CHECK_MODEL` or `CONTINUITY_ASK_MODEL`; non-Haiku models are requested
+  with the server-side fallback on.
 - With no key, a cautious rule-based extractor (`src/extract/heuristic.ts`) and a rule-based policy agent that writes
   only from compiled state (`src/agent/policy.ts`) take over. The policy agent's *wording is templated*; *the content*
   comes from state.

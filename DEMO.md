@@ -5,6 +5,7 @@ Setup: run `npm install`, open http://localhost:4100 next to the terminal, and c
 - **Live on Primitive (recommended):** `npm run demo:live -- --step`. Every email genuinely travels through Primitive.
   With Claude the run takes roughly 1.5 minutes; each beat holds until the mail is both delivered *and* interpreted.
   If the network or the API is slow on the day, add `--fast` to skip Claude (rule-based extraction and agents).
+  Agent C's acceptance is held for a human; the script approves it at beat 9 with its own approver token.
 - **Offline fallback:** `npm run demo -- --step`. The same story on the local mail simulator. It finishes in seconds and
   needs no keys.
 
@@ -50,6 +51,8 @@ In the middle column:
 **2:10 — Closing the loop (20s).** The supplier expedites and attaches quote rev 2. The commitment flips to
 **fulfilled**, v1 to **superseded**, and the conflict to **resolved**. **agent-c**, one more fresh process, accepts.
 Point out the send guard: it refuses binding language as long as any requirement is failing.
+Once every check passes, the acceptance still waits for a person: beat 9 prints the approval card and a named human
+(*Sam, ops lead*) approves it; the sent email records who approved. "Agents propose, a human decides."
 
 **2:30 — Proof (20s).**
 - `npm test` (56 tests offline, 78 with local Supabase) and `npm run eval` (41/41 state assertions).
@@ -70,7 +73,9 @@ Before every beat the demo stops and waits for Enter, while the UI at http://loc
 message is ingested. That lets you talk through each state change as it shows up: the correction arriving, the quote
 going partially stale, the conflict appearing, and agent-b's run being added.
 
-To present with a real Primitive account, follow README → "Live Primitive".
+To present with a real Primitive account, follow README → "Live Primitive". Outside the demo scripts, approving a
+held card takes a separate approver token (`npm run token -- --kind approver --label "<name>"`): the operator token
+cannot approve, and agents never can.
 
 ## Presenting from the website (demo day)
 
