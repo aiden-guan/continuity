@@ -1,0 +1,504 @@
+{
+  "id": "R13",
+  "domain": "real_estate",
+  "title": "Listing agent reports the buyer \"is fine going to $910k\"; the buyer herself sets $885,000",
+  "features": [
+    "not_authoritative",
+    "quoted_history",
+    "answered_question",
+    "distractor_numbers",
+    "terse_shorthand",
+    "acceptance"
+  ],
+  "task": {
+    "id": "task_r13",
+    "alias": "LIN-1203",
+    "goal": "Buy 1203 Linnet Ave for Paula Reyes: price no more than $885,000 and within the appraisal, closing by Fri Dec 18.",
+    "item": "1203 Linnet Ave",
+    "domain": "real_estate",
+    "requirements": [
+      {
+        "key": "requirement.max_price",
+        "value": 885000,
+        "display": "$885,000",
+        "hard": true
+      },
+      {
+        "key": "requirement.close_by",
+        "value": "2026-12-18",
+        "display": "Fri Dec 18",
+        "hard": true
+      },
+      {
+        "key": "requirement.opening_offer",
+        "value": 860000,
+        "display": "$860,000",
+        "hard": false
+      }
+    ],
+    "participants": [
+      {
+        "address": "offers@tallgrass-buyers.primitive.email",
+        "name": "Tallgrass Buyer Agent",
+        "role": "self",
+        "label": "buyer agent (us)",
+        "authority": [
+          "decision.",
+          "deal."
+        ]
+      },
+      {
+        "address": "derek.holm@northlight-realty.example",
+        "name": "Derek Holm (Northlight Realty, listing agent)",
+        "role": "counterparty",
+        "label": "listing agent",
+        "authority": [
+          "price.",
+          "closing.",
+          "contingency.",
+          "decision.",
+          "deal."
+        ],
+        "group": "seller"
+      },
+      {
+        "address": "paula.reyes@reyes-mail.example",
+        "name": "Paula Reyes (buyer)",
+        "role": "internal",
+        "label": "buyer",
+        "authority": [
+          "budget."
+        ]
+      },
+      {
+        "address": "appraisals@prairie-state-lending.example",
+        "name": "Prairie State Lending (lender)",
+        "role": "internal",
+        "label": "lender",
+        "authority": [
+          "appraisal."
+        ]
+      },
+      {
+        "address": "book@levelset-inspect.example",
+        "name": "LevelSet Inspections",
+        "role": "internal",
+        "label": "inspector",
+        "authority": [
+          "inspection."
+        ]
+      },
+      {
+        "address": "escrow@heartland-title.example",
+        "name": "Heartland Title (escrow)",
+        "role": "internal",
+        "label": "title company",
+        "authority": [
+          "payment."
+        ]
+      }
+    ],
+    "self_address": "offers@tallgrass-buyers.primitive.email"
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "outbound",
+      "from": "offers@tallgrass-buyers.primitive.email",
+      "fromName": "Tallgrass Buyer Agent",
+      "to": "derek.holm@northlight-realty.example",
+      "subject": "Offer - 1203 Linnet Ave / LIN-1203",
+      "at": "2026-11-12T15:00:00Z",
+      "in_reply_to": null,
+      "body": "Derek,\n\nOn behalf of Paula Reyes we offer $860,000 for 1203 Linnet Ave (MLS #LN-4108862), closing by Fri Dec 18, $26,500 EMD.\n\nPlease send the seller's response.\n\nTallgrass Buyer Agent"
+    },
+    {
+      "id": "m2",
+      "direction": "inbound",
+      "from": "derek.holm@northlight-realty.example",
+      "fromName": "Derek Holm",
+      "to": "offers@tallgrass-buyers.primitive.email",
+      "subject": "RE: Offer - 1203 Linnet Ave / LIN-1203",
+      "at": "2026-11-13T16:40:00Z",
+      "in_reply_to": "m1",
+      "body": "Seller counters at $905,000, closing Monday Dec 14. Inspection contingency until Tuesday Nov 24. Counter attached.\n\nAlso - ran into Paula at the open house Sunday and your buyer told me she's fine going to $910k, so 905 should be an easy yes.\n\nDerek Holm\nNorthlight Realty | 402-555-0176\n\n -----Original Message-----\nFrom: \tTallgrass Buyer Agent\nSent:\tThursday, November 12, 2026 10:00 AM\nTo:\tHolm, Derek\nSubject:\tOffer - 1203 Linnet Ave / LIN-1203\n\nDerek,\n\nOn behalf of Paula Reyes we offer $860,000 for 1203 Linnet Ave (MLS #LN-4108862), closing by Fri Dec 18, $26,500 EMD.\n\nPlease send the seller's response.\n\nTallgrass Buyer Agent",
+      "attachments": [
+        {
+          "filename": "Northlight-Counter-LIN-1203.pdf",
+          "lines": [
+            "NORTHLIGHT REALTY - SELLER COUNTER OFFER",
+            "Property: 1203 Linnet Ave    MLS #LN-4108862    Ref: LIN-1203",
+            "Purchase price: $905,000",
+            "Closing date: Monday, December 14, 2026",
+            "Inspection contingency until Tuesday, November 24, 2026",
+            "Earnest money deposit: $26,500",
+            "HOA: $55/mo"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m3",
+      "direction": "outbound",
+      "from": "offers@tallgrass-buyers.primitive.email",
+      "fromName": "Tallgrass Buyer Agent",
+      "to": "paula.reyes@reyes-mail.example",
+      "subject": "Linnet - counter + question",
+      "at": "2026-11-13T17:15:00Z",
+      "in_reply_to": null,
+      "body": "Paula - seller countered at $905k, closing Dec 14. Derek says you told him at the open house you'd go to $910k. What is your actual max? I need it from you in writing before I respond."
+    },
+    {
+      "id": "m4",
+      "direction": "inbound",
+      "from": "paula.reyes@reyes-mail.example",
+      "fromName": "Paula Reyes",
+      "to": "offers@tallgrass-buyers.primitive.email",
+      "subject": "Re: Linnet - counter + question",
+      "at": "2026-11-13T23:50:00Z",
+      "in_reply_to": "m3",
+      "body": "I never said that!! I was making small talk about the neighborhood. My max is $885,000, period. please don't let him think otherwise.\n\nPaula\n\nOn Fri, Nov 13, 2026 at 12:15 PM Tallgrass Buyer Agent <offers@tallgrass-buyers.primitive.email> wrote:\n> Paula - seller countered at $905k, closing Dec 14. Derek says you told him at the open house you'd go to $910k. What is your actual max? I need it from you in writing before I respond."
+    },
+    {
+      "id": "m5",
+      "direction": "outbound",
+      "from": "offers@tallgrass-buyers.primitive.email",
+      "fromName": "Tallgrass Buyer Agent",
+      "to": "derek.holm@northlight-realty.example",
+      "subject": "RE: Offer - 1203 Linnet Ave / LIN-1203",
+      "at": "2026-11-14T15:20:00Z",
+      "in_reply_to": "m2",
+      "body": "Derek,\n\nTo be clear, our buyer's ceiling is not $910k. We counter at $875,000, closing by Dec 18, other terms per your counter.\n\nTallgrass Buyer Agent\n\n -----Original Message-----\nFrom: \tHolm, Derek\nSent:\tFriday, November 13, 2026 11:40 AM\nTo:\tTallgrass Buyer Agent\nSubject:\tRE: Offer - 1203 Linnet Ave / LIN-1203\n\nSeller counters at $905,000, closing Monday Dec 14. Inspection contingency until Tuesday Nov 24. Counter attached.\n\nAlso - ran into Paula at the open house Sunday and your buyer told me she's fine going to $910k, so 905 should be an easy yes.\n\nDerek Holm\nNorthlight Realty | 402-555-0176\n\n -----Original Message-----\nFrom: \tTallgrass Buyer Agent\nSent:\tThursday, November 12, 2026 10:00 AM\nTo:\tHolm, Derek\nSubject:\tOffer - 1203 Linnet Ave / LIN-1203\n\nDerek,\n\nOn behalf of Paula Reyes we offer $860,000 for 1203 Linnet Ave (MLS #LN-4108862), closing by Fri Dec 18, $26,500 EMD.\n\nPlease send the seller's response.\n\nTallgrass Buyer Agent"
+    },
+    {
+      "id": "m6",
+      "direction": "inbound",
+      "from": "derek.holm@northlight-realty.example",
+      "fromName": "Derek Holm",
+      "to": "offers@tallgrass-buyers.primitive.email",
+      "subject": "RE: Offer - 1203 Linnet Ave / LIN-1203",
+      "at": "2026-11-15T18:05:00Z",
+      "in_reply_to": "m5",
+      "body": "ok. Seller will do $885,000 if you can close Friday Dec 11 instead. that's it from her.\n\nD\n\n -----Original Message-----\nFrom: \tTallgrass Buyer Agent\nSent:\tSaturday, November 14, 2026 10:20 AM\nTo:\tHolm, Derek\nSubject:\tRE: Offer - 1203 Linnet Ave / LIN-1203\n\nDerek,\n\nTo be clear, our buyer's ceiling is not $910k. We counter at $875,000, closing by Dec 18, other terms per your counter.\n\nTallgrass Buyer Agent\n\n -----Original Message-----\nFrom: \tHolm, Derek\nSent:\tFriday, November 13, 2026 11:40 AM\nTo:\tTallgrass Buyer Agent\nSubject:\tRE: Offer - 1203 Linnet Ave / LIN-1203\n\nSeller counters at $905,000, closing Monday Dec 14. Inspection contingency until Tuesday Nov 24. Counter attached.\n\nAlso - ran into Paula at the open house Sunday and your buyer told me she's fine going to $910k, so 905 should be an easy yes.\n\nDerek Holm\nNorthlight Realty | 402-555-0176\n\n -----Original Message-----\nFrom: \tTallgrass Buyer Agent\nSent:\tThursday, November 12, 2026 10:00 AM\nTo:\tHolm, Derek\nSubject:\tOffer - 1203 Linnet Ave / LIN-1203\n\nDerek,\n\nOn behalf of Paula Reyes we offer $860,000 for 1203 Linnet Ave (MLS #LN-4108862), closing by Fri Dec 18, $26,500 EMD.\n\nPlease send the seller's response.\n\nTallgrass Buyer Agent"
+    },
+    {
+      "id": "m7",
+      "direction": "outbound",
+      "from": "offers@tallgrass-buyers.primitive.email",
+      "fromName": "Tallgrass Buyer Agent",
+      "to": "derek.holm@northlight-realty.example",
+      "subject": "RE: Offer - 1203 Linnet Ave / LIN-1203",
+      "at": "2026-11-16T14:45:00Z",
+      "in_reply_to": "m6",
+      "body": "We accept: $885,000, closing Friday Dec 11. Paula will sign the revised counter today.\n\nTallgrass\n\n -----Original Message-----\nFrom: \tHolm, Derek\nSent:\tSunday, November 15, 2026 1:05 PM\nTo:\tTallgrass Buyer Agent\nSubject:\tRE: Offer - 1203 Linnet Ave / LIN-1203\n\nok. Seller will do $885,000 if you can close Friday Dec 11 instead. that's it from her.\n\nD\n\n -----Original Message-----\nFrom: \tTallgrass Buyer Agent\nSent:\tSaturday, November 14, 2026 10:20 AM\nTo:\tHolm, Derek\nSubject:\tRE: Offer - 1203 Linnet Ave / LIN-1203\n\nDerek,\n\nTo be clear, our buyer's ceiling is not $910k. We counter at $875,000, closing by Dec 18, other terms per your counter.\n\nTallgrass Buyer Agent\n\n -----Original Message-----\nFrom: \tHolm, Derek\nSent:\tFriday, November 13, 2026 11:40 AM\nTo:\tTallgrass Buyer Agent\nSubject:\tRE: Offer - 1203 Linnet Ave / LIN-1203\n\nSeller counters at $905,000, closing Monday Dec 14. Inspection contingency until Tuesday Nov 24. Counter attached.\n\nAlso - ran into Paula at the open house Sunday and your buyer told me she's fine going to $910k, so 905 should be an easy yes.\n\nDerek Holm\nNorthlight Realty | 402-555-0176\n\n -----Original Message-----\nFrom: \tTallgrass Buyer Agent\nSent:\tThursday, November 12, 2026 10:00 AM\nTo:\tHolm, Derek\nSubject:\tOffer - 1203 Linnet Ave / LIN-1203\n\nDerek,\n\nOn behalf of Paula Reyes we offer $860,000 for 1203 Linnet Ave (MLS #LN-4108862), closing by Fri Dec 18, $26,500 EMD.\n\nPlease send the seller's response.\n\nTallgrass Buyer Agent"
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m2",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 905000,
+          "stated_in": "m2",
+          "evidence": "Seller counters at $905,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-14",
+          "stated_in": "m2",
+          "evidence": "closing Monday Dec 14"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-24",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until Tuesday Nov 24"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 860000,
+          "stated_in": "m1",
+          "evidence": "we offer $860,000 for 1203 Linnet Ave"
+        }
+      ],
+      "tentative": [
+        {
+          "party": "listing agent",
+          "term": "budget.max_price",
+          "value": 910000,
+          "stated_in": "m2",
+          "evidence": "your buyer told me she's fine going to $910k",
+          "why": "not_authoritative"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "seller's response to the offer",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Northlight-Counter-LIN-1203.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "price_budget": "fail",
+        "closing_deadline": "pass",
+        "appraisal_gap": "unknown",
+        "price_approval": "unknown"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "buyer",
+        "must": [
+          "max|ceiling|comfortable|approv"
+        ],
+        "must_not": [
+          "we accept"
+        ]
+      }
+    },
+    {
+      "after": "m4",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 905000,
+          "stated_in": "m2",
+          "evidence": "Seller counters at $905,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-14",
+          "stated_in": "m2",
+          "evidence": "closing Monday Dec 14"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-24",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until Tuesday Nov 24"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 885000,
+          "stated_in": "m4",
+          "evidence": "My max is $885,000, period"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 860000,
+          "stated_in": "m1",
+          "evidence": "we offer $860,000 for 1203 Linnet Ave"
+        }
+      ],
+      "tentative": [
+        {
+          "party": "listing agent",
+          "term": "budget.max_price",
+          "value": 910000,
+          "stated_in": "m2",
+          "evidence": "your buyer told me she's fine going to $910k",
+          "why": "not_authoritative"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "seller's response to the offer",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "buyer",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "actual maximum price in writing",
+          "status": "answered",
+          "opened_in": "m3",
+          "resolved_in": "m4"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Northlight-Counter-LIN-1203.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "price_budget": "fail",
+        "closing_deadline": "pass",
+        "appraisal_gap": "unknown",
+        "price_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "listing agent",
+        "must": [
+          "counter|offer|come down"
+        ],
+        "must_not": [
+          "we accept",
+          "905,000 (works|is fine)",
+          "up to \\$?910"
+        ]
+      }
+    },
+    {
+      "after": "m7",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 885000,
+          "stated_in": "m6",
+          "evidence": "Seller will do $885,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-11",
+          "stated_in": "m6",
+          "evidence": "close Friday Dec 11 instead"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-24",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until Tuesday Nov 24"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 885000,
+          "stated_in": "m4",
+          "evidence": "My max is $885,000, period"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 885000,
+          "stated_in": "m7",
+          "evidence": "We accept: $885,000, closing Friday Dec 11"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "decision.accept",
+          "value": "accepted",
+          "stated_in": "m7",
+          "evidence": "We accept: $885,000, closing Friday Dec 11"
+        }
+      ],
+      "tentative": [
+        {
+          "party": "listing agent",
+          "term": "budget.max_price",
+          "value": 910000,
+          "stated_in": "m2",
+          "evidence": "your buyer told me she's fine going to $910k",
+          "why": "not_authoritative"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 905000,
+          "stated_in": "m2",
+          "evidence": "Seller counters at $905,000",
+          "replaced_in": "m6"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-14",
+          "stated_in": "m2",
+          "evidence": "closing Monday Dec 14",
+          "replaced_in": "m6"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 860000,
+          "stated_in": "m1",
+          "evidence": "we offer $860,000 for 1203 Linnet Ave",
+          "replaced_in": "m5"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 875000,
+          "stated_in": "m5",
+          "evidence": "We counter at $875,000",
+          "replaced_in": "m7"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "seller's response to the offer",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "buyer",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "actual maximum price in writing",
+          "status": "answered",
+          "opened_in": "m3",
+          "resolved_in": "m4"
+        },
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "response to our $875,000 counter",
+          "status": "answered",
+          "opened_in": "m5",
+          "resolved_in": "m6"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Northlight-Counter-LIN-1203.pdf",
+          "status": "partially_stale"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "unknown",
+        "price_approval": "pass"
+      },
+      "next_actor": "them"
+    }
+  ],
+  "notes": "In his counter email the listing agent writes \"your buyer told me she's fine going to $910k\". The buyer's ceiling is the buyer's term (budget.), so this is a tentative not_authoritative claim from the listing agent and must not unlock the $905,000 counter. Until the buyer writes, the target $885,000 still applies with approval pending (price_budget fail, price_approval unknown). The buyer then sets $885,000 herself (active). The seller ends at $885,000 with closing moved to Dec 11, and we accept. Distractors: $26,500 EMD, MLS #, HOA, open-house date, phone numbers."
+}

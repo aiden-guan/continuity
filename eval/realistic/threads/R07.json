@@ -1,0 +1,601 @@
+{
+  "id": "R07",
+  "domain": "real_estate",
+  "title": "Inspector promises the report by Monday, misses it, sends \"attached\" with nothing attached, then the real attachment",
+  "features": [
+    "promise_without_attachment",
+    "answered_question",
+    "quoted_history",
+    "distractor_numbers",
+    "terse_shorthand"
+  ],
+  "task": {
+    "id": "task_r07",
+    "alias": "HAL-2290",
+    "goal": "Buy 2290 Halvorsen Rd for Grace Odum: price no more than $735,000 and within the appraisal, closing by Fri Dec 18.",
+    "item": "2290 Halvorsen Rd",
+    "domain": "real_estate",
+    "requirements": [
+      {
+        "key": "requirement.max_price",
+        "value": 735000,
+        "display": "$735,000",
+        "hard": true
+      },
+      {
+        "key": "requirement.close_by",
+        "value": "2026-12-18",
+        "display": "Fri Dec 18",
+        "hard": true
+      },
+      {
+        "key": "requirement.opening_offer",
+        "value": 705000,
+        "display": "$705,000",
+        "hard": false
+      }
+    ],
+    "participants": [
+      {
+        "address": "deals@birchline-realty.primitive.email",
+        "name": "Birchline Buyer Agent",
+        "role": "self",
+        "label": "buyer agent (us)",
+        "authority": [
+          "decision.",
+          "deal."
+        ]
+      },
+      {
+        "address": "m.feld@ridgeway-properties.example",
+        "name": "Marcus Feld (Ridgeway Properties, listing agent)",
+        "role": "counterparty",
+        "label": "listing agent",
+        "authority": [
+          "price.",
+          "closing.",
+          "contingency.",
+          "decision.",
+          "deal."
+        ],
+        "group": "seller"
+      },
+      {
+        "address": "grace.odum@odum-mail.example",
+        "name": "Grace Odum (buyer)",
+        "role": "internal",
+        "label": "buyer",
+        "authority": [
+          "budget."
+        ]
+      },
+      {
+        "address": "appraisal-desk@pacificcrest-mortgage.example",
+        "name": "Pacific Crest Mortgage (lender)",
+        "role": "internal",
+        "label": "lender",
+        "authority": [
+          "appraisal."
+        ]
+      },
+      {
+        "address": "dan@truelevel-inspect.example",
+        "name": "Daniel Ortiz (TrueLevel Inspections)",
+        "role": "internal",
+        "label": "inspector",
+        "authority": [
+          "inspection."
+        ]
+      },
+      {
+        "address": "closings@sentinel-title.example",
+        "name": "Sentinel Title (escrow)",
+        "role": "internal",
+        "label": "title company",
+        "authority": [
+          "payment."
+        ]
+      }
+    ],
+    "self_address": "deals@birchline-realty.primitive.email"
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "outbound",
+      "from": "deals@birchline-realty.primitive.email",
+      "fromName": "Birchline Buyer Agent",
+      "to": "m.feld@ridgeway-properties.example",
+      "subject": "Offer - 2290 Halvorsen Rd (HAL-2290)",
+      "at": "2026-11-02T14:00:00Z",
+      "in_reply_to": null,
+      "body": "Marcus,\n\nOn behalf of Grace Odum we offer $705,000 for 2290 Halvorsen Rd (MLS #81-220934), closing by Fri Dec 18, $20,000 EMD. Please send the seller's response when you have it.\n\nBirchline Buyer Agent"
+    },
+    {
+      "id": "m2",
+      "direction": "inbound",
+      "from": "m.feld@ridgeway-properties.example",
+      "fromName": "Marcus Feld",
+      "to": "deals@birchline-realty.primitive.email",
+      "subject": "RE: Offer - 2290 Halvorsen Rd (HAL-2290)",
+      "at": "2026-11-02T21:30:00Z",
+      "in_reply_to": "m1",
+      "body": "Seller counters at $722,500, closing Thursday Dec 17. Inspection contingency until Friday Nov 13. Counter attached, signed.\n\nMarcus Feld\nRidgeway Properties  o 503-555-0172\n\n -----Original Message-----\nFrom: \tBirchline Buyer Agent\nSent:\tMonday, November 02, 2026 9:00 AM\nTo:\tFeld, Marcus\nSubject:\tOffer - 2290 Halvorsen Rd (HAL-2290)\n\nMarcus,\n\nOn behalf of Grace Odum we offer $705,000 for 2290 Halvorsen Rd (MLS #81-220934), closing by Fri Dec 18, $20,000 EMD. Please send the seller's response when you have it.\n\nBirchline Buyer Agent",
+      "attachments": [
+        {
+          "filename": "Ridgeway-Counter-HAL-2290.pdf",
+          "lines": [
+            "RIDGEWAY PROPERTIES - SELLER COUNTER OFFER",
+            "Property: 2290 Halvorsen Rd    MLS #81-220934    Ref: HAL-2290",
+            "Purchase price: $722,500",
+            "Closing date: Thursday, December 17, 2026",
+            "Inspection contingency until Friday, November 13, 2026",
+            "Earnest money deposit: $20,000"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m3",
+      "direction": "inbound",
+      "from": "grace.odum@odum-mail.example",
+      "fromName": "Grace Odum",
+      "to": "deals@birchline-realty.primitive.email",
+      "subject": "Halvorsen - my max",
+      "at": "2026-11-03T01:10:00Z",
+      "in_reply_to": null,
+      "body": "Hi - after talking w/ my husband, we're ok going up to $735,000 on Halvorsen. Not higher.\n\nGrace"
+    },
+    {
+      "id": "m4",
+      "direction": "outbound",
+      "from": "deals@birchline-realty.primitive.email",
+      "fromName": "Birchline Buyer Agent",
+      "to": "dan@truelevel-inspect.example",
+      "subject": "Inspection - 2290 Halvorsen Rd (HAL-2290)",
+      "at": "2026-11-03T14:00:00Z",
+      "in_reply_to": null,
+      "body": "Dan,\n\nCan you book a full inspection at 2290 Halvorsen Rd this week, and when can we expect the written report? Our inspection contingency ends Fri Nov 13, so we need it with a few days to spare. Lockbox code is with the listing office (503-555-0172).\n\nThanks,\nBirchline Buyer Agent"
+    },
+    {
+      "id": "m5",
+      "direction": "inbound",
+      "from": "dan@truelevel-inspect.example",
+      "fromName": "Daniel Ortiz",
+      "to": "deals@birchline-realty.primitive.email",
+      "subject": "RE: Inspection - 2290 Halvorsen Rd (HAL-2290)",
+      "at": "2026-11-03T16:45:00Z",
+      "in_reply_to": "m4",
+      "body": "Inspection is booked for Thursday Nov 5, 9am. Radon test runs 48 hrs after that. I'll have the full report to you by Monday Nov 9.\n\nFee is $425, invoice TL-11873.\n\nDan Ortiz\nTrueLevel Inspections\n\n -----Original Message-----\nFrom: \tBirchline Buyer Agent\nSent:\tTuesday, November 03, 2026 9:00 AM\nTo:\tOrtiz, Daniel\nSubject:\tInspection - 2290 Halvorsen Rd (HAL-2290)\n\nDan,\n\nCan you book a full inspection at 2290 Halvorsen Rd this week, and when can we expect the written report? Our inspection contingency ends Fri Nov 13, so we need it with a few days to spare. Lockbox code is with the listing office (503-555-0172).\n\nThanks,\nBirchline Buyer Agent"
+    },
+    {
+      "id": "m6",
+      "direction": "inbound",
+      "from": "appraisal-desk@pacificcrest-mortgage.example",
+      "fromName": "Pacific Crest Mortgage",
+      "to": "deals@birchline-realty.primitive.email",
+      "subject": "Appraisal complete - 2290 Halvorsen Rd / loan PCM-5530418",
+      "at": "2026-11-06T15:00:00Z",
+      "in_reply_to": null,
+      "body": "The appraisal for 2290 Halvorsen Rd came in at $730,000. Rate lock on loan PCM-5530418 is good through 12/21/2026.\n\nPacific Crest Mortgage - Appraisal Desk"
+    },
+    {
+      "id": "m7",
+      "direction": "inbound",
+      "from": "m.feld@ridgeway-properties.example",
+      "fromName": "Marcus Feld",
+      "to": "deals@birchline-realty.primitive.email",
+      "subject": "RE: Offer - 2290 Halvorsen Rd (HAL-2290)",
+      "at": "2026-11-10T14:20:00Z",
+      "in_reply_to": "m2",
+      "body": "any word from your inspector? seller wants to know if a repair request is coming before Friday.\n\nM\n\n -----Original Message-----\nFrom: \tFeld, Marcus\nSent:\tMonday, November 02, 2026 4:30 PM\nTo:\tBirchline Buyer Agent\nSubject:\tRE: Offer - 2290 Halvorsen Rd (HAL-2290)\n\nSeller counters at $722,500, closing Thursday Dec 17. Inspection contingency until Friday Nov 13. Counter attached, signed.\n\nMarcus Feld\nRidgeway Properties  o 503-555-0172\n\n -----Original Message-----\nFrom: \tBirchline Buyer Agent\nSent:\tMonday, November 02, 2026 9:00 AM\nTo:\tFeld, Marcus\nSubject:\tOffer - 2290 Halvorsen Rd (HAL-2290)\n\nMarcus,\n\nOn behalf of Grace Odum we offer $705,000 for 2290 Halvorsen Rd (MLS #81-220934), closing by Fri Dec 18, $20,000 EMD. Please send the seller's response when you have it.\n\nBirchline Buyer Agent"
+    },
+    {
+      "id": "m8",
+      "direction": "outbound",
+      "from": "deals@birchline-realty.primitive.email",
+      "fromName": "Birchline Buyer Agent",
+      "to": "dan@truelevel-inspect.example",
+      "subject": "RE: Inspection - 2290 Halvorsen Rd (HAL-2290)",
+      "at": "2026-11-10T14:35:00Z",
+      "in_reply_to": "m5",
+      "body": "Dan - didn't get the Halvorsen report yesterday. Contingency is up Fri the 13th and the seller is asking. Can you send it today?\n\nthx\n\n -----Original Message-----\nFrom: \tOrtiz, Daniel\nSent:\tTuesday, November 03, 2026 11:45 AM\nTo:\tBirchline Buyer Agent\nSubject:\tRE: Inspection - 2290 Halvorsen Rd (HAL-2290)\n\nInspection is booked for Thursday Nov 5, 9am. Radon test runs 48 hrs after that. I'll have the full report to you by Monday Nov 9.\n\nFee is $425, invoice TL-11873.\n\nDan Ortiz\nTrueLevel Inspections\n\n -----Original Message-----\nFrom: \tBirchline Buyer Agent\nSent:\tTuesday, November 03, 2026 9:00 AM\nTo:\tOrtiz, Daniel\nSubject:\tInspection - 2290 Halvorsen Rd (HAL-2290)\n\nDan,\n\nCan you book a full inspection at 2290 Halvorsen Rd this week, and when can we expect the written report? Our inspection contingency ends Fri Nov 13, so we need it with a few days to spare. Lockbox code is with the listing office (503-555-0172).\n\nThanks,\nBirchline Buyer Agent"
+    },
+    {
+      "id": "m9",
+      "direction": "inbound",
+      "from": "dan@truelevel-inspect.example",
+      "fromName": "Daniel Ortiz",
+      "to": "deals@birchline-realty.primitive.email",
+      "subject": "RE: Inspection - 2290 Halvorsen Rd (HAL-2290)",
+      "at": "2026-11-10T20:10:00Z",
+      "in_reply_to": "m8",
+      "body": "Apologies, radon lab was backed up. Report attached - nothing major, couple of minor items.\n\nDan\n\n -----Original Message-----\nFrom: \tBirchline Buyer Agent\nSent:\tTuesday, November 10, 2026 9:35 AM\nTo:\tOrtiz, Daniel\nSubject:\tRE: Inspection - 2290 Halvorsen Rd (HAL-2290)\n\nDan - didn't get the Halvorsen report yesterday. Contingency is up Fri the 13th and the seller is asking. Can you send it today?\n\nthx\n\n -----Original Message-----\nFrom: \tOrtiz, Daniel\nSent:\tTuesday, November 03, 2026 11:45 AM\nTo:\tBirchline Buyer Agent\nSubject:\tRE: Inspection - 2290 Halvorsen Rd (HAL-2290)\n\nInspection is booked for Thursday Nov 5, 9am. Radon test runs 48 hrs after that. I'll have the full report to you by Monday Nov 9.\n\nFee is $425, invoice TL-11873.\n\nDan Ortiz\nTrueLevel Inspections\n\n -----Original Message-----\nFrom: \tBirchline Buyer Agent\nSent:\tTuesday, November 03, 2026 9:00 AM\nTo:\tOrtiz, Daniel\nSubject:\tInspection - 2290 Halvorsen Rd (HAL-2290)\n\nDan,\n\nCan you book a full inspection at 2290 Halvorsen Rd this week, and when can we expect the written report? Our inspection contingency ends Fri Nov 13, so we need it with a few days to spare. Lockbox code is with the listing office (503-555-0172).\n\nThanks,\nBirchline Buyer Agent"
+    },
+    {
+      "id": "m10",
+      "direction": "inbound",
+      "from": "dan@truelevel-inspect.example",
+      "fromName": "Daniel Ortiz",
+      "to": "deals@birchline-realty.primitive.email",
+      "subject": "RE: Inspection - 2290 Halvorsen Rd (HAL-2290)",
+      "at": "2026-11-10T20:26:00Z",
+      "in_reply_to": "m9",
+      "body": "ugh - forgot to actually attach it. here it is.\n\nD\n\n -----Original Message-----\nFrom: \tOrtiz, Daniel\nSent:\tTuesday, November 10, 2026 3:10 PM\nTo:\tBirchline Buyer Agent\nSubject:\tRE: Inspection - 2290 Halvorsen Rd (HAL-2290)\n\nApologies, radon lab was backed up. Report attached - nothing major, couple of minor items.\n\nDan\n\n -----Original Message-----\nFrom: \tBirchline Buyer Agent\nSent:\tTuesday, November 10, 2026 9:35 AM\nTo:\tOrtiz, Daniel\nSubject:\tRE: Inspection - 2290 Halvorsen Rd (HAL-2290)\n\nDan - didn't get the Halvorsen report yesterday. Contingency is up Fri the 13th and the seller is asking. Can you send it today?\n\nthx\n\n -----Original Message-----\nFrom: \tOrtiz, Daniel\nSent:\tTuesday, November 03, 2026 11:45 AM\nTo:\tBirchline Buyer Agent\nSubject:\tRE: Inspection - 2290 Halvorsen Rd (HAL-2290)\n\nInspection is booked for Thursday Nov 5, 9am. Radon test runs 48 hrs after that. I'll have the full report to you by Monday Nov 9.\n\nFee is $425, invoice TL-11873.\n\nDan Ortiz\nTrueLevel Inspections\n\n -----Original Message-----\nFrom: \tBirchline Buyer Agent\nSent:\tTuesday, November 03, 2026 9:00 AM\nTo:\tOrtiz, Daniel\nSubject:\tInspection - 2290 Halvorsen Rd (HAL-2290)\n\nDan,\n\nCan you book a full inspection at 2290 Halvorsen Rd this week, and when can we expect the written report? Our inspection contingency ends Fri Nov 13, so we need it with a few days to spare. Lockbox code is with the listing office (503-555-0172).\n\nThanks,\nBirchline Buyer Agent",
+      "attachments": [
+        {
+          "filename": "TrueLevel-Report-2290-Halvorsen.pdf",
+          "lines": [
+            "TRUELEVEL INSPECTIONS - HOME INSPECTION REPORT",
+            "Property: 2290 Halvorsen Rd    Inspected: Nov 5, 2026    Invoice TL-11873",
+            "Radon: 1.8 pCi/L (below 4.0 action level)",
+            "Summary: no major defects.",
+            "Minor: loose handrail on rear deck stairs; water heater TPR discharge line short; one missing downspout extension."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m11",
+      "direction": "inbound",
+      "from": "grace.odum@odum-mail.example",
+      "fromName": "Grace Odum",
+      "to": "deals@birchline-realty.primitive.email",
+      "subject": "Re: Halvorsen inspection",
+      "at": "2026-11-11T15:00:00Z",
+      "in_reply_to": null,
+      "body": "read Dan's report. all small stuff, I'll handle it myself. no repair asks - please go ahead and accept their $722,500 counter.\n\nGrace"
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m7",
+      "active": [
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 705000,
+          "stated_in": "m1",
+          "evidence": "we offer $705,000 for 2290 Halvorsen Rd"
+        },
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 722500,
+          "stated_in": "m2",
+          "evidence": "Seller counters at $722,500"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-17",
+          "stated_in": "m2",
+          "evidence": "closing Thursday Dec 17"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-13",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until Friday Nov 13"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 735000,
+          "stated_in": "m3",
+          "evidence": "we're ok going up to $735,000 on Halvorsen"
+        },
+        {
+          "party": "inspector",
+          "term": "inspection.date",
+          "value": "2026-11-05",
+          "stated_in": "m5",
+          "evidence": "Inspection is booked for Thursday Nov 5"
+        },
+        {
+          "party": "lender",
+          "term": "appraisal.value",
+          "value": 730000,
+          "stated_in": "m6",
+          "evidence": "came in at $730,000"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "seller's response to the offer",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "inspector",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "book the inspection and when the report will come",
+          "status": "answered",
+          "opened_in": "m4",
+          "resolved_in": "m5"
+        },
+        {
+          "owed_by": "inspector",
+          "owed_to": "buyer agent (us)",
+          "kind": "commitment",
+          "about": "send the inspection report by Mon Nov 9",
+          "status": "open",
+          "opened_in": "m5"
+        },
+        {
+          "owed_by": "buyer agent (us)",
+          "owed_to": "listing agent",
+          "kind": "question",
+          "about": "whether a repair request is coming",
+          "status": "open",
+          "opened_in": "m7"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Ridgeway-Counter-HAL-2290.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "pass",
+        "price_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "inspector",
+        "must": [
+          "report"
+        ],
+        "must_not": [
+          "thanks for (the|sending)",
+          "received (the|your) report"
+        ]
+      }
+    },
+    {
+      "after": "m9",
+      "active": [
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 705000,
+          "stated_in": "m1",
+          "evidence": "we offer $705,000 for 2290 Halvorsen Rd"
+        },
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 722500,
+          "stated_in": "m2",
+          "evidence": "Seller counters at $722,500"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-17",
+          "stated_in": "m2",
+          "evidence": "closing Thursday Dec 17"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-13",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until Friday Nov 13"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 735000,
+          "stated_in": "m3",
+          "evidence": "we're ok going up to $735,000 on Halvorsen"
+        },
+        {
+          "party": "inspector",
+          "term": "inspection.date",
+          "value": "2026-11-05",
+          "stated_in": "m5",
+          "evidence": "Inspection is booked for Thursday Nov 5"
+        },
+        {
+          "party": "lender",
+          "term": "appraisal.value",
+          "value": 730000,
+          "stated_in": "m6",
+          "evidence": "came in at $730,000"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "seller's response to the offer",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "inspector",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "book the inspection and when the report will come",
+          "status": "answered",
+          "opened_in": "m4",
+          "resolved_in": "m5"
+        },
+        {
+          "owed_by": "inspector",
+          "owed_to": "buyer agent (us)",
+          "kind": "commitment",
+          "about": "send the inspection report by Mon Nov 9",
+          "status": "open",
+          "opened_in": "m5"
+        },
+        {
+          "owed_by": "buyer agent (us)",
+          "owed_to": "listing agent",
+          "kind": "question",
+          "about": "whether a repair request is coming",
+          "status": "open",
+          "opened_in": "m7"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Ridgeway-Counter-HAL-2290.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "pass",
+        "price_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "inspector",
+        "must": [
+          "attach"
+        ],
+        "must_not": [
+          "thanks for (the|sending) (the )?report",
+          "got the report"
+        ]
+      }
+    },
+    {
+      "after": "m11",
+      "active": [
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 705000,
+          "stated_in": "m1",
+          "evidence": "we offer $705,000 for 2290 Halvorsen Rd"
+        },
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 722500,
+          "stated_in": "m2",
+          "evidence": "Seller counters at $722,500"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-17",
+          "stated_in": "m2",
+          "evidence": "closing Thursday Dec 17"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-13",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until Friday Nov 13"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 735000,
+          "stated_in": "m3",
+          "evidence": "we're ok going up to $735,000 on Halvorsen"
+        },
+        {
+          "party": "inspector",
+          "term": "inspection.date",
+          "value": "2026-11-05",
+          "stated_in": "m5",
+          "evidence": "Inspection is booked for Thursday Nov 5"
+        },
+        {
+          "party": "lender",
+          "term": "appraisal.value",
+          "value": 730000,
+          "stated_in": "m6",
+          "evidence": "came in at $730,000"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "seller's response to the offer",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "inspector",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "book the inspection and when the report will come",
+          "status": "answered",
+          "opened_in": "m4",
+          "resolved_in": "m5"
+        },
+        {
+          "owed_by": "inspector",
+          "owed_to": "buyer agent (us)",
+          "kind": "commitment",
+          "about": "send the inspection report by Mon Nov 9",
+          "status": "fulfilled",
+          "opened_in": "m5",
+          "resolved_in": "m10"
+        },
+        {
+          "owed_by": "buyer agent (us)",
+          "owed_to": "listing agent",
+          "kind": "question",
+          "about": "whether a repair request is coming",
+          "status": "open",
+          "opened_in": "m7"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Ridgeway-Counter-HAL-2290.pdf",
+          "status": "current"
+        },
+        {
+          "filename": "TrueLevel-Report-2290-Halvorsen.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "pass",
+        "price_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "listing agent",
+        "must": [
+          "accept",
+          "722,500|722\\.5"
+        ],
+        "must_not": [
+          "\\$?705,000",
+          "repair request (is|will be) coming"
+        ]
+      }
+    }
+  ],
+  "notes": "The inspector commits to \"the report to you by Mon Nov 9\". On Tue Nov 10 nothing has arrived: the commitment is still open and overdue, so we must chase (next_actor us), with the Nov 13 contingency deadline close. The inspector's first reply says \"report attached\" but carries no attachment - that does NOT fulfil the commitment. Only the follow-up with the PDF does; at that checkpoint we should tell the inspector nothing was attached. Our booking question was answered when the inspector gave the date. Distractors: loan #, rate-lock date, invoice #, $425 fee, $20,000 EMD, MLS #, phone numbers."
+}

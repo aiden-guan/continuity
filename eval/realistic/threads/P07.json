@@ -1,0 +1,487 @@
+{
+  "id": "P07",
+  "domain": "procurement",
+  "title": "Cable order: \"revised quote attached\" arrives with no attachment; the promise stays open until the real R1 PDF arrives",
+  "features": [
+    "promise_without_attachment",
+    "document_versions",
+    "quoted_history",
+    "distractor_numbers",
+    "answered_question"
+  ],
+  "task": {
+    "id": "task_p07",
+    "alias": "PO-9061",
+    "goal": "Buy 120 reels of CAT6A plenum cable for PO-9061. All 120 must arrive by Fri Dec 11; unit price must not exceed $389.00 per reel.",
+    "item": "CAT6A plenum (CMP) U/FTP 23AWG cable, 1,000 ft reel, blue",
+    "self_address": "buyer@harborview-av.primitive.email",
+    "domain": "procurement",
+    "participants": [
+      {
+        "address": "buyer@harborview-av.primitive.email",
+        "name": "Harborview Buying Agent",
+        "role": "self",
+        "label": "Harborview (us)",
+        "authority": [
+          "decision."
+        ]
+      },
+      {
+        "address": "g.liu@strandwire.example",
+        "name": "Gwen Liu (Strand Wire & Cable)",
+        "role": "counterparty",
+        "label": "supplier",
+        "authority": [
+          "price.",
+          "delivery.",
+          "order.",
+          "payment.",
+          "quote.",
+          "offer."
+        ],
+        "group": "strand"
+      },
+      {
+        "address": "t.becker@harborview-av.example",
+        "name": "Tom Becker (Harborview Finance)",
+        "role": "internal",
+        "label": "finance",
+        "authority": [
+          "budget."
+        ]
+      }
+    ],
+    "requirements": [
+      {
+        "key": "requirement.quantity",
+        "value": 120,
+        "display": "120 reels",
+        "hard": true
+      },
+      {
+        "key": "requirement.deliver_all_by",
+        "value": "2026-12-11",
+        "display": "Fri Dec 11",
+        "hard": true
+      },
+      {
+        "key": "requirement.max_unit_price",
+        "value": 389,
+        "display": "$389.00",
+        "hard": true
+      }
+    ]
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "outbound",
+      "from": "buyer@harborview-av.primitive.email",
+      "fromName": "Harborview Buying Agent",
+      "to": "g.liu@strandwire.example",
+      "subject": "PO-9061 CAT6A plenum - 120 reels",
+      "at": "2026-11-16T14:00:00Z",
+      "in_reply_to": null,
+      "body": "Gwen,\n\nPO-9061 - need 120 reels CAT6A CMP U/FTP 23AWG, 1000' reel, blue, to our Oakland warehouse (2200 Ferro St) by Fri 12/11. Please quote.\n\nHarborview Buying"
+    },
+    {
+      "id": "m2",
+      "direction": "inbound",
+      "from": "g.liu@strandwire.example",
+      "fromName": "Gwen Liu",
+      "to": "buyer@harborview-av.primitive.email",
+      "subject": "RE: PO-9061 CAT6A plenum - 120 reels",
+      "at": "2026-11-17T16:30:00Z",
+      "in_reply_to": "m1",
+      "body": "Hi - quote SW-5520 attached: $412.00/reel, 120 reels delivered Tue 12/8. Net 30. Copper basis on this is COMEX $4.62/lb as of 11/16.\n\nGwen Liu\nStrand Wire & Cable | 510-555-0133\n\n -----Original Message-----\nFrom: \tHarborview Buying\nSent:\tMonday, November 16, 2026 9:00 AM\nTo:\tLiu, Gwen\nSubject:\tPO-9061 CAT6A plenum - 120 reels\n\nGwen,\n\nPO-9061 - need 120 reels CAT6A CMP U/FTP 23AWG, 1000' reel, blue, to our Oakland warehouse (2200 Ferro St) by Fri 12/11. Please quote.\n\nHarborview Buying",
+      "attachments": [
+        {
+          "filename": "Strand-Quote-SW-5520.pdf",
+          "lines": [
+            "STRAND WIRE & CABLE - QUOTATION SW-5520",
+            "Customer: Harborview AV (PO-9061)",
+            "Item: CAT6A CMP U/FTP 23AWG, 1,000 ft reel, blue",
+            "Quantity: 120 reels",
+            "Unit price: $412.00 per reel",
+            "Delivery: 120 reels by Tue Dec 8, 2026",
+            "Terms: Net 30",
+            "Copper basis: COMEX $4.62/lb (11/16/2026)",
+            "Extended: $49,440.00"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m3",
+      "direction": "outbound",
+      "from": "buyer@harborview-av.primitive.email",
+      "fromName": "Harborview Buying Agent",
+      "to": "t.becker@harborview-av.example",
+      "subject": "PO-9061 ceiling",
+      "at": "2026-11-17T17:00:00Z",
+      "in_reply_to": null,
+      "body": "Tom - ceiling for PO-9061 (120 reels CAT6A plenum, conf room build-out job)? I'd like $389/reel max."
+    },
+    {
+      "id": "m4",
+      "direction": "inbound",
+      "from": "t.becker@harborview-av.example",
+      "fromName": "Tom Becker",
+      "to": "buyer@harborview-av.primitive.email",
+      "subject": "RE: PO-9061 ceiling",
+      "at": "2026-11-18T15:20:00Z",
+      "in_reply_to": "m3",
+      "body": "approved up to $389.00 per reel. job 26-0417.\nTB\n\n -----Original Message-----\nFrom: \tHarborview Buying\nSent:\tTuesday, November 17, 2026 12:00 PM\nTo:\tBecker, Tom\nSubject:\tPO-9061 ceiling\n\nTom - ceiling for PO-9061 (120 reels CAT6A plenum, conf room build-out job)? I'd like $389/reel max."
+    },
+    {
+      "id": "m5",
+      "direction": "outbound",
+      "from": "buyer@harborview-av.primitive.email",
+      "fromName": "Harborview Buying Agent",
+      "to": "g.liu@strandwire.example",
+      "subject": "RE: PO-9061 CAT6A plenum - 120 reels",
+      "at": "2026-11-18T16:00:00Z",
+      "in_reply_to": "m2",
+      "body": "Gwen - $412 is over our approved number. Can you get under $389/reel?\n\nHarborview Buying\n\n -----Original Message-----\nFrom: \tLiu, Gwen\nSent:\tTuesday, November 17, 2026 11:30 AM\nTo:\tHarborview Buying\nSubject:\tRE: PO-9061 CAT6A plenum - 120 reels\n\nHi - quote SW-5520 attached: $412.00/reel, 120 reels delivered Tue 12/8. Net 30. Copper basis on this is COMEX $4.62/lb as of 11/16.\n\nGwen Liu\nStrand Wire & Cable | 510-555-0133\n\n -----Original Message-----\nFrom: \tHarborview Buying\nSent:\tMonday, November 16, 2026 9:00 AM\nTo:\tLiu, Gwen\nSubject:\tPO-9061 CAT6A plenum - 120 reels\n\nGwen,\n\nPO-9061 - need 120 reels CAT6A CMP U/FTP 23AWG, 1000' reel, blue, to our Oakland warehouse (2200 Ferro St) by Fri 12/11. Please quote.\n\nHarborview Buying"
+    },
+    {
+      "id": "m6",
+      "direction": "inbound",
+      "from": "g.liu@strandwire.example",
+      "fromName": "Gwen Liu",
+      "to": "buyer@harborview-av.primitive.email",
+      "subject": "RE: PO-9061 CAT6A plenum - 120 reels",
+      "at": "2026-11-19T18:00:00Z",
+      "in_reply_to": "m5",
+      "body": "Copper's come down about 20 cents since I priced it. Let me rework it - I'll send you a revised quote tomorrow.\n\nGwen\n\n -----Original Message-----\nFrom: \tHarborview Buying\nSent:\tWednesday, November 18, 2026 11:00 AM\nTo:\tLiu, Gwen\nSubject:\tRE: PO-9061 CAT6A plenum - 120 reels\n\nGwen - $412 is over our approved number. Can you get under $389/reel?\n\nHarborview Buying\n\n -----Original Message-----\nFrom: \tLiu, Gwen\nSent:\tTuesday, November 17, 2026 11:30 AM\nTo:\tHarborview Buying\nSubject:\tRE: PO-9061 CAT6A plenum - 120 reels\n\nHi - quote SW-5520 attached: $412.00/reel, 120 reels delivered Tue 12/8. Net 30. Copper basis on this is COMEX $4.62/lb as of 11/16.\n\nGwen Liu\nStrand Wire & Cable | 510-555-0133\n\n -----Original Message-----\nFrom: \tHarborview Buying\nSent:\tMonday, November 16, 2026 9:00 AM\nTo:\tLiu, Gwen\nSubject:\tPO-9061 CAT6A plenum - 120 reels\n\nGwen,\n\nPO-9061 - need 120 reels CAT6A CMP U/FTP 23AWG, 1000' reel, blue, to our Oakland warehouse (2200 Ferro St) by Fri 12/11. Please quote.\n\nHarborview Buying"
+    },
+    {
+      "id": "m7",
+      "direction": "inbound",
+      "from": "g.liu@strandwire.example",
+      "fromName": "Gwen Liu",
+      "to": "buyer@harborview-av.primitive.email",
+      "subject": "RE: PO-9061 CAT6A plenum - 120 reels",
+      "at": "2026-11-20T17:45:00Z",
+      "in_reply_to": "m6",
+      "body": "Revised quote attached. Let me know if you need anything else for the PO.\n\nGwen Liu\nStrand Wire & Cable | 510-555-0133\n\n -----Original Message-----\nFrom: \tLiu, Gwen\nSent:\tThursday, November 19, 2026 1:00 PM\nTo:\tHarborview Buying\nSubject:\tRE: PO-9061 CAT6A plenum - 120 reels\n\nCopper's come down about 20 cents since I priced it. Let me rework it - I'll send you a revised quote tomorrow.\n\nGwen\n\n -----Original Message-----\nFrom: \tHarborview Buying\nSent:\tWednesday, November 18, 2026 11:00 AM\nTo:\tLiu, Gwen\nSubject:\tRE: PO-9061 CAT6A plenum - 120 reels\n\nGwen - $412 is over our approved number. Can you get under $389/reel?\n\nHarborview Buying\n\n -----Original Message-----\nFrom: \tLiu, Gwen\nSent:\tTuesday, November 17, 2026 11:30 AM\nTo:\tHarborview Buying\nSubject:\tRE: PO-9061 CAT6A plenum - 120 reels\n\nHi - quote SW-5520 attached: $412.00/reel, 120 reels delivered Tue 12/8. Net 30. Copper basis on this is COMEX $4.62/lb as of 11/16.\n\nGwen Liu\nStrand Wire & Cable | 510-555-0133\n\n -----Original Message-----\nFrom: \tHarborview Buying\nSent:\tMonday, November 16, 2026 9:00 AM\nTo:\tLiu, Gwen\nSubject:\tPO-9061 CAT6A plenum - 120 reels\n\nGwen,\n\nPO-9061 - need 120 reels CAT6A CMP U/FTP 23AWG, 1000' reel, blue, to our Oakland warehouse (2200 Ferro St) by Fri 12/11. Please quote.\n\nHarborview Buying"
+    },
+    {
+      "id": "m8",
+      "direction": "outbound",
+      "from": "buyer@harborview-av.primitive.email",
+      "fromName": "Harborview Buying Agent",
+      "to": "g.liu@strandwire.example",
+      "subject": "RE: PO-9061 CAT6A plenum - 120 reels",
+      "at": "2026-11-20T18:10:00Z",
+      "in_reply_to": "m7",
+      "body": "Gwen - nothing came through, no attachment on your last. can you resend?\n\n -----Original Message-----\nFrom: \tLiu, Gwen\nSent:\tFriday, November 20, 2026 12:45 PM\nTo:\tHarborview Buying\nSubject:\tRE: PO-9061 CAT6A plenum - 120 reels\n\nRevised quote attached. Let me know if you need anything else for the PO.\n\nGwen Liu\nStrand Wire & Cable | 510-555-0133\n\n -----Original Message-----\nFrom: \tLiu, Gwen\nSent:\tThursday, November 19, 2026 1:00 PM\nTo:\tHarborview Buying\nSubject:\tRE: PO-9061 CAT6A plenum - 120 reels\n\nCopper's come down about 20 cents since I priced it. Let me rework it - I'll send you a revised quote tomorrow.\n\nGwen\n\n -----Original Message-----\nFrom: \tHarborview Buying\nSent:\tWednesday, November 18, 2026 11:00 AM\nTo:\tLiu, Gwen\nSubject:\tRE: PO-9061 CAT6A plenum - 120 reels\n\nGwen - $412 is over our approved number. Can you get under $389/reel?\n\nHarborview Buying\n\n -----Original Message-----\nFrom: \tLiu, Gwen\nSent:\tTuesday, November 17, 2026 11:30 AM\nTo:\tHarborview Buying\nSubject:\tRE: PO-9061 CAT6A plenum - 120 reels\n\nHi - quote SW-5520 attached: $412.00/reel, 120 reels delivered Tue 12/8. Net 30. Copper basis on this is COMEX $4.62/lb as of 11/16.\n\nGwen Liu\nStrand Wire & Cable | 510-555-0133\n\n -----Original Message-----\nFrom: \tHarborview Buying\nSent:\tMonday, November 16, 2026 9:00 AM\nTo:\tLiu, Gwen\nSubject:\tPO-9061 CAT6A plenum - 120 reels\n\nGwen,\n\nPO-9061 - need 120 reels CAT6A CMP U/FTP 23AWG, 1000' reel, blue, to our Oakland warehouse (2200 Ferro St) by Fri 12/11. Please quote.\n\nHarborview Buying"
+    },
+    {
+      "id": "m9",
+      "direction": "inbound",
+      "from": "g.liu@strandwire.example",
+      "fromName": "Gwen Liu",
+      "to": "buyer@harborview-av.primitive.email",
+      "subject": "RE: PO-9061 CAT6A plenum - 120 reels",
+      "at": "2026-11-23T15:20:00Z",
+      "in_reply_to": "m8",
+      "body": "Sorry about that! Here it is - SW-5520-R1.\n\nG\n\n -----Original Message-----\nFrom: \tHarborview Buying\nSent:\tFriday, November 20, 2026 1:10 PM\nTo:\tLiu, Gwen\nSubject:\tRE: PO-9061 CAT6A plenum - 120 reels\n\nGwen - nothing came through, no attachment on your last. can you resend?\n\n -----Original Message-----\nFrom: \tLiu, Gwen\nSent:\tFriday, November 20, 2026 12:45 PM\nTo:\tHarborview Buying\nSubject:\tRE: PO-9061 CAT6A plenum - 120 reels\n\nRevised quote attached. Let me know if you need anything else for the PO.\n\nGwen Liu\nStrand Wire & Cable | 510-555-0133\n\n -----Original Message-----\nFrom: \tLiu, Gwen\nSent:\tThursday, November 19, 2026 1:00 PM\nTo:\tHarborview Buying\nSubject:\tRE: PO-9061 CAT6A plenum - 120 reels\n\nCopper's come down about 20 cents since I priced it. Let me rework it - I'll send you a revised quote tomorrow.\n\nGwen\n\n -----Original Message-----\nFrom: \tHarborview Buying\nSent:\tWednesday, November 18, 2026 11:00 AM\nTo:\tLiu, Gwen\nSubject:\tRE: PO-9061 CAT6A plenum - 120 reels\n\nGwen - $412 is over our approved number. Can you get under $389/reel?\n\nHarborview Buying\n\n -----Original Message-----\nFrom: \tLiu, Gwen\nSent:\tTuesday, November 17, 2026 11:30 AM\nTo:\tHarborview Buying\nSubject:\tRE: PO-9061 CAT6A plenum - 120 reels\n\nHi - quote SW-5520 attached: $412.00/reel, 120 reels delivered Tue 12/8. Net 30. Copper basis on this is COMEX $4.62/lb as of 11/16.\n\nGwen Liu\nStrand Wire & Cable | 510-555-0133\n\n -----Original Message-----\nFrom: \tHarborview Buying\nSent:\tMonday, November 16, 2026 9:00 AM\nTo:\tLiu, Gwen\nSubject:\tPO-9061 CAT6A plenum - 120 reels\n\nGwen,\n\nPO-9061 - need 120 reels CAT6A CMP U/FTP 23AWG, 1000' reel, blue, to our Oakland warehouse (2200 Ferro St) by Fri 12/11. Please quote.\n\nHarborview Buying",
+      "attachments": [
+        {
+          "filename": "Strand-Quote-SW-5520-R1.pdf",
+          "lines": [
+            "STRAND WIRE & CABLE - QUOTATION SW-5520-R1",
+            "Supersedes: SW-5520",
+            "Customer: Harborview AV (PO-9061)",
+            "Item: CAT6A CMP U/FTP 23AWG, 1,000 ft reel, blue",
+            "Quantity: 120 reels",
+            "Unit price: $384.50 per reel",
+            "Delivery: 120 reels by Tue Dec 8, 2026",
+            "Terms: Net 30",
+            "Copper basis: COMEX $4.41/lb (11/20/2026)",
+            "Extended: $46,140.00"
+          ]
+        }
+      ]
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m6",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 412,
+          "stated_in": "m2",
+          "evidence": "$412.00/reel"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 120,
+          "stated_in": "m2",
+          "evidence": "120 reels delivered Tue 12/8"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 120,
+              "date": "2026-12-08"
+            }
+          ],
+          "stated_in": "m2",
+          "evidence": "120 reels delivered Tue 12/8"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m2",
+          "evidence": "Net 30"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 389,
+          "stated_in": "m4",
+          "evidence": "approved up to $389.00 per reel"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Harborview (us)",
+          "kind": "question",
+          "about": "get under $389/reel",
+          "status": "answered",
+          "opened_in": "m5",
+          "resolved_in": "m6"
+        },
+        {
+          "owed_by": "supplier",
+          "owed_to": "Harborview (us)",
+          "kind": "commitment",
+          "about": "send a revised quote",
+          "status": "open",
+          "opened_in": "m6"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Strand-Quote-SW-5520.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "fail"
+      },
+      "next_actor": "them"
+    },
+    {
+      "after": "m7",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 412,
+          "stated_in": "m2",
+          "evidence": "$412.00/reel"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 120,
+          "stated_in": "m2",
+          "evidence": "120 reels delivered Tue 12/8"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 120,
+              "date": "2026-12-08"
+            }
+          ],
+          "stated_in": "m2",
+          "evidence": "120 reels delivered Tue 12/8"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m2",
+          "evidence": "Net 30"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 389,
+          "stated_in": "m4",
+          "evidence": "approved up to $389.00 per reel"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Harborview (us)",
+          "kind": "question",
+          "about": "get under $389/reel",
+          "status": "answered",
+          "opened_in": "m5",
+          "resolved_in": "m6"
+        },
+        {
+          "owed_by": "supplier",
+          "owed_to": "Harborview (us)",
+          "kind": "commitment",
+          "about": "send a revised quote",
+          "status": "open",
+          "opened_in": "m6"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Strand-Quote-SW-5520.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "fail"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "supplier",
+        "must": [
+          "attach"
+        ],
+        "must_not": [
+          "\\bwe accept\\b",
+          "\\$?384"
+        ]
+      }
+    },
+    {
+      "after": "m9",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 384.5,
+          "stated_in": "m9",
+          "evidence": "Unit price: $384.50 per reel"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 120,
+          "stated_in": "m9",
+          "evidence": "Quantity: 120 reels"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 120,
+              "date": "2026-12-08"
+            }
+          ],
+          "stated_in": "m9",
+          "evidence": "Delivery: 120 reels by Tue Dec 8, 2026"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m9",
+          "evidence": "Terms: Net 30"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 389,
+          "stated_in": "m4",
+          "evidence": "approved up to $389.00 per reel"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 412,
+          "stated_in": "m2",
+          "evidence": "$412.00/reel",
+          "replaced_in": "m9"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Harborview (us)",
+          "kind": "question",
+          "about": "get under $389/reel",
+          "status": "answered",
+          "opened_in": "m5",
+          "resolved_in": "m6"
+        },
+        {
+          "owed_by": "supplier",
+          "owed_to": "Harborview (us)",
+          "kind": "commitment",
+          "about": "send a revised quote",
+          "status": "fulfilled",
+          "opened_in": "m6",
+          "resolved_in": "m9"
+        },
+        {
+          "owed_by": "supplier",
+          "owed_to": "Harborview (us)",
+          "kind": "request",
+          "about": "resend the revised quote",
+          "status": "answered",
+          "opened_in": "m8",
+          "resolved_in": "m9"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Strand-Quote-SW-5520.pdf",
+          "status": "superseded"
+        },
+        {
+          "filename": "Strand-Quote-SW-5520-R1.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "supplier",
+        "must": [
+          "384\\.50",
+          "accept|confirm"
+        ],
+        "must_not": [
+          "\\$?412"
+        ]
+      }
+    }
+  ],
+  "notes": "m6 promises a revised quote (commitment). m7 says \"Revised quote attached\" but carries NO attachment and states no new number, so the commitment stays open, SW-5520 ($412, over the $389 ceiling) is still current and price_budget still fails; the agent should say the attachment is missing, not invent or accept a price. m9 carries SW-5520-R1 with $384.50 only in the PDF: commitment fulfilled, SW-5520 superseded, price now passes. Distractors: COMEX copper $4.62/lb and $4.41/lb (a per-lb commodity price, not the unit price), \"about 20 cents\", $49,440 / $46,140 extensions, job 26-0417, street address, phone."
+}

@@ -1,0 +1,578 @@
+{
+  "id": "P06",
+  "domain": "procurement",
+  "title": "Pallet order: after the revised quote, a CS colleague forwards the ORIGINAL quote; the old $12.60 must not come back",
+  "features": [
+    "late_forward",
+    "document_versions",
+    "quoted_history",
+    "distractor_numbers",
+    "answered_question",
+    "acceptance"
+  ],
+  "task": {
+    "id": "task_p06",
+    "alias": "PO-2981",
+    "goal": "Buy 1,500 48x40 GMA #1 pallets for PO-2981. All 1,500 must arrive by Fri Nov 20; unit price must not exceed $13.00.",
+    "item": "48x40 GMA #1 grade hardwood pallets, 4-way, heat treated",
+    "self_address": "purchasing@northgate-dist.primitive.email",
+    "domain": "procurement",
+    "participants": [
+      {
+        "address": "purchasing@northgate-dist.primitive.email",
+        "name": "Northgate Purchasing Agent",
+        "role": "self",
+        "label": "Northgate (us)",
+        "authority": [
+          "decision."
+        ]
+      },
+      {
+        "address": "b.carver@oakridge-pallet.example",
+        "name": "Bill Carver (Oakridge Pallet, Sales)",
+        "role": "counterparty",
+        "label": "supplier",
+        "authority": [
+          "price.",
+          "delivery.",
+          "order.",
+          "payment.",
+          "quote.",
+          "offer."
+        ],
+        "group": "oakridge"
+      },
+      {
+        "address": "s.moore@oakridge-pallet.example",
+        "name": "Sheila Moore (Oakridge Pallet, Customer Service)",
+        "role": "counterparty",
+        "label": "supplier CS",
+        "authority": [
+          "price.",
+          "delivery.",
+          "order.",
+          "payment.",
+          "quote.",
+          "offer."
+        ],
+        "group": "oakridge"
+      },
+      {
+        "address": "g.ellison@northgate-dist.example",
+        "name": "Grace Ellison (Northgate Finance)",
+        "role": "internal",
+        "label": "finance",
+        "authority": [
+          "budget."
+        ]
+      }
+    ],
+    "requirements": [
+      {
+        "key": "requirement.quantity",
+        "value": 1500,
+        "display": "1,500 pallets",
+        "hard": true
+      },
+      {
+        "key": "requirement.deliver_all_by",
+        "value": "2026-11-20",
+        "display": "Fri Nov 20",
+        "hard": true
+      },
+      {
+        "key": "requirement.max_unit_price",
+        "value": 13,
+        "display": "$13.00",
+        "hard": true
+      }
+    ]
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "outbound",
+      "from": "purchasing@northgate-dist.primitive.email",
+      "fromName": "Northgate Purchasing Agent",
+      "to": "b.carver@oakridge-pallet.example",
+      "subject": "RFQ PO-2981 - 1,500 GMA pallets",
+      "at": "2026-11-02T13:00:00Z",
+      "in_reply_to": null,
+      "body": "Bill,\n\nQuote please for PO-2981: 1,500 48x40 GMA #1 pallets, 4-way entry, heat treated, delivered to Northgate DC2 (docks 11-14) by Fri 11/20.\n\nNorthgate Purchasing"
+    },
+    {
+      "id": "m2",
+      "direction": "inbound",
+      "from": "b.carver@oakridge-pallet.example",
+      "fromName": "Bill Carver",
+      "to": "purchasing@northgate-dist.primitive.email",
+      "subject": "RE: RFQ PO-2981 - 1,500 GMA pallets",
+      "at": "2026-11-03T15:20:00Z",
+      "in_reply_to": "m1",
+      "body": "Quote Q-3307 attached. $12.60/ea for 1,500, delivered Thu 11/19 on 3 truckloads (500/load). Net 30. HT stamp on all.\n\nBill Carver\nOakridge Pallet | 606-555-0150\n\n -----Original Message-----\nFrom: \tNorthgate Purchasing\nSent:\tMonday, November 02, 2026 8:00 AM\nTo:\tCarver, Bill\nSubject:\tRFQ PO-2981 - 1,500 GMA pallets\n\nBill,\n\nQuote please for PO-2981: 1,500 48x40 GMA #1 pallets, 4-way entry, heat treated, delivered to Northgate DC2 (docks 11-14) by Fri 11/20.\n\nNorthgate Purchasing",
+      "attachments": [
+        {
+          "filename": "Oakridge-Q-3307.pdf",
+          "lines": [
+            "OAKRIDGE PALLET CO. - QUOTE Q-3307",
+            "Quote date: Nov 3, 2026",
+            "Customer: Northgate Distribution - PO-2981",
+            "Item: 48x40 GMA #1 hardwood, 4-way, HT",
+            "Qty: 1,500",
+            "Unit price: $12.60 per pallet",
+            "Delivery: 1,500 by Thu Nov 19, 2026 (3 loads)",
+            "Terms: Net 30",
+            "Total: $18,900.00"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m3",
+      "direction": "outbound",
+      "from": "purchasing@northgate-dist.primitive.email",
+      "fromName": "Northgate Purchasing Agent",
+      "to": "g.ellison@northgate-dist.example",
+      "subject": "PO-2981 pallets - approval",
+      "at": "2026-11-03T16:00:00Z",
+      "in_reply_to": null,
+      "body": "Grace - approval up to $13.00/pallet on PO-2981 (1,500 pallets for DC2)? thx"
+    },
+    {
+      "id": "m4",
+      "direction": "inbound",
+      "from": "g.ellison@northgate-dist.example",
+      "fromName": "Grace Ellison",
+      "to": "purchasing@northgate-dist.primitive.email",
+      "subject": "RE: PO-2981 pallets - approval",
+      "at": "2026-11-04T13:15:00Z",
+      "in_reply_to": "m3",
+      "body": "approved to $13.00 per pallet. cc 5150.\nGE\n\n -----Original Message-----\nFrom: \tNorthgate Purchasing\nSent:\tTuesday, November 03, 2026 11:00 AM\nTo:\tEllison, Grace\nSubject:\tPO-2981 pallets - approval\n\nGrace - approval up to $13.00/pallet on PO-2981 (1,500 pallets for DC2)? thx"
+    },
+    {
+      "id": "m5",
+      "direction": "outbound",
+      "from": "purchasing@northgate-dist.primitive.email",
+      "fromName": "Northgate Purchasing Agent",
+      "to": "b.carver@oakridge-pallet.example",
+      "subject": "RE: RFQ PO-2981 - 1,500 GMA pallets",
+      "at": "2026-11-04T14:00:00Z",
+      "in_reply_to": "m2",
+      "body": "Bill - we have another bid at $12.10 delivered. can you sharpen the $12.60?\n\n -----Original Message-----\nFrom: \tCarver, Bill\nSent:\tTuesday, November 03, 2026 10:20 AM\nTo:\tNorthgate Purchasing\nSubject:\tRE: RFQ PO-2981 - 1,500 GMA pallets\n\nQuote Q-3307 attached. $12.60/ea for 1,500, delivered Thu 11/19 on 3 truckloads (500/load). Net 30. HT stamp on all.\n\nBill Carver\nOakridge Pallet | 606-555-0150\n\n -----Original Message-----\nFrom: \tNorthgate Purchasing\nSent:\tMonday, November 02, 2026 8:00 AM\nTo:\tCarver, Bill\nSubject:\tRFQ PO-2981 - 1,500 GMA pallets\n\nBill,\n\nQuote please for PO-2981: 1,500 48x40 GMA #1 pallets, 4-way entry, heat treated, delivered to Northgate DC2 (docks 11-14) by Fri 11/20.\n\nNorthgate Purchasing"
+    },
+    {
+      "id": "m6",
+      "direction": "inbound",
+      "from": "b.carver@oakridge-pallet.example",
+      "fromName": "Bill Carver",
+      "to": "purchasing@northgate-dist.primitive.email",
+      "subject": "RE: RFQ PO-2981 - 1,500 GMA pallets",
+      "at": "2026-11-05T16:45:00Z",
+      "in_reply_to": "m5",
+      "body": "Best I can do is $12.35/ea, same 11/19 delivery. Revised Q-3307-R1 attached - this replaces Q-3307.\n\nBill\n\n -----Original Message-----\nFrom: \tNorthgate Purchasing\nSent:\tWednesday, November 04, 2026 9:00 AM\nTo:\tCarver, Bill\nSubject:\tRE: RFQ PO-2981 - 1,500 GMA pallets\n\nBill - we have another bid at $12.10 delivered. can you sharpen the $12.60?\n\n -----Original Message-----\nFrom: \tCarver, Bill\nSent:\tTuesday, November 03, 2026 10:20 AM\nTo:\tNorthgate Purchasing\nSubject:\tRE: RFQ PO-2981 - 1,500 GMA pallets\n\nQuote Q-3307 attached. $12.60/ea for 1,500, delivered Thu 11/19 on 3 truckloads (500/load). Net 30. HT stamp on all.\n\nBill Carver\nOakridge Pallet | 606-555-0150\n\n -----Original Message-----\nFrom: \tNorthgate Purchasing\nSent:\tMonday, November 02, 2026 8:00 AM\nTo:\tCarver, Bill\nSubject:\tRFQ PO-2981 - 1,500 GMA pallets\n\nBill,\n\nQuote please for PO-2981: 1,500 48x40 GMA #1 pallets, 4-way entry, heat treated, delivered to Northgate DC2 (docks 11-14) by Fri 11/20.\n\nNorthgate Purchasing",
+      "attachments": [
+        {
+          "filename": "Oakridge-Q-3307-R1.pdf",
+          "lines": [
+            "OAKRIDGE PALLET CO. - QUOTE Q-3307-R1",
+            "Quote date: Nov 5, 2026",
+            "Supersedes: Q-3307 dated Nov 3, 2026",
+            "Customer: Northgate Distribution - PO-2981",
+            "Item: 48x40 GMA #1 hardwood, 4-way, HT",
+            "Qty: 1,500",
+            "Unit price: $12.35 per pallet",
+            "Delivery: 1,500 by Thu Nov 19, 2026 (3 loads)",
+            "Terms: Net 30",
+            "Total: $18,525.00"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m7",
+      "direction": "inbound",
+      "from": "s.moore@oakridge-pallet.example",
+      "fromName": "Sheila Moore",
+      "to": "purchasing@northgate-dist.primitive.email",
+      "subject": "FW: RE: RFQ PO-2981 - 1,500 GMA pallets",
+      "at": "2026-11-06T15:05:00Z",
+      "in_reply_to": "m2",
+      "body": "Bill asked me to make sure you have the quote paperwork for your files on PO-2981 - see below and attached. Please send the PO to orders@oakridge-pallet.example when ready.\n\nSheila Moore\nCustomer Service, Oakridge Pallet\n606-555-0157\n\n -----Original Message-----\nFrom: \tCarver, Bill\nSent:\tTuesday, November 03, 2026 10:20 AM\nTo:\tNorthgate Purchasing\nSubject:\tRE: RFQ PO-2981 - 1,500 GMA pallets\n\nQuote Q-3307 attached. $12.60/ea for 1,500, delivered Thu 11/19 on 3 truckloads (500/load). Net 30. HT stamp on all.\n\nBill Carver\nOakridge Pallet | 606-555-0150\n\n -----Original Message-----\nFrom: \tNorthgate Purchasing\nSent:\tMonday, November 02, 2026 8:00 AM\nTo:\tCarver, Bill\nSubject:\tRFQ PO-2981 - 1,500 GMA pallets\n\nBill,\n\nQuote please for PO-2981: 1,500 48x40 GMA #1 pallets, 4-way entry, heat treated, delivered to Northgate DC2 (docks 11-14) by Fri 11/20.\n\nNorthgate Purchasing",
+      "attachments": [
+        {
+          "filename": "Oakridge-Q-3307.pdf",
+          "lines": [
+            "OAKRIDGE PALLET CO. - QUOTE Q-3307",
+            "Quote date: Nov 3, 2026",
+            "Customer: Northgate Distribution - PO-2981",
+            "Item: 48x40 GMA #1 hardwood, 4-way, HT",
+            "Qty: 1,500",
+            "Unit price: $12.60 per pallet",
+            "Delivery: 1,500 by Thu Nov 19, 2026 (3 loads)",
+            "Terms: Net 30",
+            "Total: $18,900.00"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m8",
+      "direction": "outbound",
+      "from": "purchasing@northgate-dist.primitive.email",
+      "fromName": "Northgate Purchasing Agent",
+      "to": "b.carver@oakridge-pallet.example",
+      "subject": "RE: RFQ PO-2981 - 1,500 GMA pallets",
+      "at": "2026-11-06T16:00:00Z",
+      "in_reply_to": "m6",
+      "body": "Bill - accepted at $12.35/ea per Q-3307-R1, 1,500 delivered Thu 11/19. PO-2981 to follow. Sheila just sent us the original Q-3307 again - I assume R1 governs?\n\nNorthgate Purchasing\n\n -----Original Message-----\nFrom: \tCarver, Bill\nSent:\tThursday, November 05, 2026 11:45 AM\nTo:\tNorthgate Purchasing\nSubject:\tRE: RFQ PO-2981 - 1,500 GMA pallets\n\nBest I can do is $12.35/ea, same 11/19 delivery. Revised Q-3307-R1 attached - this replaces Q-3307.\n\nBill\n\n -----Original Message-----\nFrom: \tNorthgate Purchasing\nSent:\tWednesday, November 04, 2026 9:00 AM\nTo:\tCarver, Bill\nSubject:\tRE: RFQ PO-2981 - 1,500 GMA pallets\n\nBill - we have another bid at $12.10 delivered. can you sharpen the $12.60?\n\n -----Original Message-----\nFrom: \tCarver, Bill\nSent:\tTuesday, November 03, 2026 10:20 AM\nTo:\tNorthgate Purchasing\nSubject:\tRE: RFQ PO-2981 - 1,500 GMA pallets\n\nQuote Q-3307 attached. $12.60/ea for 1,500, delivered Thu 11/19 on 3 truckloads (500/load). Net 30. HT stamp on all.\n\nBill Carver\nOakridge Pallet | 606-555-0150\n\n -----Original Message-----\nFrom: \tNorthgate Purchasing\nSent:\tMonday, November 02, 2026 8:00 AM\nTo:\tCarver, Bill\nSubject:\tRFQ PO-2981 - 1,500 GMA pallets\n\nBill,\n\nQuote please for PO-2981: 1,500 48x40 GMA #1 pallets, 4-way entry, heat treated, delivered to Northgate DC2 (docks 11-14) by Fri 11/20.\n\nNorthgate Purchasing"
+    },
+    {
+      "id": "m9",
+      "direction": "inbound",
+      "from": "b.carver@oakridge-pallet.example",
+      "fromName": "Bill Carver",
+      "to": "purchasing@northgate-dist.primitive.email",
+      "subject": "RE: RFQ PO-2981 - 1,500 GMA pallets",
+      "at": "2026-11-09T14:30:00Z",
+      "in_reply_to": "m8",
+      "body": "yes R1 governs. Sheila was cleaning up the file. order # OP-61022.\n\nBill\n\n -----Original Message-----\nFrom: \tNorthgate Purchasing\nSent:\tFriday, November 06, 2026 11:00 AM\nTo:\tCarver, Bill\nSubject:\tRE: RFQ PO-2981 - 1,500 GMA pallets\n\nBill - accepted at $12.35/ea per Q-3307-R1, 1,500 delivered Thu 11/19. PO-2981 to follow. Sheila just sent us the original Q-3307 again - I assume R1 governs?\n\nNorthgate Purchasing\n\n -----Original Message-----\nFrom: \tCarver, Bill\nSent:\tThursday, November 05, 2026 11:45 AM\nTo:\tNorthgate Purchasing\nSubject:\tRE: RFQ PO-2981 - 1,500 GMA pallets\n\nBest I can do is $12.35/ea, same 11/19 delivery. Revised Q-3307-R1 attached - this replaces Q-3307.\n\nBill\n\n -----Original Message-----\nFrom: \tNorthgate Purchasing\nSent:\tWednesday, November 04, 2026 9:00 AM\nTo:\tCarver, Bill\nSubject:\tRE: RFQ PO-2981 - 1,500 GMA pallets\n\nBill - we have another bid at $12.10 delivered. can you sharpen the $12.60?\n\n -----Original Message-----\nFrom: \tCarver, Bill\nSent:\tTuesday, November 03, 2026 10:20 AM\nTo:\tNorthgate Purchasing\nSubject:\tRE: RFQ PO-2981 - 1,500 GMA pallets\n\nQuote Q-3307 attached. $12.60/ea for 1,500, delivered Thu 11/19 on 3 truckloads (500/load). Net 30. HT stamp on all.\n\nBill Carver\nOakridge Pallet | 606-555-0150\n\n -----Original Message-----\nFrom: \tNorthgate Purchasing\nSent:\tMonday, November 02, 2026 8:00 AM\nTo:\tCarver, Bill\nSubject:\tRFQ PO-2981 - 1,500 GMA pallets\n\nBill,\n\nQuote please for PO-2981: 1,500 48x40 GMA #1 pallets, 4-way entry, heat treated, delivered to Northgate DC2 (docks 11-14) by Fri 11/20.\n\nNorthgate Purchasing"
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m6",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 12.35,
+          "stated_in": "m6",
+          "evidence": "Best I can do is $12.35/ea"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 1500,
+          "stated_in": "m6",
+          "evidence": "Qty: 1,500"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 1500,
+              "date": "2026-11-19"
+            }
+          ],
+          "stated_in": "m6",
+          "evidence": "same 11/19 delivery"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m6",
+          "evidence": "Terms: Net 30"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 13,
+          "stated_in": "m4",
+          "evidence": "approved to $13.00 per pallet"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 12.6,
+          "stated_in": "m2",
+          "evidence": "$12.60/ea for 1,500",
+          "replaced_in": "m6"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Northgate (us)",
+          "kind": "question",
+          "about": "sharpen the $12.60",
+          "status": "answered",
+          "opened_in": "m5",
+          "resolved_in": "m6"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Oakridge-Q-3307.pdf",
+          "status": "superseded"
+        },
+        {
+          "filename": "Oakridge-Q-3307-R1.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "us"
+    },
+    {
+      "after": "m7",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 12.35,
+          "stated_in": "m6",
+          "evidence": "Best I can do is $12.35/ea"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 1500,
+          "stated_in": "m6",
+          "evidence": "Qty: 1,500"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 1500,
+              "date": "2026-11-19"
+            }
+          ],
+          "stated_in": "m6",
+          "evidence": "same 11/19 delivery"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m6",
+          "evidence": "Terms: Net 30"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 13,
+          "stated_in": "m4",
+          "evidence": "approved to $13.00 per pallet"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 12.6,
+          "stated_in": "m2",
+          "evidence": "$12.60/ea for 1,500",
+          "replaced_in": "m6"
+        }
+      ],
+      "tentative": [
+        {
+          "party": "supplier CS",
+          "term": "price.unit",
+          "value": 12.6,
+          "stated_in": "m7",
+          "evidence": "Unit price: $12.60 per pallet",
+          "why": "stale_forward"
+        },
+        {
+          "party": "supplier CS",
+          "term": "order.quantity",
+          "value": 1500,
+          "stated_in": "m7",
+          "evidence": "Qty: 1,500",
+          "why": "stale_forward"
+        },
+        {
+          "party": "supplier CS",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 1500,
+              "date": "2026-11-19"
+            }
+          ],
+          "stated_in": "m7",
+          "evidence": "Delivery: 1,500 by Thu Nov 19, 2026 (3 loads)",
+          "why": "stale_forward"
+        },
+        {
+          "party": "supplier CS",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m7",
+          "evidence": "Terms: Net 30",
+          "why": "stale_forward"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Oakridge-Q-3307.pdf",
+          "status": "superseded"
+        },
+        {
+          "filename": "Oakridge-Q-3307-R1.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "supplier",
+        "must": [
+          "12\\.35",
+          "accept|confirm"
+        ],
+        "must_not": [
+          "\\$?12\\.60"
+        ]
+      }
+    },
+    {
+      "after": "m9",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 12.35,
+          "stated_in": "m6",
+          "evidence": "Best I can do is $12.35/ea"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 1500,
+          "stated_in": "m6",
+          "evidence": "Qty: 1,500"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 1500,
+              "date": "2026-11-19"
+            }
+          ],
+          "stated_in": "m6",
+          "evidence": "same 11/19 delivery"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m6",
+          "evidence": "Terms: Net 30"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 13,
+          "stated_in": "m4",
+          "evidence": "approved to $13.00 per pallet"
+        },
+        {
+          "party": "Northgate (us)",
+          "term": "decision.order",
+          "value": "accepted",
+          "stated_in": "m8",
+          "evidence": "accepted at $12.35/ea per Q-3307-R1"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 12.6,
+          "stated_in": "m2",
+          "evidence": "$12.60/ea for 1,500",
+          "replaced_in": "m6"
+        }
+      ],
+      "tentative": [
+        {
+          "party": "supplier CS",
+          "term": "price.unit",
+          "value": 12.6,
+          "stated_in": "m7",
+          "evidence": "Unit price: $12.60 per pallet",
+          "why": "stale_forward"
+        },
+        {
+          "party": "supplier CS",
+          "term": "order.quantity",
+          "value": 1500,
+          "stated_in": "m7",
+          "evidence": "Qty: 1,500",
+          "why": "stale_forward"
+        },
+        {
+          "party": "supplier CS",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 1500,
+              "date": "2026-11-19"
+            }
+          ],
+          "stated_in": "m7",
+          "evidence": "Delivery: 1,500 by Thu Nov 19, 2026 (3 loads)",
+          "why": "stale_forward"
+        },
+        {
+          "party": "supplier CS",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m7",
+          "evidence": "Terms: Net 30",
+          "why": "stale_forward"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Northgate (us)",
+          "kind": "question",
+          "about": "does Q-3307-R1 govern",
+          "status": "answered",
+          "opened_in": "m8",
+          "resolved_in": "m9"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Oakridge-Q-3307.pdf",
+          "status": "superseded"
+        },
+        {
+          "filename": "Oakridge-Q-3307-R1.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "none"
+    }
+  ],
+  "notes": "m7 is a FW: from the supplier's customer-service colleague (same group) that re-sends Bill's ORIGINAL m2 email and the original Q-3307 PDF ($12.60) a day after Bill's revised Q-3307-R1 ($12.35). The forwarded copy is an older offer arriving after a newer one -> tentative/stale_forward for every term in it (price, and the unchanged qty/delivery/terms lines; attributed to the forwarding sender, supplier CS); it must not reinstate $12.60 nor create a contested price between Bill and Sheila. Q-3307 stays superseded even though it arrives again. Quantity, delivery and terms are restated unchanged in R1 (m6), so the m6 statements replace the m2 ones with the same values. Distractors: competing bid $12.10, 500/load, totals $18,900 / $18,525, cc 5150, phone numbers, order # OP-61022."
+}

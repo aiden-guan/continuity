@@ -1,0 +1,394 @@
+{
+  "id": "R04",
+  "domain": "real_estate",
+  "title": "64 Wren Hollow: lender guesses the appraisal \"around $790k\" before the final report comes in at $798,000",
+  "features": [
+    "hedged",
+    "quoted_history",
+    "distractor_numbers",
+    "acceptance",
+    "answered_question",
+    "terse_shorthand"
+  ],
+  "task": {
+    "id": "deal_wren64",
+    "alias": "WREN-64",
+    "goal": "Buy 64 Wren Hollow Dr for our buyer: price no more than $815,000 and within the appraisal, closing by Thu Dec 10.",
+    "item": "64 Wren Hollow Dr",
+    "self_address": "agent@larchmont-buyers.primitive.email",
+    "domain": "real_estate",
+    "participants": [
+      {
+        "address": "agent@larchmont-buyers.primitive.email",
+        "name": "Larchmont Buyer Agent",
+        "role": "self",
+        "label": "buyer agent (us)",
+        "authority": [
+          "decision.",
+          "deal."
+        ]
+      },
+      {
+        "address": "b.cho@everhome-realty.example",
+        "name": "Brian Cho (Everhome Realty, listing agent)",
+        "role": "counterparty",
+        "label": "listing agent",
+        "authority": [
+          "price.",
+          "closing.",
+          "contingency.",
+          "decision.",
+          "deal."
+        ],
+        "group": "seller"
+      },
+      {
+        "address": "n.ferris@ferris-house.example",
+        "name": "Noor Ferris (buyer)",
+        "role": "internal",
+        "label": "buyer",
+        "authority": [
+          "budget."
+        ]
+      },
+      {
+        "address": "n.castillo@harborline-lending.example",
+        "name": "Nina Castillo (Harborline Lending, lender)",
+        "role": "internal",
+        "label": "lender",
+        "authority": [
+          "appraisal."
+        ]
+      },
+      {
+        "address": "team@sightline-inspect.example",
+        "name": "Sightline Inspections",
+        "role": "internal",
+        "label": "inspector",
+        "authority": [
+          "inspection."
+        ]
+      },
+      {
+        "address": "escrow@pinecrest-title.example",
+        "name": "Pinecrest Title (escrow)",
+        "role": "internal",
+        "label": "title company",
+        "authority": [
+          "payment."
+        ]
+      }
+    ],
+    "requirements": [
+      {
+        "key": "requirement.max_price",
+        "value": 815000,
+        "display": "$815,000",
+        "hard": true
+      },
+      {
+        "key": "requirement.close_by",
+        "value": "2026-12-10",
+        "display": "Thu Dec 10",
+        "hard": true
+      },
+      {
+        "key": "requirement.opening_offer",
+        "value": 785000,
+        "display": "$785,000",
+        "hard": false
+      }
+    ]
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "outbound",
+      "from": "agent@larchmont-buyers.primitive.email",
+      "fromName": "Larchmont Buyer Agent",
+      "to": "b.cho@everhome-realty.example",
+      "subject": "64 Wren Hollow Dr - offer",
+      "at": "2026-11-02T16:00:00Z",
+      "in_reply_to": null,
+      "body": "Brian,\n\nOffer on 64 Wren Hollow Dr from Noor Ferris: $785,000, close by Thu Dec 10, inspection contingency 10 days, $20,000 EMD, conventional financing with Harborline.\n\nLarchmont Buyer Agent"
+    },
+    {
+      "id": "m2",
+      "direction": "inbound",
+      "from": "b.cho@everhome-realty.example",
+      "fromName": "Brian Cho",
+      "to": "agent@larchmont-buyers.primitive.email",
+      "subject": "RE: 64 Wren Hollow Dr - offer",
+      "at": "2026-11-03T15:45:00Z",
+      "in_reply_to": "m1",
+      "body": "Seller counters at $805,000, closing Thursday, Dec 10, inspection contingency through Thursday, Nov 19. Seller keeps the washer/dryer.\n\nBrian Cho | Everhome Realty | 720-555-0148\n\n -----Original Message-----\nFrom: \tLarchmont Buyer Agent\nSent:\tMonday, November 02, 2026 10:00 AM\nTo:\tCho, Brian\nSubject:\t64 Wren Hollow Dr - offer\n\nBrian,\n\nOffer on 64 Wren Hollow Dr from Noor Ferris: $785,000, close by Thu Dec 10, inspection contingency 10 days, $20,000 EMD, conventional financing with Harborline.\n\nLarchmont Buyer Agent"
+    },
+    {
+      "id": "m3",
+      "direction": "inbound",
+      "from": "n.ferris@ferris-house.example",
+      "fromName": "Noor Ferris",
+      "to": "agent@larchmont-buyers.primitive.email",
+      "subject": "Wren Hollow",
+      "at": "2026-11-03T18:20:00Z",
+      "in_reply_to": null,
+      "body": "I can go to $815,000 if needed. Take the 805.\n\nNoor"
+    },
+    {
+      "id": "m4",
+      "direction": "outbound",
+      "from": "agent@larchmont-buyers.primitive.email",
+      "fromName": "Larchmont Buyer Agent",
+      "to": "b.cho@everhome-realty.example",
+      "subject": "RE: 64 Wren Hollow Dr - offer",
+      "at": "2026-11-03T19:00:00Z",
+      "in_reply_to": "m2",
+      "body": "Brian - buyer accepts the counter at $805,000. Signed docs to follow.\n\nLarchmont Buyer Agent\n\n -----Original Message-----\nFrom: \tCho, Brian\nSent:\tTuesday, November 03, 2026 9:45 AM\nTo:\tLarchmont Buyer Agent\nSubject:\tRE: 64 Wren Hollow Dr - offer\n\nSeller counters at $805,000, closing Thursday, Dec 10, inspection contingency through Thursday, Nov 19. Seller keeps the washer/dryer.\n\nBrian Cho | Everhome Realty | 720-555-0148\n\n -----Original Message-----\nFrom: \tLarchmont Buyer Agent\nSent:\tMonday, November 02, 2026 10:00 AM\nTo:\tCho, Brian\nSubject:\t64 Wren Hollow Dr - offer\n\nBrian,\n\nOffer on 64 Wren Hollow Dr from Noor Ferris: $785,000, close by Thu Dec 10, inspection contingency 10 days, $20,000 EMD, conventional financing with Harborline.\n\nLarchmont Buyer Agent"
+    },
+    {
+      "id": "m5",
+      "direction": "outbound",
+      "from": "agent@larchmont-buyers.primitive.email",
+      "fromName": "Larchmont Buyer Agent",
+      "to": "n.castillo@harborline-lending.example",
+      "subject": "appraisal - 64 Wren Hollow (loan HL-55102)",
+      "at": "2026-11-16T15:00:00Z",
+      "in_reply_to": null,
+      "body": "Nina - any word on the appraisal for 64 Wren Hollow? we're under contract at $805k.\n\nthx"
+    },
+    {
+      "id": "m6",
+      "direction": "inbound",
+      "from": "n.castillo@harborline-lending.example",
+      "fromName": "Nina Castillo",
+      "to": "agent@larchmont-buyers.primitive.email",
+      "subject": "RE: appraisal - 64 Wren Hollow (loan HL-55102)",
+      "at": "2026-11-18T16:30:00Z",
+      "in_reply_to": "m5",
+      "body": "appraiser was out there Mon. talked to him this am - looks like it'll come in around $790k, waiting on the final report. don't quote me yet. rate lock is good thru 12/14 at 6.125% either way.\n\nNina\nHarborline Lending NMLS #882031\n\n -----Original Message-----\nFrom: \tLarchmont Buyer Agent\nSent:\tMonday, November 16, 2026 9:00 AM\nTo:\tCastillo, Nina\nSubject:\tappraisal - 64 Wren Hollow (loan HL-55102)\n\nNina - any word on the appraisal for 64 Wren Hollow? we're under contract at $805k.\n\nthx"
+    },
+    {
+      "id": "m7",
+      "direction": "inbound",
+      "from": "n.castillo@harborline-lending.example",
+      "fromName": "Nina Castillo",
+      "to": "agent@larchmont-buyers.primitive.email",
+      "subject": "RE: appraisal - 64 Wren Hollow (loan HL-55102)",
+      "at": "2026-11-20T17:10:00Z",
+      "in_reply_to": "m6",
+      "body": "Final report is in, attached. Final appraised value is $798,000 - so $7,000 under contract. At 80% LTV the max loan on this is $638,400.\n\nNina\n\n -----Original Message-----\nFrom: \tCastillo, Nina\nSent:\tWednesday, November 18, 2026 10:30 AM\nTo:\tLarchmont Buyer Agent\nSubject:\tRE: appraisal - 64 Wren Hollow (loan HL-55102)\n\nappraiser was out there Mon. talked to him this am - looks like it'll come in around $790k, waiting on the final report. don't quote me yet. rate lock is good thru 12/14 at 6.125% either way.\n\nNina\nHarborline Lending NMLS #882031\n\n -----Original Message-----\nFrom: \tLarchmont Buyer Agent\nSent:\tMonday, November 16, 2026 9:00 AM\nTo:\tCastillo, Nina\nSubject:\tappraisal - 64 Wren Hollow (loan HL-55102)\n\nNina - any word on the appraisal for 64 Wren Hollow? we're under contract at $805k.\n\nthx",
+      "attachments": [
+        {
+          "filename": "Harborline-Appraisal-64-Wren-Hollow.pdf",
+          "lines": [
+            "APPRAISAL REPORT - SUMMARY OF SALIENT FEATURES",
+            "Subject: 64 Wren Hollow Dr   Loan: HL-55102",
+            "Site visit: Nov 16, 2026",
+            "Indicated value by sales comparison: $798,000",
+            "Final opinion of market value: $798,000"
+          ]
+        }
+      ]
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m4",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 805000,
+          "stated_in": "m2",
+          "evidence": "Seller counters at $805,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-10",
+          "stated_in": "m2",
+          "evidence": "closing Thursday, Dec 10"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-19",
+          "stated_in": "m2",
+          "evidence": "inspection contingency through Thursday, Nov 19"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 815000,
+          "stated_in": "m3",
+          "evidence": "I can go to $815,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "decision.accept",
+          "value": "accepted",
+          "stated_in": "m4",
+          "evidence": "buyer accepts the counter at $805,000"
+        }
+      ],
+      "obligations": [],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "unknown",
+        "price_approval": "pass"
+      },
+      "next_actor": "them"
+    },
+    {
+      "after": "m6",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 805000,
+          "stated_in": "m2",
+          "evidence": "Seller counters at $805,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-10",
+          "stated_in": "m2",
+          "evidence": "closing Thursday, Dec 10"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-19",
+          "stated_in": "m2",
+          "evidence": "inspection contingency through Thursday, Nov 19"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 815000,
+          "stated_in": "m3",
+          "evidence": "I can go to $815,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "decision.accept",
+          "value": "accepted",
+          "stated_in": "m4",
+          "evidence": "buyer accepts the counter at $805,000"
+        }
+      ],
+      "tentative": [
+        {
+          "party": "lender",
+          "term": "appraisal.value",
+          "value": 790000,
+          "stated_in": "m6",
+          "evidence": "looks like it'll come in around $790k, waiting on the final report",
+          "why": "hedged"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "lender",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "appraisal status",
+          "status": "answered",
+          "opened_in": "m5",
+          "resolved_in": "m6"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "unknown",
+        "price_approval": "pass"
+      },
+      "next_actor": "them"
+    },
+    {
+      "after": "m7",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 805000,
+          "stated_in": "m2",
+          "evidence": "Seller counters at $805,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-10",
+          "stated_in": "m2",
+          "evidence": "closing Thursday, Dec 10"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-19",
+          "stated_in": "m2",
+          "evidence": "inspection contingency through Thursday, Nov 19"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 815000,
+          "stated_in": "m3",
+          "evidence": "I can go to $815,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "decision.accept",
+          "value": "accepted",
+          "stated_in": "m4",
+          "evidence": "buyer accepts the counter at $805,000"
+        },
+        {
+          "party": "lender",
+          "term": "appraisal.value",
+          "value": 798000,
+          "stated_in": "m7",
+          "evidence": "Final appraised value is $798,000"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "lender",
+          "term": "appraisal.value",
+          "value": 790000,
+          "stated_in": "m6",
+          "evidence": "looks like it'll come in around $790k, waiting on the final report",
+          "replaced_in": "m7"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Harborline-Appraisal-64-Wren-Hollow.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "fail",
+        "price_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "listing agent",
+        "must": [
+          "798"
+        ],
+        "must_not": [
+          "790",
+          "815"
+        ]
+      }
+    }
+  ],
+  "notes": "m6's 'looks like it'll come in around $790k, waiting on the final report' (plus 'don't quote me yet') is hedged: tentative, never applied, so appraisal_gap stays unknown and there is nothing to act on yet. The final report in m7 ($798,000) is firm and replaces it; $798k is $7,000 under the $805k contract, so appraisal_gap fails and we must take the real figure to the listing agent without the stale $790k guess and without revealing the buyer's $815k ceiling. The PDF's 'Site visit: Nov 16' is the appraiser's visit, not a home inspection. Distractors: rate 6.125%, lock thru 12/14, loan HL-55102, NMLS #, $638,400 max loan, 80% LTV, $20,000 EMD."
+}

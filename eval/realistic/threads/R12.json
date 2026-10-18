@@ -1,0 +1,553 @@
+{
+  "id": "R12",
+  "domain": "real_estate",
+  "title": "Counter price typo ($821,500) fixed with a one-line \"should read $812,500\" above a long quoted chain",
+  "features": [
+    "buried_correction",
+    "quoted_history",
+    "distractor_numbers",
+    "terse_shorthand",
+    "answered_question",
+    "acceptance"
+  ],
+  "task": {
+    "id": "task_r12",
+    "alias": "ORH-47",
+    "goal": "Buy 47 Orchard Hill Rd for the Kowalskis: price no more than $830,000 and within the appraisal, closing by Fri Dec 11.",
+    "item": "47 Orchard Hill Rd",
+    "domain": "real_estate",
+    "requirements": [
+      {
+        "key": "requirement.max_price",
+        "value": 830000,
+        "display": "$830,000",
+        "hard": true
+      },
+      {
+        "key": "requirement.close_by",
+        "value": "2026-12-11",
+        "display": "Fri Dec 11",
+        "hard": true
+      },
+      {
+        "key": "requirement.opening_offer",
+        "value": 790000,
+        "display": "$790,000",
+        "hard": false
+      }
+    ],
+    "participants": [
+      {
+        "address": "desk@maplecove-realty.primitive.email",
+        "name": "Maple Cove Buyer Agent",
+        "role": "self",
+        "label": "buyer agent (us)",
+        "authority": [
+          "decision.",
+          "deal."
+        ]
+      },
+      {
+        "address": "simone.laurent@greystone-partners.example",
+        "name": "Simone Laurent (Greystone Partners Realty, listing agent)",
+        "role": "counterparty",
+        "label": "listing agent",
+        "authority": [
+          "price.",
+          "closing.",
+          "contingency.",
+          "decision.",
+          "deal."
+        ],
+        "group": "seller"
+      },
+      {
+        "address": "alan.kowalski@kowalski-family.example",
+        "name": "Alan Kowalski (buyer)",
+        "role": "internal",
+        "label": "buyer",
+        "authority": [
+          "budget."
+        ]
+      },
+      {
+        "address": "appraisal@bayline-mortgage.example",
+        "name": "Bayline Mortgage (lender)",
+        "role": "internal",
+        "label": "lender",
+        "authority": [
+          "appraisal."
+        ]
+      },
+      {
+        "address": "reports@cornerstone-inspect.example",
+        "name": "Cornerstone Inspections",
+        "role": "internal",
+        "label": "inspector",
+        "authority": [
+          "inspection."
+        ]
+      },
+      {
+        "address": "escrow@ridgeline-title.example",
+        "name": "Ridgeline Title (escrow)",
+        "role": "internal",
+        "label": "title company",
+        "authority": [
+          "payment."
+        ]
+      }
+    ],
+    "self_address": "desk@maplecove-realty.primitive.email"
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "outbound",
+      "from": "desk@maplecove-realty.primitive.email",
+      "fromName": "Maple Cove Buyer Agent",
+      "to": "simone.laurent@greystone-partners.example",
+      "subject": "Offer - 47 Orchard Hill Rd (ORH-47)",
+      "at": "2026-11-02T15:00:00Z",
+      "in_reply_to": null,
+      "body": "Simone,\n\nOn behalf of Alan and Dee Kowalski we offer $790,000 for 47 Orchard Hill Rd (MLS #OH-2093316), closing by Fri Dec 11, $24,000 EMD, 20% down with Bayline Mortgage.\n\nPlease send the seller's response.\n\nMaple Cove Buyer Agent"
+    },
+    {
+      "id": "m2",
+      "direction": "inbound",
+      "from": "simone.laurent@greystone-partners.example",
+      "fromName": "Simone Laurent",
+      "to": "desk@maplecove-realty.primitive.email",
+      "subject": "RE: Offer - 47 Orchard Hill Rd (ORH-47)",
+      "at": "2026-11-03T17:25:00Z",
+      "in_reply_to": "m1",
+      "body": "Seller counters at $821,500, closing Thursday Dec 10. Inspection contingency until Friday Nov 20. Formal counter to follow once she signs.\n\nTaxes last yr $9,874.\n\nSimone Laurent\nGreystone Partners Realty | 860-555-0133\n\n -----Original Message-----\nFrom: \tMaple Cove Buyer Agent\nSent:\tMonday, November 02, 2026 10:00 AM\nTo:\tLaurent, Simone\nSubject:\tOffer - 47 Orchard Hill Rd (ORH-47)\n\nSimone,\n\nOn behalf of Alan and Dee Kowalski we offer $790,000 for 47 Orchard Hill Rd (MLS #OH-2093316), closing by Fri Dec 11, $24,000 EMD, 20% down with Bayline Mortgage.\n\nPlease send the seller's response.\n\nMaple Cove Buyer Agent"
+    },
+    {
+      "id": "m3",
+      "direction": "outbound",
+      "from": "desk@maplecove-realty.primitive.email",
+      "fromName": "Maple Cove Buyer Agent",
+      "to": "alan.kowalski@kowalski-family.example",
+      "subject": "Orchard Hill counter",
+      "at": "2026-11-03T18:00:00Z",
+      "in_reply_to": null,
+      "body": "Alan - seller came back at $821,500, close Dec 10. Can you confirm in writing that you're ok up to $830,000?"
+    },
+    {
+      "id": "m4",
+      "direction": "inbound",
+      "from": "alan.kowalski@kowalski-family.example",
+      "fromName": "Alan Kowalski",
+      "to": "desk@maplecove-realty.primitive.email",
+      "subject": "Re: Orchard Hill counter",
+      "at": "2026-11-04T01:30:00Z",
+      "in_reply_to": "m3",
+      "body": "confirmed - Dee and I are ok up to $830,000.\n\nAlan\n\nOn Tue, Nov 3, 2026 at 1:00 PM Maple Cove Buyer Agent <desk@maplecove-realty.primitive.email> wrote:\n> Alan - seller came back at $821,500, close Dec 10. Can you confirm in writing that you're ok up to $830,000?"
+    },
+    {
+      "id": "m5",
+      "direction": "inbound",
+      "from": "appraisal@bayline-mortgage.example",
+      "fromName": "Bayline Mortgage",
+      "to": "desk@maplecove-realty.primitive.email",
+      "subject": "Appraisal - 47 Orchard Hill Rd / loan BM-448172",
+      "at": "2026-11-09T16:10:00Z",
+      "in_reply_to": null,
+      "body": "The appraisal for 47 Orchard Hill Rd came in at $815,000.\n\nBayline Mortgage - Appraisal Dept."
+    },
+    {
+      "id": "m6",
+      "direction": "outbound",
+      "from": "desk@maplecove-realty.primitive.email",
+      "fromName": "Maple Cove Buyer Agent",
+      "to": "simone.laurent@greystone-partners.example",
+      "subject": "RE: Offer - 47 Orchard Hill Rd (ORH-47)",
+      "at": "2026-11-09T17:00:00Z",
+      "in_reply_to": "m2",
+      "body": "Simone,\n\nAppraisal came in at $815,000 - $6,500 under the $821,500 in your counter. Can the seller come down to $815,000 so the loan covers it?\n\nMaple Cove Buyer Agent\n\n -----Original Message-----\nFrom: \tLaurent, Simone\nSent:\tTuesday, November 03, 2026 12:25 PM\nTo:\tMaple Cove Buyer Agent\nSubject:\tRE: Offer - 47 Orchard Hill Rd (ORH-47)\n\nSeller counters at $821,500, closing Thursday Dec 10. Inspection contingency until Friday Nov 20. Formal counter to follow once she signs.\n\nTaxes last yr $9,874.\n\nSimone Laurent\nGreystone Partners Realty | 860-555-0133\n\n -----Original Message-----\nFrom: \tMaple Cove Buyer Agent\nSent:\tMonday, November 02, 2026 10:00 AM\nTo:\tLaurent, Simone\nSubject:\tOffer - 47 Orchard Hill Rd (ORH-47)\n\nSimone,\n\nOn behalf of Alan and Dee Kowalski we offer $790,000 for 47 Orchard Hill Rd (MLS #OH-2093316), closing by Fri Dec 11, $24,000 EMD, 20% down with Bayline Mortgage.\n\nPlease send the seller's response.\n\nMaple Cove Buyer Agent"
+    },
+    {
+      "id": "m7",
+      "direction": "inbound",
+      "from": "simone.laurent@greystone-partners.example",
+      "fromName": "Simone Laurent",
+      "to": "desk@maplecove-realty.primitive.email",
+      "subject": "RE: Offer - 47 Orchard Hill Rd (ORH-47)",
+      "at": "2026-11-09T19:20:00Z",
+      "in_reply_to": "m6",
+      "body": "checking w/ seller, she's away til Sun. lockbox code is 4417 if your inspector needs back in.\n\nS\n\n -----Original Message-----\nFrom: \tMaple Cove Buyer Agent\nSent:\tMonday, November 09, 2026 12:00 PM\nTo:\tLaurent, Simone\nSubject:\tRE: Offer - 47 Orchard Hill Rd (ORH-47)\n\nSimone,\n\nAppraisal came in at $815,000 - $6,500 under the $821,500 in your counter. Can the seller come down to $815,000 so the loan covers it?\n\nMaple Cove Buyer Agent\n\n -----Original Message-----\nFrom: \tLaurent, Simone\nSent:\tTuesday, November 03, 2026 12:25 PM\nTo:\tMaple Cove Buyer Agent\nSubject:\tRE: Offer - 47 Orchard Hill Rd (ORH-47)\n\nSeller counters at $821,500, closing Thursday Dec 10. Inspection contingency until Friday Nov 20. Formal counter to follow once she signs.\n\nTaxes last yr $9,874.\n\nSimone Laurent\nGreystone Partners Realty | 860-555-0133\n\n -----Original Message-----\nFrom: \tMaple Cove Buyer Agent\nSent:\tMonday, November 02, 2026 10:00 AM\nTo:\tLaurent, Simone\nSubject:\tOffer - 47 Orchard Hill Rd (ORH-47)\n\nSimone,\n\nOn behalf of Alan and Dee Kowalski we offer $790,000 for 47 Orchard Hill Rd (MLS #OH-2093316), closing by Fri Dec 11, $24,000 EMD, 20% down with Bayline Mortgage.\n\nPlease send the seller's response.\n\nMaple Cove Buyer Agent"
+    },
+    {
+      "id": "m8",
+      "direction": "inbound",
+      "from": "simone.laurent@greystone-partners.example",
+      "fromName": "Simone Laurent",
+      "to": "desk@maplecove-realty.primitive.email",
+      "subject": "RE: Offer - 47 Orchard Hill Rd (ORH-47)",
+      "at": "2026-11-10T13:05:00Z",
+      "in_reply_to": "m7",
+      "body": "sorry, that should read $812,500, not $821,500 - my typo in the counter email. so you're already under the appraisal. signed counter attached.\n\nS\n\n -----Original Message-----\nFrom: \tLaurent, Simone\nSent:\tMonday, November 09, 2026 2:20 PM\nTo:\tMaple Cove Buyer Agent\nSubject:\tRE: Offer - 47 Orchard Hill Rd (ORH-47)\n\nchecking w/ seller, she's away til Sun. lockbox code is 4417 if your inspector needs back in.\n\nS\n\n -----Original Message-----\nFrom: \tMaple Cove Buyer Agent\nSent:\tMonday, November 09, 2026 12:00 PM\nTo:\tLaurent, Simone\nSubject:\tRE: Offer - 47 Orchard Hill Rd (ORH-47)\n\nSimone,\n\nAppraisal came in at $815,000 - $6,500 under the $821,500 in your counter. Can the seller come down to $815,000 so the loan covers it?\n\nMaple Cove Buyer Agent\n\n -----Original Message-----\nFrom: \tLaurent, Simone\nSent:\tTuesday, November 03, 2026 12:25 PM\nTo:\tMaple Cove Buyer Agent\nSubject:\tRE: Offer - 47 Orchard Hill Rd (ORH-47)\n\nSeller counters at $821,500, closing Thursday Dec 10. Inspection contingency until Friday Nov 20. Formal counter to follow once she signs.\n\nTaxes last yr $9,874.\n\nSimone Laurent\nGreystone Partners Realty | 860-555-0133\n\n -----Original Message-----\nFrom: \tMaple Cove Buyer Agent\nSent:\tMonday, November 02, 2026 10:00 AM\nTo:\tLaurent, Simone\nSubject:\tOffer - 47 Orchard Hill Rd (ORH-47)\n\nSimone,\n\nOn behalf of Alan and Dee Kowalski we offer $790,000 for 47 Orchard Hill Rd (MLS #OH-2093316), closing by Fri Dec 11, $24,000 EMD, 20% down with Bayline Mortgage.\n\nPlease send the seller's response.\n\nMaple Cove Buyer Agent",
+      "attachments": [
+        {
+          "filename": "Greystone-Counter-ORH-47.pdf",
+          "lines": [
+            "GREYSTONE PARTNERS REALTY - SELLER COUNTER OFFER",
+            "Property: 47 Orchard Hill Rd    MLS #OH-2093316    Ref: ORH-47",
+            "Purchase price: $812,500",
+            "Closing date: Thursday, December 10, 2026",
+            "Inspection contingency until Friday, November 20, 2026",
+            "Earnest money deposit: $24,000"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m9",
+      "direction": "outbound",
+      "from": "desk@maplecove-realty.primitive.email",
+      "fromName": "Maple Cove Buyer Agent",
+      "to": "simone.laurent@greystone-partners.example",
+      "subject": "RE: Offer - 47 Orchard Hill Rd (ORH-47)",
+      "at": "2026-11-10T15:30:00Z",
+      "in_reply_to": "m8",
+      "body": "Thanks Simone. We accept the seller's counter at $812,500, closing Thursday Dec 10. Kowalskis will sign this afternoon.\n\nMaple Cove Buyer Agent\n\n -----Original Message-----\nFrom: \tLaurent, Simone\nSent:\tTuesday, November 10, 2026 8:05 AM\nTo:\tMaple Cove Buyer Agent\nSubject:\tRE: Offer - 47 Orchard Hill Rd (ORH-47)\n\nsorry, that should read $812,500, not $821,500 - my typo in the counter email. so you're already under the appraisal. signed counter attached.\n\nS\n\n -----Original Message-----\nFrom: \tLaurent, Simone\nSent:\tMonday, November 09, 2026 2:20 PM\nTo:\tMaple Cove Buyer Agent\nSubject:\tRE: Offer - 47 Orchard Hill Rd (ORH-47)\n\nchecking w/ seller, she's away til Sun. lockbox code is 4417 if your inspector needs back in.\n\nS\n\n -----Original Message-----\nFrom: \tMaple Cove Buyer Agent\nSent:\tMonday, November 09, 2026 12:00 PM\nTo:\tLaurent, Simone\nSubject:\tRE: Offer - 47 Orchard Hill Rd (ORH-47)\n\nSimone,\n\nAppraisal came in at $815,000 - $6,500 under the $821,500 in your counter. Can the seller come down to $815,000 so the loan covers it?\n\nMaple Cove Buyer Agent\n\n -----Original Message-----\nFrom: \tLaurent, Simone\nSent:\tTuesday, November 03, 2026 12:25 PM\nTo:\tMaple Cove Buyer Agent\nSubject:\tRE: Offer - 47 Orchard Hill Rd (ORH-47)\n\nSeller counters at $821,500, closing Thursday Dec 10. Inspection contingency until Friday Nov 20. Formal counter to follow once she signs.\n\nTaxes last yr $9,874.\n\nSimone Laurent\nGreystone Partners Realty | 860-555-0133\n\n -----Original Message-----\nFrom: \tMaple Cove Buyer Agent\nSent:\tMonday, November 02, 2026 10:00 AM\nTo:\tLaurent, Simone\nSubject:\tOffer - 47 Orchard Hill Rd (ORH-47)\n\nSimone,\n\nOn behalf of Alan and Dee Kowalski we offer $790,000 for 47 Orchard Hill Rd (MLS #OH-2093316), closing by Fri Dec 11, $24,000 EMD, 20% down with Bayline Mortgage.\n\nPlease send the seller's response.\n\nMaple Cove Buyer Agent"
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m7",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 821500,
+          "stated_in": "m2",
+          "evidence": "Seller counters at $821,500"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-10",
+          "stated_in": "m2",
+          "evidence": "closing Thursday Dec 10"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-20",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until Friday Nov 20"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 830000,
+          "stated_in": "m4",
+          "evidence": "ok up to $830,000"
+        },
+        {
+          "party": "lender",
+          "term": "appraisal.value",
+          "value": 815000,
+          "stated_in": "m5",
+          "evidence": "came in at $815,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 790000,
+          "stated_in": "m1",
+          "evidence": "we offer $790,000 for 47 Orchard Hill Rd"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "seller's response to the offer",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "buyer",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "confirm ok up to $830,000",
+          "status": "answered",
+          "opened_in": "m3",
+          "resolved_in": "m4"
+        },
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "can the seller come down to $815,000",
+          "status": "open",
+          "opened_in": "m6"
+        },
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "commitment",
+          "about": "send the formal signed counter",
+          "status": "open",
+          "opened_in": "m2"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "fail",
+        "price_approval": "pass"
+      },
+      "next_actor": "them"
+    },
+    {
+      "after": "m8",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 812500,
+          "stated_in": "m8",
+          "evidence": "that should read $812,500, not $821,500"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-10",
+          "stated_in": "m2",
+          "evidence": "closing Thursday Dec 10"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-20",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until Friday Nov 20"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 830000,
+          "stated_in": "m4",
+          "evidence": "ok up to $830,000"
+        },
+        {
+          "party": "lender",
+          "term": "appraisal.value",
+          "value": 815000,
+          "stated_in": "m5",
+          "evidence": "came in at $815,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 790000,
+          "stated_in": "m1",
+          "evidence": "we offer $790,000 for 47 Orchard Hill Rd"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 821500,
+          "stated_in": "m2",
+          "evidence": "Seller counters at $821,500",
+          "replaced_in": "m8"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "seller's response to the offer",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "buyer",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "confirm ok up to $830,000",
+          "status": "answered",
+          "opened_in": "m3",
+          "resolved_in": "m4"
+        },
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "can the seller come down to $815,000",
+          "status": "answered",
+          "opened_in": "m6",
+          "resolved_in": "m8"
+        },
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "commitment",
+          "about": "send the formal signed counter",
+          "status": "fulfilled",
+          "opened_in": "m2",
+          "resolved_in": "m8"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Greystone-Counter-ORH-47.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "pass",
+        "price_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "listing agent",
+        "must": [
+          "812,500|812\\.5",
+          "accept"
+        ],
+        "must_not": [
+          "821,500",
+          "come down to \\$?815"
+        ]
+      }
+    },
+    {
+      "after": "m9",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 812500,
+          "stated_in": "m8",
+          "evidence": "that should read $812,500, not $821,500"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-10",
+          "stated_in": "m2",
+          "evidence": "closing Thursday Dec 10"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-20",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until Friday Nov 20"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 830000,
+          "stated_in": "m4",
+          "evidence": "ok up to $830,000"
+        },
+        {
+          "party": "lender",
+          "term": "appraisal.value",
+          "value": 815000,
+          "stated_in": "m5",
+          "evidence": "came in at $815,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 812500,
+          "stated_in": "m9",
+          "evidence": "We accept the seller's counter at $812,500"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "decision.accept",
+          "value": "accepted",
+          "stated_in": "m9",
+          "evidence": "We accept the seller's counter at $812,500"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 821500,
+          "stated_in": "m2",
+          "evidence": "Seller counters at $821,500",
+          "replaced_in": "m8"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 790000,
+          "stated_in": "m1",
+          "evidence": "we offer $790,000 for 47 Orchard Hill Rd",
+          "replaced_in": "m9"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "seller's response to the offer",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "buyer",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "confirm ok up to $830,000",
+          "status": "answered",
+          "opened_in": "m3",
+          "resolved_in": "m4"
+        },
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "can the seller come down to $815,000",
+          "status": "answered",
+          "opened_in": "m6",
+          "resolved_in": "m8"
+        },
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "commitment",
+          "about": "send the formal signed counter",
+          "status": "fulfilled",
+          "opened_in": "m2",
+          "resolved_in": "m8"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Greystone-Counter-ORH-47.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "pass",
+        "price_approval": "pass"
+      },
+      "next_actor": "them"
+    }
+  ],
+  "notes": "The listing agent's counter email says $821,500 (a transposed-digit typo). The $815,000 appraisal makes that look like an appraisal gap; our \"can the seller come down to $815,000?\" is a question and states no price. The fix is one lowercase line - \"sorry, that should read $812,500, not $821,500\" - sitting above a four-level quoted chain in which $821,500 appears again and again. The listing agent's price is $812,500 (superseding $821,500), which is under the appraisal, so we should accept at $812,500. Distractors: $24,000 EMD, lockbox code, MLS #, tax figure, $6,500 gap, phone numbers."
+}

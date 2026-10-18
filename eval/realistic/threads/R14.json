@@ -1,0 +1,489 @@
+{
+  "id": "R14",
+  "domain": "real_estate",
+  "title": "Showing confirmation, an out-of-office, a holiday FYI, and the counter continuing under a bare \"SOR-88\" subject",
+  "features": [
+    "noise_mail",
+    "subject_drift",
+    "quoted_history",
+    "distractor_numbers",
+    "terse_shorthand"
+  ],
+  "task": {
+    "id": "task_r14",
+    "alias": "SOR-88",
+    "goal": "Buy 88 Sorrel Bend for Ben Okonkwo: price no more than $615,000 and within the appraisal, closing by Wed Dec 23.",
+    "item": "88 Sorrel Bend",
+    "domain": "real_estate",
+    "requirements": [
+      {
+        "key": "requirement.max_price",
+        "value": 615000,
+        "display": "$615,000",
+        "hard": true
+      },
+      {
+        "key": "requirement.close_by",
+        "value": "2026-12-23",
+        "display": "Wed Dec 23",
+        "hard": true
+      },
+      {
+        "key": "requirement.opening_offer",
+        "value": 585000,
+        "display": "$585,000",
+        "hard": false
+      }
+    ],
+    "participants": [
+      {
+        "address": "hello@wrenfield-agents.primitive.email",
+        "name": "Wrenfield Buyer Agent",
+        "role": "self",
+        "label": "buyer agent (us)",
+        "authority": [
+          "decision.",
+          "deal."
+        ]
+      },
+      {
+        "address": "tasha.greer@copperleaf-realty.example",
+        "name": "Tasha Greer (Copperleaf Realty, listing agent)",
+        "role": "counterparty",
+        "label": "listing agent",
+        "authority": [
+          "price.",
+          "closing.",
+          "contingency.",
+          "decision.",
+          "deal."
+        ],
+        "group": "seller"
+      },
+      {
+        "address": "ben.okonkwo@okonkwo-home.example",
+        "name": "Ben Okonkwo (buyer)",
+        "role": "internal",
+        "label": "buyer",
+        "authority": [
+          "budget."
+        ]
+      },
+      {
+        "address": "l.marsh@riverbend-mortgage.example",
+        "name": "Lydia Marsh (Riverbend Mortgage, lender)",
+        "role": "internal",
+        "label": "lender",
+        "authority": [
+          "appraisal."
+        ]
+      },
+      {
+        "address": "team@solidground-inspect.example",
+        "name": "Solid Ground Inspections",
+        "role": "internal",
+        "label": "inspector",
+        "authority": [
+          "inspection."
+        ]
+      },
+      {
+        "address": "escrow@pinehurst-title.example",
+        "name": "Pinehurst Title (escrow)",
+        "role": "internal",
+        "label": "title company",
+        "authority": [
+          "payment."
+        ]
+      },
+      {
+        "address": "showings@copperleaf-realty.example",
+        "name": "Copperleaf Showing Desk",
+        "role": "internal",
+        "label": "showing desk",
+        "authority": []
+      }
+    ],
+    "self_address": "hello@wrenfield-agents.primitive.email"
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "inbound",
+      "from": "showings@copperleaf-realty.example",
+      "fromName": "Copperleaf Showing Desk",
+      "to": "hello@wrenfield-agents.primitive.email",
+      "subject": "Showing Confirmed - 88 Sorrel Bend",
+      "at": "2026-11-06T13:00:00Z",
+      "in_reply_to": null,
+      "body": "Your showing request has been CONFIRMED.\n\nProperty: 88 Sorrel Bend\nDate: Saturday, November 7, 2026\nTime: 11:00 AM - 11:45 AM\nConfirmation #: SH-772041\nLockbox: CBS 0391 (code sent 1 hr prior)\n\nPlease leave lights off and doors locked.\n\nCopperleaf Showing Desk | 615-555-0100"
+    },
+    {
+      "id": "m2",
+      "direction": "outbound",
+      "from": "hello@wrenfield-agents.primitive.email",
+      "fromName": "Wrenfield Buyer Agent",
+      "to": "tasha.greer@copperleaf-realty.example",
+      "subject": "Offer - 88 Sorrel Bend",
+      "at": "2026-11-09T15:00:00Z",
+      "in_reply_to": null,
+      "body": "Tasha,\n\nOn behalf of Ben Okonkwo we offer $585,000 for 88 Sorrel Bend (MLS #SB-1187245), closing by Wed Dec 23, $18,000 EMD. Ben loved it on Saturday.\n\nWrenfield Buyer Agent"
+    },
+    {
+      "id": "m3",
+      "direction": "inbound",
+      "from": "tasha.greer@copperleaf-realty.example",
+      "fromName": "Tasha Greer",
+      "to": "hello@wrenfield-agents.primitive.email",
+      "subject": "RE: Offer - 88 Sorrel Bend",
+      "at": "2026-11-10T17:30:00Z",
+      "in_reply_to": "m2",
+      "body": "Seller counters at $609,000, closing Friday Dec 18. Inspection contingency until Monday Nov 23. HOA $65/mo.\n\nTasha Greer\nCopperleaf Realty | 615-555-0142\n\n -----Original Message-----\nFrom: \tWrenfield Buyer Agent\nSent:\tMonday, November 09, 2026 10:00 AM\nTo:\tGreer, Tasha\nSubject:\tOffer - 88 Sorrel Bend\n\nTasha,\n\nOn behalf of Ben Okonkwo we offer $585,000 for 88 Sorrel Bend (MLS #SB-1187245), closing by Wed Dec 23, $18,000 EMD. Ben loved it on Saturday.\n\nWrenfield Buyer Agent"
+    },
+    {
+      "id": "m4",
+      "direction": "outbound",
+      "from": "hello@wrenfield-agents.primitive.email",
+      "fromName": "Wrenfield Buyer Agent",
+      "to": "l.marsh@riverbend-mortgage.example",
+      "subject": "Appraisal order - 88 Sorrel Bend (SOR-88)",
+      "at": "2026-11-10T18:00:00Z",
+      "in_reply_to": null,
+      "body": "Lydia - we're in negotiation on 88 Sorrel Bend for Ben Okonkwo (loan RB-3092265). Can you order the appraisal and send the value as soon as it's in?\n\nthx\nWrenfield Buyer Agent"
+    },
+    {
+      "id": "m5",
+      "direction": "inbound",
+      "from": "l.marsh@riverbend-mortgage.example",
+      "fromName": "Lydia Marsh",
+      "to": "hello@wrenfield-agents.primitive.email",
+      "subject": "Automatic reply: Appraisal order - 88 Sorrel Bend (SOR-88)",
+      "at": "2026-11-10T18:00:30Z",
+      "in_reply_to": "m4",
+      "body": "I am out of the office through Monday, November 16 with limited access to email. For rate locks please call 615-555-0199; for anything urgent contact my processor, Devon Riggs (d.riggs@riverbend-mortgage.example).\n\nLydia Marsh | NMLS #1108822"
+    },
+    {
+      "id": "m6",
+      "direction": "inbound",
+      "from": "escrow@pinehurst-title.example",
+      "fromName": "Pinehurst Title",
+      "to": "hello@wrenfield-agents.primitive.email",
+      "subject": "FYI - Thanksgiving hours",
+      "at": "2026-11-11T14:00:00Z",
+      "in_reply_to": null,
+      "body": "FYI to all our agent partners: Pinehurst Title will be closed Thursday Nov 26 and Friday Nov 27. Last day to record before the holiday is Wed Nov 25; funding cutoff that day is 1:00 PM. Normal hours resume Mon Nov 30.\n\nHappy Thanksgiving,\nPinehurst Title"
+    },
+    {
+      "id": "m7",
+      "direction": "inbound",
+      "from": "ben.okonkwo@okonkwo-home.example",
+      "fromName": "Ben Okonkwo",
+      "to": "hello@wrenfield-agents.primitive.email",
+      "subject": "sorrel",
+      "at": "2026-11-11T22:10:00Z",
+      "in_reply_to": null,
+      "body": "ok, approved up to $615,000 on Sorrel. would love to stay under 600 tho\n\nBen"
+    },
+    {
+      "id": "m8",
+      "direction": "outbound",
+      "from": "hello@wrenfield-agents.primitive.email",
+      "fromName": "Wrenfield Buyer Agent",
+      "to": "tasha.greer@copperleaf-realty.example",
+      "subject": "RE: Offer - 88 Sorrel Bend",
+      "at": "2026-11-12T14:15:00Z",
+      "in_reply_to": "m3",
+      "body": "Tasha - we counter at $598,000, closing Dec 18 is fine.\n\nWrenfield\n\n -----Original Message-----\nFrom: \tGreer, Tasha\nSent:\tTuesday, November 10, 2026 12:30 PM\nTo:\tWrenfield Buyer Agent\nSubject:\tRE: Offer - 88 Sorrel Bend\n\nSeller counters at $609,000, closing Friday Dec 18. Inspection contingency until Monday Nov 23. HOA $65/mo.\n\nTasha Greer\nCopperleaf Realty | 615-555-0142\n\n -----Original Message-----\nFrom: \tWrenfield Buyer Agent\nSent:\tMonday, November 09, 2026 10:00 AM\nTo:\tGreer, Tasha\nSubject:\tOffer - 88 Sorrel Bend\n\nTasha,\n\nOn behalf of Ben Okonkwo we offer $585,000 for 88 Sorrel Bend (MLS #SB-1187245), closing by Wed Dec 23, $18,000 EMD. Ben loved it on Saturday.\n\nWrenfield Buyer Agent"
+    },
+    {
+      "id": "m9",
+      "direction": "inbound",
+      "from": "tasha.greer@copperleaf-realty.example",
+      "fromName": "Tasha Greer",
+      "to": "hello@wrenfield-agents.primitive.email",
+      "subject": "SOR-88",
+      "at": "2026-11-13T16:20:00Z",
+      "in_reply_to": null,
+      "body": "seller came down from $609,000 to $604,000, same closing. she won't go lower.\n\nTG"
+    },
+    {
+      "id": "m10",
+      "direction": "inbound",
+      "from": "l.marsh@riverbend-mortgage.example",
+      "fromName": "Lydia Marsh",
+      "to": "hello@wrenfield-agents.primitive.email",
+      "subject": "RE: Appraisal order - 88 Sorrel Bend (SOR-88)",
+      "at": "2026-11-17T15:45:00Z",
+      "in_reply_to": "m4",
+      "body": "Back in the office. The appraisal for 88 Sorrel Bend came in at $607,000.\n\nLydia\n\n -----Original Message-----\nFrom: \tWrenfield Buyer Agent\nSent:\tTuesday, November 10, 2026 1:00 PM\nTo:\tMarsh, Lydia\nSubject:\tAppraisal order - 88 Sorrel Bend (SOR-88)\n\nLydia - we're in negotiation on 88 Sorrel Bend for Ben Okonkwo (loan RB-3092265). Can you order the appraisal and send the value as soon as it's in?\n\nthx\nWrenfield Buyer Agent"
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m6",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 609000,
+          "stated_in": "m3",
+          "evidence": "Seller counters at $609,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m3",
+          "evidence": "closing Friday Dec 18"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-23",
+          "stated_in": "m3",
+          "evidence": "Inspection contingency until Monday Nov 23"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 585000,
+          "stated_in": "m2",
+          "evidence": "we offer $585,000 for 88 Sorrel Bend"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "seller's response to the offer",
+          "status": "answered",
+          "opened_in": "m2",
+          "resolved_in": "m3"
+        },
+        {
+          "owed_by": "lender",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "order the appraisal and send the value",
+          "status": "open",
+          "opened_in": "m4"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "unknown",
+        "price_approval": "unknown"
+      },
+      "next_actor": "us"
+    },
+    {
+      "after": "m9",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 604000,
+          "stated_in": "m9",
+          "evidence": "seller came down from $609,000 to $604,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m3",
+          "evidence": "closing Friday Dec 18"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-23",
+          "stated_in": "m3",
+          "evidence": "Inspection contingency until Monday Nov 23"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 615000,
+          "stated_in": "m7",
+          "evidence": "approved up to $615,000 on Sorrel"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 598000,
+          "stated_in": "m8",
+          "evidence": "we counter at $598,000"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 609000,
+          "stated_in": "m3",
+          "evidence": "Seller counters at $609,000",
+          "replaced_in": "m9"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 585000,
+          "stated_in": "m2",
+          "evidence": "we offer $585,000 for 88 Sorrel Bend",
+          "replaced_in": "m8"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "seller's response to the offer",
+          "status": "answered",
+          "opened_in": "m2",
+          "resolved_in": "m3"
+        },
+        {
+          "owed_by": "lender",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "order the appraisal and send the value",
+          "status": "open",
+          "opened_in": "m4"
+        },
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "response to our $598,000 counter",
+          "status": "answered",
+          "opened_in": "m8",
+          "resolved_in": "m9"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "unknown",
+        "price_approval": "pass"
+      },
+      "next_actor": "them"
+    },
+    {
+      "after": "m10",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 604000,
+          "stated_in": "m9",
+          "evidence": "seller came down from $609,000 to $604,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m3",
+          "evidence": "closing Friday Dec 18"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-23",
+          "stated_in": "m3",
+          "evidence": "Inspection contingency until Monday Nov 23"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 615000,
+          "stated_in": "m7",
+          "evidence": "approved up to $615,000 on Sorrel"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 598000,
+          "stated_in": "m8",
+          "evidence": "we counter at $598,000"
+        },
+        {
+          "party": "lender",
+          "term": "appraisal.value",
+          "value": 607000,
+          "stated_in": "m10",
+          "evidence": "came in at $607,000"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 609000,
+          "stated_in": "m3",
+          "evidence": "Seller counters at $609,000",
+          "replaced_in": "m9"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 585000,
+          "stated_in": "m2",
+          "evidence": "we offer $585,000 for 88 Sorrel Bend",
+          "replaced_in": "m8"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "seller's response to the offer",
+          "status": "answered",
+          "opened_in": "m2",
+          "resolved_in": "m3"
+        },
+        {
+          "owed_by": "lender",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "order the appraisal and send the value",
+          "status": "answered",
+          "opened_in": "m4",
+          "resolved_in": "m10"
+        },
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "response to our $598,000 counter",
+          "status": "answered",
+          "opened_in": "m8",
+          "resolved_in": "m9"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "pass",
+        "price_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "listing agent",
+        "must": [
+          "604,000|604k",
+          "accept"
+        ],
+        "must_not": [
+          "609,000",
+          "counter at"
+        ]
+      }
+    }
+  ],
+  "notes": "Noise: a showing-desk confirmation (date, time, confirmation # and lockbox code - not an inspection or closing), the lender's out-of-office auto-reply to our appraisal request (not an answer, so the request stays open), and a title-company holiday FYI with dates and cutoffs that are not deal terms. The listing agent then moves her price from $609,000 to $604,000 in a NEW thread whose subject is only \"SOR-88\" (in_reply_to null). That still supersedes her $609,000. Once the appraisal ($607,000) is in, everything passes and we should accept $604,000. Distractors: confirmation #, lockbox code, loan #, phone numbers, $18,000 EMD, holiday dates."
+}

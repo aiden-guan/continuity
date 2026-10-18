@@ -1,0 +1,380 @@
+{
+  "id": "P11",
+  "domain": "procurement",
+  "title": "Gasket order: supplier rescinds its quote after we asked follow-up questions; old terms linger in quotes",
+  "features": [
+    "withdrawal",
+    "quoted_history",
+    "distractor_numbers",
+    "answered_question",
+    "subject_drift",
+    "noise_mail",
+    "terse_shorthand"
+  ],
+  "task": {
+    "id": "task_p11",
+    "alias": "PO-6230",
+    "goal": "Buy 2,000 HX-12 gaskets for PO-6230. All 2,000 must arrive by Tue Nov 24; unit price must not exceed $3.85.",
+    "item": "HX-12 gaskets",
+    "self_address": "purchasing@halden.primitive.email",
+    "domain": "procurement",
+    "participants": [
+      {
+        "address": "purchasing@halden.primitive.email",
+        "name": "Halden Purchasing Agent",
+        "role": "self",
+        "label": "Halden (us)",
+        "authority": [
+          "decision."
+        ]
+      },
+      {
+        "address": "r.vega@brightline-seals.example",
+        "name": "Rosalind Vega (Brightline Seals)",
+        "role": "counterparty",
+        "label": "supplier",
+        "authority": [
+          "price.",
+          "delivery.",
+          "order.",
+          "payment.",
+          "quote.",
+          "offer."
+        ],
+        "group": "brightline"
+      },
+      {
+        "address": "t.reyes@halden-ind.example",
+        "name": "Tomas Reyes (Halden Finance)",
+        "role": "internal",
+        "label": "finance",
+        "authority": [
+          "budget."
+        ]
+      },
+      {
+        "address": "d.kim@halden-ind.example",
+        "name": "Dana Kim (Halden Plant 3)",
+        "role": "internal",
+        "label": "plant",
+        "authority": []
+      }
+    ],
+    "requirements": [
+      {
+        "key": "requirement.quantity",
+        "value": 2000,
+        "display": "2,000 units",
+        "hard": true
+      },
+      {
+        "key": "requirement.deliver_all_by",
+        "value": "2026-11-24",
+        "display": "Tue Nov 24",
+        "hard": true
+      },
+      {
+        "key": "requirement.max_unit_price",
+        "value": 3.85,
+        "display": "$3.85",
+        "hard": true
+      }
+    ]
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "outbound",
+      "from": "purchasing@halden.primitive.email",
+      "fromName": "Halden Purchasing Agent",
+      "to": "r.vega@brightline-seals.example",
+      "subject": "RFQ PO-6230 - 2,000 HX-12 gaskets",
+      "at": "2026-10-26T15:00:00Z",
+      "in_reply_to": null,
+      "body": "Rosalind,\n\nRequesting a quote for 2,000 HX-12 gaskets (EPDM, 4\" flange) on PO-6230. All 2,000 need to be at our Plant 3 dock by Tue Nov 24. Please quote unit price, lead time and terms.\n\nThanks,\nHalden Purchasing"
+    },
+    {
+      "id": "m2",
+      "direction": "outbound",
+      "from": "purchasing@halden.primitive.email",
+      "fromName": "Halden Purchasing Agent",
+      "to": "t.reyes@halden-ind.example",
+      "subject": "budget - PO-6230",
+      "at": "2026-10-26T15:04:00Z",
+      "in_reply_to": null,
+      "body": "Tomas - need budget approval up to $3.85/ea on PO-6230 (2,000 HX-12 gaskets, ~$7,700 max). ok?\n\nthx"
+    },
+    {
+      "id": "m3",
+      "direction": "inbound",
+      "from": "r.vega@brightline-seals.example",
+      "fromName": "Rosalind Vega",
+      "to": "purchasing@halden.primitive.email",
+      "subject": "RE: RFQ PO-6230 - 2,000 HX-12 gaskets",
+      "at": "2026-10-27T17:30:00Z",
+      "in_reply_to": "m1",
+      "body": "Hi,\n\nQuote Q-2207 attached. $3.62/ea for the 2,000, ships from our Gary warehouse, all 2,000 delivered by Fri Nov 20. Net 30. Quote good through Nov 6.\n\nRosalind Vega\nBrightline Seals | inside sales | 219-555-0182\ncust # BL-44190\n\n -----Original Message-----\nFrom: \tHalden Purchasing\nSent:\tMonday, October 26, 2026 10:00 AM\nTo:\tVega, Rosalind\nSubject:\tRFQ PO-6230 - 2,000 HX-12 gaskets\n\nRosalind,\n\nRequesting a quote for 2,000 HX-12 gaskets (EPDM, 4\" flange) on PO-6230. All 2,000 need to be at our Plant 3 dock by Tue Nov 24. Please quote unit price, lead time and terms.\n\nThanks,\nHalden Purchasing",
+      "attachments": [
+        {
+          "filename": "Brightline-Quote-Q-2207.pdf",
+          "lines": [
+            "BRIGHTLINE SEALS - QUOTATION Q-2207",
+            "Customer: Halden Industries (PO-6230)   Cust # BL-44190",
+            "Item: HX-12 gasket, EPDM, 4in flange",
+            "Qty: 2,000",
+            "Unit price: $3.62",
+            "Extended: $7,240.00",
+            "Freight: $185.00 (prepaid & add)",
+            "Delivery: 2,000 pcs by Fri Nov 20, 2026",
+            "Terms: Net 30",
+            "Valid until: Nov 6, 2026"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m4",
+      "direction": "inbound",
+      "from": "t.reyes@halden-ind.example",
+      "fromName": "Tomas Reyes",
+      "to": "purchasing@halden.primitive.email",
+      "subject": "RE: budget - PO-6230",
+      "at": "2026-10-27T19:10:00Z",
+      "in_reply_to": "m2",
+      "body": "ok up to 3.85/ea. charge GL 6120-04.\n\nT\n\n -----Original Message-----\nFrom: \tHalden Purchasing\nSent:\tMonday, October 26, 2026 10:04 AM\nTo:\tReyes, Tomas\nSubject:\tbudget - PO-6230\n\nTomas - need budget approval up to $3.85/ea on PO-6230 (2,000 HX-12 gaskets, ~$7,700 max). ok?\n\nthx"
+    },
+    {
+      "id": "m5",
+      "direction": "outbound",
+      "from": "purchasing@halden.primitive.email",
+      "fromName": "Halden Purchasing Agent",
+      "to": "r.vega@brightline-seals.example",
+      "subject": "RE: RFQ PO-6230 - 2,000 HX-12 gaskets",
+      "at": "2026-10-28T14:15:00Z",
+      "in_reply_to": "m3",
+      "body": "Rosalind - thanks. PO should go out Monday once the req clears. Can you confirm the Nov 20 date holds if the PO lands Mon 11/2? Also the $185 freight is prepaid & add, correct?\n\nHalden Purchasing\n\n -----Original Message-----\nFrom: \tVega, Rosalind\nSent:\tTuesday, October 27, 2026 12:30 PM\nTo:\tHalden Purchasing\nSubject:\tRE: RFQ PO-6230 - 2,000 HX-12 gaskets\n\nHi,\n\nQuote Q-2207 attached. $3.62/ea for the 2,000, ships from our Gary warehouse, all 2,000 delivered by Fri Nov 20. Net 30. Quote good through Nov 6.\n\nRosalind Vega\nBrightline Seals | inside sales | 219-555-0182\ncust # BL-44190\n\n -----Original Message-----\nFrom: \tHalden Purchasing\nSent:\tMonday, October 26, 2026 10:00 AM\nTo:\tVega, Rosalind\nSubject:\tRFQ PO-6230 - 2,000 HX-12 gaskets\n\nRosalind,\n\nRequesting a quote for 2,000 HX-12 gaskets (EPDM, 4\" flange) on PO-6230. All 2,000 need to be at our Plant 3 dock by Tue Nov 24. Please quote unit price, lead time and terms.\n\nThanks,\nHalden Purchasing"
+    },
+    {
+      "id": "m6",
+      "direction": "inbound",
+      "from": "r.vega@brightline-seals.example",
+      "fromName": "Rosalind Vega",
+      "to": "purchasing@halden.primitive.email",
+      "subject": "RE: RFQ PO-6230 - 2,000 HX-12 gaskets",
+      "at": "2026-10-29T13:40:00Z",
+      "in_reply_to": "m5",
+      "body": "Sorry - we have to rescind Q-2207, please disregard. Our compound supplier put us on allocation this morning and we can't hold the 2,000 by the 20th or the 3.62. Rather tell you now than miss your date. If something frees up in Dec I'll reach out.\n\nRos\n\n -----Original Message-----\nFrom: \tHalden Purchasing\nSent:\tWednesday, October 28, 2026 9:15 AM\nTo:\tVega, Rosalind\nSubject:\tRE: RFQ PO-6230 - 2,000 HX-12 gaskets\n\nRosalind - thanks. PO should go out Monday once the req clears. Can you confirm the Nov 20 date holds if the PO lands Mon 11/2? Also the $185 freight is prepaid & add, correct?\n\nHalden Purchasing\n\n -----Original Message-----\nFrom: \tVega, Rosalind\nSent:\tTuesday, October 27, 2026 12:30 PM\nTo:\tHalden Purchasing\nSubject:\tRE: RFQ PO-6230 - 2,000 HX-12 gaskets\n\nHi,\n\nQuote Q-2207 attached. $3.62/ea for the 2,000, ships from our Gary warehouse, all 2,000 delivered by Fri Nov 20. Net 30. Quote good through Nov 6.\n\nRosalind Vega\nBrightline Seals | inside sales | 219-555-0182\ncust # BL-44190\n\n -----Original Message-----\nFrom: \tHalden Purchasing\nSent:\tMonday, October 26, 2026 10:00 AM\nTo:\tVega, Rosalind\nSubject:\tRFQ PO-6230 - 2,000 HX-12 gaskets\n\nRosalind,\n\nRequesting a quote for 2,000 HX-12 gaskets (EPDM, 4\" flange) on PO-6230. All 2,000 need to be at our Plant 3 dock by Tue Nov 24. Please quote unit price, lead time and terms.\n\nThanks,\nHalden Purchasing"
+    },
+    {
+      "id": "m7",
+      "direction": "inbound",
+      "from": "d.kim@halden-ind.example",
+      "fromName": "Dana Kim",
+      "to": "purchasing@halden.primitive.email",
+      "subject": "6230 gaskets?",
+      "at": "2026-10-29T15:05:00Z",
+      "in_reply_to": null,
+      "body": "any update on the HX-12 gaskets for line 3? we're down to ~140 on the shelf. need them by the 24th latest, shutdown starts 11/30.\n\nDana\next 3318"
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m4",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 3.62,
+          "stated_in": "m3",
+          "evidence": "$3.62/ea for the 2,000"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 2000,
+          "stated_in": "m3",
+          "evidence": "Qty: 2,000"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 2000,
+              "date": "2026-11-20"
+            }
+          ],
+          "stated_in": "m3",
+          "evidence": "all 2,000 delivered by Fri Nov 20"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m3",
+          "evidence": "Terms: Net 30"
+        },
+        {
+          "party": "supplier",
+          "term": "quote.valid_until",
+          "value": "2026-11-06",
+          "stated_in": "m3",
+          "evidence": "Quote good through Nov 6"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 3.85,
+          "stated_in": "m4",
+          "evidence": "ok up to 3.85/ea"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Halden (us)",
+          "kind": "question",
+          "about": "unit price, lead time and terms",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m3"
+        },
+        {
+          "owed_by": "finance",
+          "owed_to": "Halden (us)",
+          "kind": "question",
+          "about": "budget approval up to $3.85/ea",
+          "status": "answered",
+          "opened_in": "m2",
+          "resolved_in": "m4"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Brightline-Quote-Q-2207.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "supplier",
+        "must": [
+          "accept|confirm|po",
+          "3\\.62"
+        ],
+        "must_not": [
+          "3\\.85"
+        ]
+      }
+    },
+    {
+      "after": "m7",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "offer.status",
+          "value": "withdrawn",
+          "stated_in": "m6",
+          "evidence": "we have to rescind Q-2207, please disregard"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 3.85,
+          "stated_in": "m4",
+          "evidence": "ok up to 3.85/ea"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 3.62,
+          "stated_in": "m3",
+          "evidence": "$3.62/ea for the 2,000",
+          "replaced_in": "m6"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 2000,
+          "stated_in": "m3",
+          "evidence": "Qty: 2,000",
+          "replaced_in": "m6"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 2000,
+              "date": "2026-11-20"
+            }
+          ],
+          "stated_in": "m3",
+          "evidence": "all 2,000 delivered by Fri Nov 20",
+          "replaced_in": "m6"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m3",
+          "evidence": "Terms: Net 30",
+          "replaced_in": "m6"
+        },
+        {
+          "party": "supplier",
+          "term": "quote.valid_until",
+          "value": "2026-11-06",
+          "stated_in": "m3",
+          "evidence": "Quote good through Nov 6",
+          "replaced_in": "m6"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Halden (us)",
+          "kind": "question",
+          "about": "confirm Nov 20 holds; freight prepaid & add",
+          "status": "answered",
+          "opened_in": "m5",
+          "resolved_in": "m6"
+        },
+        {
+          "owed_by": "Halden (us)",
+          "owed_to": "plant",
+          "kind": "question",
+          "about": "status of HX-12 gaskets for line 3",
+          "status": "open",
+          "opened_in": "m7",
+          "resolved_in": null
+        }
+      ],
+      "checks": {
+        "budget_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "supplier",
+        "must": [
+          "partial|any (of|part)|alternat|substitut|other|how many|dec(ember)?"
+        ],
+        "must_not": [
+          "\\bwe accept\\b",
+          "confirm(ing)? (the |our )?(order|po)\\b.{0,40}3\\.62"
+        ]
+      }
+    }
+  ],
+  "notes": "The trap is the withdrawal in m6 ('we have to rescind Q-2207, please disregard'): offer.status 'withdrawn' becomes active and every Q-2207 term (price $3.62, Nov 20 delivery, Net 30, valid until Nov 6) is retracted, though they still sit in m6's quoted history and the Q-2207 PDF. The engine marks the PDF 'withdrawn', which the gold document statuses cannot express, so the doc is left out of checkpoint 2. Nothing passes delivery/price any more; we must find another source or ask Brightline for a partial/December option. m7 is internal noise from the plant (no authority) with distractors (~140 on shelf, 11/30 shutdown, ext 3318). Other distractors: phone, cust #, GL code, freight $185, $7,240 / $7,700 totals."
+}

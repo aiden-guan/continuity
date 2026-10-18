@@ -21,6 +21,7 @@
     "demo:portfolio": "node --env-file-if-exists=.env scripts/demo-portfolio.ts",
     "stage": "node --env-file-if-exists=.env scripts/stage.ts",
     "eval": "node --env-file-if-exists=.env eval/run.ts",
+    "eval:realistic": "node --env-file-if-exists=.env eval/realistic/run.ts",
     "agent": "node --env-file-if-exists=.env src/agent/run.ts",
     "receive": "node --env-file-if-exists=.env scripts/primitive-receive.ts",
     "live:task": "node --env-file-if-exists=.env scripts/create-task.ts",

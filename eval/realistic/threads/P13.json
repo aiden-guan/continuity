@@ -1,0 +1,517 @@
+{
+  "id": "P13",
+  "domain": "procurement",
+  "title": "Bearing order: per-lot price table with Orig/Rev columns and a 3% discount stated with its resulting unit price",
+  "features": [
+    "from_to_change",
+    "table",
+    "terse_shorthand",
+    "quoted_history",
+    "distractor_numbers",
+    "document_versions",
+    "acceptance",
+    "answered_question"
+  ],
+  "task": {
+    "id": "task_p13",
+    "alias": "PO-8802",
+    "goal": "Buy 1,500 LM-50 linear bearings for PO-8802. All 1,500 must arrive by Fri Dec 4 (lots are fine); unit price must not exceed $6.75.",
+    "item": "LM-50 linear bearings",
+    "self_address": "purchasing@vantor.primitive.email",
+    "domain": "procurement",
+    "participants": [
+      {
+        "address": "purchasing@vantor.primitive.email",
+        "name": "Vantor Purchasing Agent",
+        "role": "self",
+        "label": "Vantor (us)",
+        "authority": [
+          "decision."
+        ]
+      },
+      {
+        "address": "h.strand@norcastle.example",
+        "name": "Helga Strand (Norcastle Bearings)",
+        "role": "counterparty",
+        "label": "supplier",
+        "authority": [
+          "price.",
+          "delivery.",
+          "order.",
+          "payment.",
+          "quote.",
+          "offer."
+        ],
+        "group": "norcastle"
+      },
+      {
+        "address": "j.wu@vantor-tech.example",
+        "name": "Jamie Wu (Vantor Finance)",
+        "role": "internal",
+        "label": "finance",
+        "authority": [
+          "budget."
+        ]
+      }
+    ],
+    "requirements": [
+      {
+        "key": "requirement.quantity",
+        "value": 1500,
+        "display": "1,500 units",
+        "hard": true
+      },
+      {
+        "key": "requirement.deliver_all_by",
+        "value": "2026-12-04",
+        "display": "Fri Dec 4",
+        "hard": true
+      },
+      {
+        "key": "requirement.max_unit_price",
+        "value": 6.75,
+        "display": "$6.75",
+        "hard": true
+      }
+    ]
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "outbound",
+      "from": "purchasing@vantor.primitive.email",
+      "fromName": "Vantor Purchasing Agent",
+      "to": "h.strand@norcastle.example",
+      "subject": "PO-8802 LM-50 x 1500",
+      "at": "2026-11-09T14:00:00Z",
+      "in_reply_to": null,
+      "body": "Helga - pls quote 1,500 LM-50 linear bearings for PO-8802, all in by Fri Dec 4. ok to ship in lots. need unit price, lot dates, terms.\n\nthx\nVantor Purchasing"
+    },
+    {
+      "id": "m2",
+      "direction": "inbound",
+      "from": "h.strand@norcastle.example",
+      "fromName": "Helga Strand",
+      "to": "purchasing@vantor.primitive.email",
+      "subject": "RE: PO-8802 LM-50 x 1500",
+      "at": "2026-11-10T16:30:00Z",
+      "in_reply_to": "m1",
+      "body": "hi -\n\n6.95/ea all lots, 3 lots of 500 due 11/20, 11/27 and 12/2.\n\nLot\tQty\tShip\tDue\t$/ea\n1\t500\t11/17\t11/20\t6.95\n2\t500\t11/24\t11/27\t6.95\n3\t500\t11/30\t12/02\t6.95\n\nnet 30, FOB origin. quote NB-3391 attached.\n\nHelga Strand\nNorcastle Bearings  ph 616-555-0123\n\n -----Original Message-----\nFrom: \tVantor Purchasing\nSent:\tMonday, November 09, 2026 8:00 AM\nTo:\tStrand, Helga\nSubject:\tPO-8802 LM-50 x 1500\n\nHelga - pls quote 1,500 LM-50 linear bearings for PO-8802, all in by Fri Dec 4. ok to ship in lots. need unit price, lot dates, terms.\n\nthx\nVantor Purchasing",
+      "attachments": [
+        {
+          "filename": "Norcastle-Quote-NB-3391.pdf",
+          "lines": [
+            "NORCASTLE BEARINGS - QUOTE NB-3391",
+            "Customer: Vantor Technologies   Ref PO-8802",
+            "Item: LM-50 linear bearing, 50mm",
+            "Quantity: 1,500",
+            "Unit price: $6.95",
+            "Lots: 500 due 11/20, 500 due 11/27, 500 due 12/02",
+            "Terms: Net 30, FOB origin",
+            "Valid until: Dec 10, 2026",
+            "Total: $10,425.00"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m3",
+      "direction": "outbound",
+      "from": "purchasing@vantor.primitive.email",
+      "fromName": "Vantor Purchasing Agent",
+      "to": "j.wu@vantor-tech.example",
+      "subject": "8802 budget",
+      "at": "2026-11-10T17:05:00Z",
+      "in_reply_to": null,
+      "body": "Jamie - need ok for up to 6.75/ea on 8802 (1,500 LM-50). supplier at 6.95 rn, pushing back."
+    },
+    {
+      "id": "m4",
+      "direction": "outbound",
+      "from": "purchasing@vantor.primitive.email",
+      "fromName": "Vantor Purchasing Agent",
+      "to": "h.strand@norcastle.example",
+      "subject": "RE: PO-8802 LM-50 x 1500",
+      "at": "2026-11-10T17:20:00Z",
+      "in_reply_to": "m2",
+      "body": "Helga - 6.95 is over our number. can you get to 6.70 or lower on the 1,500?\n\nVantor Purchasing\n\n -----Original Message-----\nFrom: \tStrand, Helga\nSent:\tTuesday, November 10, 2026 10:30 AM\nTo:\tVantor Purchasing\nSubject:\tRE: PO-8802 LM-50 x 1500\n\nhi -\n\n6.95/ea all lots, 3 lots of 500 due 11/20, 11/27 and 12/2.\n\nLot\tQty\tShip\tDue\t$/ea\n1\t500\t11/17\t11/20\t6.95\n2\t500\t11/24\t11/27\t6.95\n3\t500\t11/30\t12/02\t6.95\n\nnet 30, FOB origin. quote NB-3391 attached.\n\nHelga Strand\nNorcastle Bearings  ph 616-555-0123\n\n -----Original Message-----\nFrom: \tVantor Purchasing\nSent:\tMonday, November 09, 2026 8:00 AM\nTo:\tStrand, Helga\nSubject:\tPO-8802 LM-50 x 1500\n\nHelga - pls quote 1,500 LM-50 linear bearings for PO-8802, all in by Fri Dec 4. ok to ship in lots. need unit price, lot dates, terms.\n\nthx\nVantor Purchasing"
+    },
+    {
+      "id": "m5",
+      "direction": "inbound",
+      "from": "j.wu@vantor-tech.example",
+      "fromName": "Jamie Wu",
+      "to": "purchasing@vantor.primitive.email",
+      "subject": "RE: 8802 budget",
+      "at": "2026-11-11T13:40:00Z",
+      "in_reply_to": "m3",
+      "body": "ok to 6.75/ea max. no higher.\n-jw\n\n -----Original Message-----\nFrom: \tVantor Purchasing\nSent:\tTuesday, November 10, 2026 11:05 AM\nTo:\tWu, Jamie\nSubject:\t8802 budget\n\nJamie - need ok for up to 6.75/ea on 8802 (1,500 LM-50). supplier at 6.95 rn, pushing back."
+    },
+    {
+      "id": "m6",
+      "direction": "inbound",
+      "from": "h.strand@norcastle.example",
+      "fromName": "Helga Strand",
+      "to": "purchasing@vantor.primitive.email",
+      "subject": "RE: PO-8802 LM-50 x 1500",
+      "at": "2026-11-12T15:10:00Z",
+      "in_reply_to": "m4",
+      "body": "can't get to 6.70 but can do 3% off across all 3 lots: 6.95 less 3% = 6.74/ea. change NB-3391 as follows:\n\nLot\tQty\tDue\tOrig $/ea\tRev $/ea\tRev ext\n1\t500\t11/20\t6.95\t6.74\t3,370.00\n2\t500\t11/27\t6.95\t6.74\t3,370.00\n3\t500\t12/02\t6.95\t6.74\t3,370.00\n\ntot $10,110.00. lot dates unchanged. fyi LM-60 stays at 8.10.\n\nH\n\n -----Original Message-----\nFrom: \tVantor Purchasing\nSent:\tTuesday, November 10, 2026 11:20 AM\nTo:\tStrand, Helga\nSubject:\tRE: PO-8802 LM-50 x 1500\n\nHelga - 6.95 is over our number. can you get to 6.70 or lower on the 1,500?\n\nVantor Purchasing\n\n -----Original Message-----\nFrom: \tStrand, Helga\nSent:\tTuesday, November 10, 2026 10:30 AM\nTo:\tVantor Purchasing\nSubject:\tRE: PO-8802 LM-50 x 1500\n\nhi -\n\n6.95/ea all lots, 3 lots of 500 due 11/20, 11/27 and 12/2.\n\nLot\tQty\tShip\tDue\t$/ea\n1\t500\t11/17\t11/20\t6.95\n2\t500\t11/24\t11/27\t6.95\n3\t500\t11/30\t12/02\t6.95\n\nnet 30, FOB origin. quote NB-3391 attached.\n\nHelga Strand\nNorcastle Bearings  ph 616-555-0123\n\n -----Original Message-----\nFrom: \tVantor Purchasing\nSent:\tMonday, November 09, 2026 8:00 AM\nTo:\tStrand, Helga\nSubject:\tPO-8802 LM-50 x 1500\n\nHelga - pls quote 1,500 LM-50 linear bearings for PO-8802, all in by Fri Dec 4. ok to ship in lots. need unit price, lot dates, terms.\n\nthx\nVantor Purchasing",
+      "attachments": [
+        {
+          "filename": "Norcastle-Quote-NB-3391-R1.pdf",
+          "lines": [
+            "NORCASTLE BEARINGS - QUOTE NB-3391 REV 1",
+            "Customer: Vantor Technologies   Ref PO-8802",
+            "Item: LM-50 linear bearing, 50mm",
+            "Unit price: $6.74 (was $6.95, less 3%)",
+            "Total: $10,110.00"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m7",
+      "direction": "outbound",
+      "from": "purchasing@vantor.primitive.email",
+      "fromName": "Vantor Purchasing Agent",
+      "to": "h.strand@norcastle.example",
+      "subject": "RE: PO-8802 LM-50 x 1500",
+      "at": "2026-11-12T16:00:00Z",
+      "in_reply_to": "m6",
+      "body": "ok - 6.74/ea on all 3 lots works. we accept NB-3391 rev 1, PO-8802 releasing today at 6.74.\n\nVantor Purchasing\n\n -----Original Message-----\nFrom: \tStrand, Helga\nSent:\tThursday, November 12, 2026 9:10 AM\nTo:\tVantor Purchasing\nSubject:\tRE: PO-8802 LM-50 x 1500\n\ncan't get to 6.70 but can do 3% off across all 3 lots: 6.95 less 3% = 6.74/ea. change NB-3391 as follows:\n\nLot\tQty\tDue\tOrig $/ea\tRev $/ea\tRev ext\n1\t500\t11/20\t6.95\t6.74\t3,370.00\n2\t500\t11/27\t6.95\t6.74\t3,370.00\n3\t500\t12/02\t6.95\t6.74\t3,370.00\n\ntot $10,110.00. lot dates unchanged. fyi LM-60 stays at 8.10.\n\nH\n\n -----Original Message-----\nFrom: \tVantor Purchasing\nSent:\tTuesday, November 10, 2026 11:20 AM\nTo:\tStrand, Helga\nSubject:\tRE: PO-8802 LM-50 x 1500\n\nHelga - 6.95 is over our number. can you get to 6.70 or lower on the 1,500?\n\nVantor Purchasing\n\n -----Original Message-----\nFrom: \tStrand, Helga\nSent:\tTuesday, November 10, 2026 10:30 AM\nTo:\tVantor Purchasing\nSubject:\tRE: PO-8802 LM-50 x 1500\n\nhi -\n\n6.95/ea all lots, 3 lots of 500 due 11/20, 11/27 and 12/2.\n\nLot\tQty\tShip\tDue\t$/ea\n1\t500\t11/17\t11/20\t6.95\n2\t500\t11/24\t11/27\t6.95\n3\t500\t11/30\t12/02\t6.95\n\nnet 30, FOB origin. quote NB-3391 attached.\n\nHelga Strand\nNorcastle Bearings  ph 616-555-0123\n\n -----Original Message-----\nFrom: \tVantor Purchasing\nSent:\tMonday, November 09, 2026 8:00 AM\nTo:\tStrand, Helga\nSubject:\tPO-8802 LM-50 x 1500\n\nHelga - pls quote 1,500 LM-50 linear bearings for PO-8802, all in by Fri Dec 4. ok to ship in lots. need unit price, lot dates, terms.\n\nthx\nVantor Purchasing"
+    },
+    {
+      "id": "m8",
+      "direction": "inbound",
+      "from": "h.strand@norcastle.example",
+      "fromName": "Helga Strand",
+      "to": "purchasing@vantor.primitive.email",
+      "subject": "RE: PO-8802 LM-50 x 1500",
+      "at": "2026-11-12T19:25:00Z",
+      "in_reply_to": "m7",
+      "body": "thx, booked. I'll send the order ack tmrw.\nH\n\n -----Original Message-----\nFrom: \tVantor Purchasing\nSent:\tThursday, November 12, 2026 10:00 AM\nTo:\tStrand, Helga\nSubject:\tRE: PO-8802 LM-50 x 1500\n\nok - 6.74/ea on all 3 lots works. we accept NB-3391 rev 1, PO-8802 releasing today at 6.74.\n\nVantor Purchasing\n\n -----Original Message-----\nFrom: \tStrand, Helga\nSent:\tThursday, November 12, 2026 9:10 AM\nTo:\tVantor Purchasing\nSubject:\tRE: PO-8802 LM-50 x 1500\n\ncan't get to 6.70 but can do 3% off across all 3 lots: 6.95 less 3% = 6.74/ea. change NB-3391 as follows:\n\nLot\tQty\tDue\tOrig $/ea\tRev $/ea\tRev ext\n1\t500\t11/20\t6.95\t6.74\t3,370.00\n2\t500\t11/27\t6.95\t6.74\t3,370.00\n3\t500\t12/02\t6.95\t6.74\t3,370.00\n\ntot $10,110.00. lot dates unchanged. fyi LM-60 stays at 8.10.\n\nH\n\n -----Original Message-----\nFrom: \tVantor Purchasing\nSent:\tTuesday, November 10, 2026 11:20 AM\nTo:\tStrand, Helga\nSubject:\tRE: PO-8802 LM-50 x 1500\n\nHelga - 6.95 is over our number. can you get to 6.70 or lower on the 1,500?\n\nVantor Purchasing\n\n -----Original Message-----\nFrom: \tStrand, Helga\nSent:\tTuesday, November 10, 2026 10:30 AM\nTo:\tVantor Purchasing\nSubject:\tRE: PO-8802 LM-50 x 1500\n\nhi -\n\n6.95/ea all lots, 3 lots of 500 due 11/20, 11/27 and 12/2.\n\nLot\tQty\tShip\tDue\t$/ea\n1\t500\t11/17\t11/20\t6.95\n2\t500\t11/24\t11/27\t6.95\n3\t500\t11/30\t12/02\t6.95\n\nnet 30, FOB origin. quote NB-3391 attached.\n\nHelga Strand\nNorcastle Bearings  ph 616-555-0123\n\n -----Original Message-----\nFrom: \tVantor Purchasing\nSent:\tMonday, November 09, 2026 8:00 AM\nTo:\tStrand, Helga\nSubject:\tPO-8802 LM-50 x 1500\n\nHelga - pls quote 1,500 LM-50 linear bearings for PO-8802, all in by Fri Dec 4. ok to ship in lots. need unit price, lot dates, terms.\n\nthx\nVantor Purchasing"
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m5",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 6.95,
+          "stated_in": "m2",
+          "evidence": "6.95/ea all lots"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 1500,
+          "stated_in": "m2",
+          "evidence": "Quantity: 1,500"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 500,
+              "date": "2026-11-20"
+            },
+            {
+              "qty": 500,
+              "date": "2026-11-27"
+            },
+            {
+              "qty": 500,
+              "date": "2026-12-02"
+            }
+          ],
+          "stated_in": "m2",
+          "evidence": "3 lots of 500 due 11/20, 11/27 and 12/2"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m2",
+          "evidence": "net 30, FOB origin"
+        },
+        {
+          "party": "supplier",
+          "term": "quote.valid_until",
+          "value": "2026-12-10",
+          "stated_in": "m2",
+          "evidence": "Valid until: Dec 10, 2026"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 6.75,
+          "stated_in": "m5",
+          "evidence": "ok to 6.75/ea max"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Vantor (us)",
+          "kind": "question",
+          "about": "unit price, lot dates, terms",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "finance",
+          "owed_to": "Vantor (us)",
+          "kind": "question",
+          "about": "ok up to 6.75/ea",
+          "status": "answered",
+          "opened_in": "m3",
+          "resolved_in": "m5"
+        },
+        {
+          "owed_by": "supplier",
+          "owed_to": "Vantor (us)",
+          "kind": "question",
+          "about": "get to 6.70 or lower",
+          "status": "open",
+          "opened_in": "m4",
+          "resolved_in": null
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Norcastle-Quote-NB-3391.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "fail",
+        "budget_approval": "pass"
+      },
+      "next_actor": "them"
+    },
+    {
+      "after": "m6",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 6.74,
+          "stated_in": "m6",
+          "evidence": "6.95 less 3% = 6.74/ea"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 1500,
+          "stated_in": "m2",
+          "evidence": "Quantity: 1,500"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 500,
+              "date": "2026-11-20"
+            },
+            {
+              "qty": 500,
+              "date": "2026-11-27"
+            },
+            {
+              "qty": 500,
+              "date": "2026-12-02"
+            }
+          ],
+          "stated_in": "m2",
+          "evidence": "3 lots of 500 due 11/20, 11/27 and 12/2"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m2",
+          "evidence": "net 30, FOB origin"
+        },
+        {
+          "party": "supplier",
+          "term": "quote.valid_until",
+          "value": "2026-12-10",
+          "stated_in": "m2",
+          "evidence": "Valid until: Dec 10, 2026"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 6.75,
+          "stated_in": "m5",
+          "evidence": "ok to 6.75/ea max"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 6.95,
+          "stated_in": "m2",
+          "evidence": "6.95/ea all lots",
+          "replaced_in": "m6"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Vantor (us)",
+          "kind": "question",
+          "about": "get to 6.70 or lower",
+          "status": "answered",
+          "opened_in": "m4",
+          "resolved_in": "m6"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Norcastle-Quote-NB-3391.pdf",
+          "status": "superseded"
+        },
+        {
+          "filename": "Norcastle-Quote-NB-3391-R1.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "supplier",
+        "must": [
+          "6\\.74",
+          "accept|confirm|go ahead|release"
+        ],
+        "must_not": [
+          "6\\.75",
+          "\\b6\\.70\\b",
+          "8\\.10"
+        ]
+      }
+    },
+    {
+      "after": "m8",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 6.74,
+          "stated_in": "m6",
+          "evidence": "6.95 less 3% = 6.74/ea"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 1500,
+          "stated_in": "m2",
+          "evidence": "Quantity: 1,500"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 500,
+              "date": "2026-11-20"
+            },
+            {
+              "qty": 500,
+              "date": "2026-11-27"
+            },
+            {
+              "qty": 500,
+              "date": "2026-12-02"
+            }
+          ],
+          "stated_in": "m2",
+          "evidence": "3 lots of 500 due 11/20, 11/27 and 12/2"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m2",
+          "evidence": "net 30, FOB origin"
+        },
+        {
+          "party": "supplier",
+          "term": "quote.valid_until",
+          "value": "2026-12-10",
+          "stated_in": "m2",
+          "evidence": "Valid until: Dec 10, 2026"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 6.75,
+          "stated_in": "m5",
+          "evidence": "ok to 6.75/ea max"
+        },
+        {
+          "party": "Vantor (us)",
+          "term": "decision.order",
+          "value": "accepted",
+          "stated_in": "m7",
+          "evidence": "we accept NB-3391 rev 1"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 6.95,
+          "stated_in": "m2",
+          "evidence": "6.95/ea all lots",
+          "replaced_in": "m6"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Vantor (us)",
+          "kind": "commitment",
+          "about": "send the order acknowledgment",
+          "status": "open",
+          "opened_in": "m8",
+          "resolved_in": null
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Norcastle-Quote-NB-3391.pdf",
+          "status": "superseded"
+        },
+        {
+          "filename": "Norcastle-Quote-NB-3391-R1.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "them"
+    }
+  ],
+  "notes": "The new price is only in m6's '6.95 less 3% = 6.74/ea' and in an Orig/Rev per-lot table, with the old 6.95 in the Orig column and in all quoted history. 6.70 is our question (m4), not a term; 6.75 is the budget and must not leak to the supplier; LM-60 at 8.10 is another product. Distractors: per-lot ext 3,370.00, totals $10,425 / $10,110, 3%, ship dates 11/17-11/30 (not due dates), phone. Rev 1 PDF supersedes the original quote (same kind, same party)."
+}
