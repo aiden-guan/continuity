@@ -60,58 +60,20 @@
 .lc .hover circle.me { stroke: var(--signal); }
 .lc .hv { font: 600 11.5px var(--mono); font-variant-numeric: tabular-nums; fill: var(--muted); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; }
 .lc .hv.me { fill: var(--signal-ink); }
-.lc .hv-x { fill: var(--ink); paint-order: stroke; stroke: var(--surface); stroke-width: 6px; }
+.lc .hv-x { fill: var(--ink); paint-order: stroke; stroke: var(--surface); stroke-width: 14px; }
 
 @media (max-width: 720px) {
   .lc-grid { grid-template-columns: 1fr; }
 }
 
-/* ============================================================ 05 · competitors
-   Two ranked boards, leaderboard style: right calls and what the memory layer costs per case. */
-.rk-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; margin-top: 48px; }
-.rk { margin: 0; }
-.rk figcaption {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--ink);
-}
-.rk figcaption b { font: 600 15px/1.2 var(--sans); letter-spacing: -0.02em; }
-.rk figcaption span { font: 500 10.5px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
-.rk ol { margin: 0; padding: 0; list-style: none; }
-.rk li {
-  display: grid;
-  grid-template-columns: minmax(7.5em, 9em) minmax(0, 1fr) 4.6em;
-  align-items: center;
-  gap: 14px;
-  padding: 13px 0;
-  border-bottom: 1px solid var(--line);
-}
-.rk .nm b { display: block; font: 600 14px/1.15 var(--sans); letter-spacing: -0.01em; }
-.rk .nm span { display: block; margin-top: 4px; font: 500 9.5px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
-.rk .bar { height: 10px; background: var(--bg-2); }
-.rk .bar i {
-  display: block;
-  width: max(3px, calc(var(--w) * 100%));
-  height: 100%;
-  background: var(--line-2);
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 1s var(--ease) calc(var(--d, 0s) + 0.2s);
-}
-.rk li.me .bar i { background: var(--signal); transition-duration: 1.3s; }
-.rk.in .bar i { transform: none; }
-.rk li:nth-child(2) .bar i { transition-delay: calc(var(--d, 0s) + 0.3s); }
-.rk li:nth-child(3) .bar i { transition-delay: calc(var(--d, 0s) + 0.4s); }
-.rk li:nth-child(4) .bar i { transition-delay: calc(var(--d, 0s) + 0.5s); }
-.rk .bar.none { background: none; border-top: 1px dashed var(--line-2); height: 0; }
-.rk .v { font: 500 13px/1 var(--mono); font-variant-numeric: tabular-nums; text-align: right; color: var(--muted); }
-.rk li.me .nm b { color: var(--ink); }
-.rk li.me .v { font-weight: 600; color: var(--signal-ink); }
-
-@media (max-width: 720px) {
-  .rk-grid { grid-template-columns: 1fr; }
-  .rk li { grid-template-columns: 7em minmax(0, 1fr) 4.4em; gap: 10px; }
-}
+/* ============================================================ competitors in the leaderboard
+   Mem0 and Zep sit beside Primitive alone in each benchmark: Mem0 a solid mid-grey, Zep an outline,
+   so the only colour on the board is still Continuity's. */
+.col.r1 i,
+.lb-key .r1 i,
+.spec th i.r1 { background: color-mix(in srgb, var(--muted) 72%, transparent); }
+.col.r2 i,
+.lb-key .r2 i,
+.spec th i.r2 { background: transparent; box-shadow: inset 0 0 0 1.5px var(--muted); }
+.lc.picked { background: var(--surface); }
+.lc:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--signal); }

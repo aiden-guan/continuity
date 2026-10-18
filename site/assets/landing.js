@@ -318,37 +318,42 @@ async function setupStory() {
   one('#foot-src').textContent = `story: real engine output, ${snap.captured_at.slice(0, 10)}`;
 }
 
-// ============================================================ 4 · results: hover a benchmark for its spec
-// The card sits in the label column's empty space, level with the leaderboard; on narrow screens it
-// follows the leaderboard and a tap picks the benchmark.
+// ============================================================ 4 · results: hover a benchmark or a chart for its spec
+// Each board (the leaderboard, the line charts) has its own card, which sits in the label column's empty
+// space level with the board; on narrow screens it follows the board and a tap picks the item.
 function setupBenchSpec() {
-  const lb = one('.lb');
-  const spec = one('.lb-spec');
-  if (!lb || !spec) return;
   const grid = one('#proof .sec-grid');
   const label = one('#proof .sec-k');
-  const cards = all('.spec', spec);
-  const panels = all('.bench', lb);
-  const show = (key) => {
-    cards.forEach((c) => c.classList.toggle('on', c.dataset.for === key));
-    panels.forEach((p) => p.classList.toggle('on', p.dataset.spec === key));
-  };
-  panels.forEach((p) => {
-    const pick = () => show(p.dataset.spec);
-    p.addEventListener('mouseenter', pick);
-    p.addEventListener('focus', pick);
-    p.addEventListener('click', pick);
-  });
-  lb.addEventListener('mouseleave', () => show('hint'));
+  for (const board of all('#proof .lb, #proof .lc-grid')) {
+    const spec = board.nextElementSibling?.matches('.lb-spec') ? board.nextElementSibling : null;
+    if (!spec) continue;
+    const cards = all('.spec', spec);
+    const items = all('[data-spec]', board);
+    let picked = null;
+    const show = (key) => {
+      cards.forEach((c) => c.classList.toggle('on', c.dataset.for === key));
+      items.forEach((p) => p.classList.toggle('picked', p.dataset.spec === key));
+      picked = items.find((p) => p.dataset.spec === key) ?? null;
+      place();
+    };
+    items.forEach((p) => {
+      const pick = () => show(p.dataset.spec);
+      p.addEventListener('mouseenter', pick);
+      p.addEventListener('focus', pick);
+      p.addEventListener('click', pick);
+    });
+    board.addEventListener('mouseleave', () => show('hint'));
 
-  const place = () => {
-    const beside = getComputedStyle(grid).gridTemplateColumns.split(' ').length > 1;
-    spec.classList.toggle('beside', beside);
-    spec.style.top = beside ? `${lb.offsetTop}px` : '';
-    spec.style.width = beside ? `${label.getBoundingClientRect().width}px` : '';
-  };
-  new ResizeObserver(place).observe(grid);
-  place();
+    const place = () => {
+      const beside = getComputedStyle(grid).gridTemplateColumns.split(' ').length > 1;
+      spec.classList.toggle('beside', beside);
+      // level with the picked item's row (the charts are two rows deep), else with the board
+      spec.style.top = beside ? `${picked ? picked.offsetTop : board.offsetTop}px` : '';
+      spec.style.width = beside ? `${label.getBoundingClientRect().width}px` : '';
+    };
+    new ResizeObserver(place).observe(grid);
+    place();
+  }
 }
 
 // ============================================================ 5 · wordmark

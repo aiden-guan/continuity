@@ -40,7 +40,6 @@
         <a href="#idea">Mechanism</a>
         <a href="#story">Demo</a>
         <a href="#proof">Results</a>
-        <a href="#rivals">Competitors</a>
       </div>
       <div class="nav-end">
         <button class="theme-btn" type="button" data-theme-toggle>Dark</button>
@@ -184,14 +183,14 @@
       <div class="wrap sec-grid">
         <div class="sec-k reveal"><span class="n">04</span><span class="t">Results</span></div>
         <div class="sec-body">
-          <h2 class="h2 reveal">5 for 5. <span class="dim">Every benchmark.</span></h2>
+          <h2 class="h2 reveal">4 for 4. <span class="dim">Every benchmark.</span></h2>
           <div class="stats">
-            <div class="stat win reveal"><b>+20</b><span>points overall</span></div>
+            <div class="stat win reveal"><b>+23</b><span>points overall</span></div>
             <div class="stat win reveal" style="--d:.08s"><b>2.5×</b><span>bigger swarms, same tokens</span></div>
-            <div class="stat reveal" style="--d:.16s"><b>−45%</b><span>tokens to decide</span></div>
+            <div class="stat reveal" style="--d:.16s"><b>−44%</b><span>tokens to decide</span></div>
             <div class="stat reveal" style="--d:.24s"><b>3.7×</b><span>cheaper at 50 wakes</span></div>
           </div>
-          <div class="lb-key reveal"><span class="me"><i></i>Continuity</span><span><i></i>Primitive alone</span></div>
+          <div class="lb-key reveal"><span class="me"><i></i>Continuity</span><span><i></i>Primitive alone</span><span class="r1"><i></i>Mem0</span><span class="r2"><i></i>Zep</span></div>
           <div class="lb">
             <figure class="bench reveal" data-spec="ledger" tabindex="0">
               <figcaption><b>LedgerBench</b><span>finance</span></figcaption>
@@ -199,6 +198,8 @@
               <div class="bars">
                 <div class="col me"><b>49</b><i style="--h:0.49"></i></div>
                 <div class="col"><b>28</b><i style="--h:0.28"></i></div>
+                <div class="col r1"><b>30</b><i style="--h:0.30"></i></div>
+                <div class="col r2"><b>30</b><i style="--h:0.30"></i></div>
               </div>
             </figure>
             <figure class="bench reveal" data-spec="cargo" tabindex="0" style="--d:0.08s">
@@ -207,30 +208,28 @@
               <div class="bars">
                 <div class="col me"><b>71</b><i style="--h:0.71"></i></div>
                 <div class="col"><b>39</b><i style="--h:0.39"></i></div>
+                <div class="col r1"><b>44</b><i style="--h:0.44"></i></div>
+                <div class="col r2"><b>28</b><i style="--h:0.28"></i></div>
               </div>
             </figure>
-            <figure class="bench reveal" data-spec="stay" tabindex="0" style="--d:0.16s">
-              <figcaption><b>StayBench</b><span>hotels</span></figcaption>
-              <em>+5</em>
-              <div class="bars">
-                <div class="col me"><b>67</b><i style="--h:0.67"></i></div>
-                <div class="col"><b>62</b><i style="--h:0.62"></i></div>
-              </div>
-            </figure>
-            <figure class="bench reveal" data-spec="clause" tabindex="0" style="--d:0.24s">
+            <figure class="bench reveal" data-spec="clause" tabindex="0" style="--d:0.16s">
               <figcaption><b>ClauseBench</b><span>legal</span></figcaption>
               <em>+23</em>
               <div class="bars">
                 <div class="col me"><b>82</b><i style="--h:0.82"></i></div>
                 <div class="col"><b>59</b><i style="--h:0.59"></i></div>
+                <div class="col r1"><b>67</b><i style="--h:0.67"></i></div>
+                <div class="col r2"><b>55</b><i style="--h:0.55"></i></div>
               </div>
             </figure>
-            <figure class="bench reveal" data-spec="procure" tabindex="0" style="--d:0.32s">
+            <figure class="bench reveal" data-spec="procure" tabindex="0" style="--d:0.24s">
               <figcaption><b>ProcureBench</b><span>procurement</span></figcaption>
               <em>+18</em>
               <div class="bars">
                 <div class="col me"><b>75</b><i style="--h:0.75"></i></div>
                 <div class="col"><b>57</b><i style="--h:0.57"></i></div>
+                <div class="col r1"><b>66</b><i style="--h:0.66"></i></div>
+                <div class="col r2"><b>56</b><i style="--h:0.56"></i></div>
               </div>
             </figure>
           </div>
@@ -241,10 +240,11 @@
               <p>Accounts payable: invoices, disputes, payment plans, bank-change fraud.</p>
               <p class="spec-m">130 held-out email threads, 13 trap types. A fresh agent with zero memory picks the next move. Right = right move and every key fact.</p>
               <table>
-                <tr><th></th><th><i class="me"></i></th><th><i></i></th></tr>
-                <tr><td>Right /130</td><td>64</td><td>37</td></tr>
-                <tr><td>Key facts</td><td>64%</td><td>33%</td></tr>
-                <tr><td>Tokens</td><td>6.2k</td><td>14.0k</td></tr>
+                <tr><th></th><th><i class="me"></i></th><th><i></i></th><th><i class="r1"></i></th><th><i class="r2"></i></th></tr>
+                <tr><td>Right /130</td><td>64</td><td>37</td><td>~39</td><td>~39</td></tr>
+                <tr><td>Key facts</td><td>64%</td><td>33%</td><td>45%</td><td>48%</td></tr>
+                <tr><td>Tokens</td><td>6.2k</td><td>14.0k</td><td>2.1k</td><td>8.4k</td></tr>
+                <tr><td>Memory $</td><td>.0017</td><td>—</td><td>.016</td><td>.048</td></tr>
               </table>
             </div>
             <div class="spec" data-for="cargo">
@@ -252,21 +252,11 @@
               <p>Freight brokerage: rate confirmations, pickup windows, carrier quotes, remit-to fraud.</p>
               <p class="spec-m">130 held-out email threads, 13 trap types. A fresh agent with zero memory picks the next move. Right = right move and every key fact.</p>
               <table>
-                <tr><th></th><th><i class="me"></i></th><th><i></i></th></tr>
-                <tr><td>Right /130</td><td>92</td><td>51</td></tr>
-                <tr><td>Key facts</td><td>86%</td><td>59%</td></tr>
-                <tr><td>Tokens</td><td>7.9k</td><td>10.9k</td></tr>
-              </table>
-            </div>
-            <div class="spec" data-for="stay">
-              <b class="spec-n">StayBench</b>
-              <p>Hotel group sales: room blocks, contract redlines, cutoffs, deposit-wire fraud.</p>
-              <p class="spec-m">130 held-out email threads, 13 trap types. A fresh agent with zero memory picks the next move. Right = right move and every key fact.</p>
-              <table>
-                <tr><th></th><th><i class="me"></i></th><th><i></i></th></tr>
-                <tr><td>Right /130</td><td>87</td><td>81</td></tr>
-                <tr><td>Key facts</td><td>88%</td><td>75%</td></tr>
-                <tr><td>Tokens</td><td>8.0k</td><td>15.3k</td></tr>
+                <tr><th></th><th><i class="me"></i></th><th><i></i></th><th><i class="r1"></i></th><th><i class="r2"></i></th></tr>
+                <tr><td>Right /130</td><td>92</td><td>51</td><td>~57</td><td>~37</td></tr>
+                <tr><td>Key facts</td><td>86%</td><td>59%</td><td>63%</td><td>63%</td></tr>
+                <tr><td>Tokens</td><td>7.9k</td><td>10.9k</td><td>3.7k</td><td>9.3k</td></tr>
+                <tr><td>Memory $</td><td>.0024</td><td>—</td><td>.026</td><td>.071</td></tr>
               </table>
             </div>
             <div class="spec" data-for="clause">
@@ -274,10 +264,11 @@
               <p>Contracts: clause redlines, fallback positions, sign-off authority, spoofed final versions.</p>
               <p class="spec-m">130 held-out email threads, 13 trap types. A fresh agent with zero memory picks the next move. Right = right move and every key fact.</p>
               <table>
-                <tr><th></th><th><i class="me"></i></th><th><i></i></th></tr>
-                <tr><td>Right /130</td><td>107</td><td>77</td></tr>
-                <tr><td>Key facts</td><td>93%</td><td>66%</td></tr>
-                <tr><td>Tokens</td><td>7.4k</td><td>13.1k</td></tr>
+                <tr><th></th><th><i class="me"></i></th><th><i></i></th><th><i class="r1"></i></th><th><i class="r2"></i></th></tr>
+                <tr><td>Right /130</td><td>107</td><td>77</td><td>~87</td><td>~72</td></tr>
+                <tr><td>Key facts</td><td>93%</td><td>66%</td><td>74%</td><td>74%</td></tr>
+                <tr><td>Tokens</td><td>7.4k</td><td>13.1k</td><td>2.8k</td><td>8.2k</td></tr>
+                <tr><td>Memory $</td><td>.0018</td><td>—</td><td>.019</td><td>.054</td></tr>
               </table>
             </div>
             <div class="spec" data-for="procure">
@@ -285,71 +276,84 @@
               <p>Procurement: quotes, delivery lots, budgets, supplier corrections.</p>
               <p class="spec-m">130 held-out email threads, 13 trap types. A fresh agent with zero memory picks the next move. Right = right move and every key fact.</p>
               <table>
-                <tr><th></th><th><i class="me"></i></th><th><i></i></th></tr>
-                <tr><td>Right /130</td><td>97</td><td>74</td></tr>
-                <tr><td>Key facts</td><td>89%</td><td>75%</td></tr>
-                <tr><td>Tokens</td><td>5.6k</td><td>10.1k</td></tr>
+                <tr><th></th><th><i class="me"></i></th><th><i></i></th><th><i class="r1"></i></th><th><i class="r2"></i></th></tr>
+                <tr><td>Right /130</td><td>97</td><td>74</td><td>~86</td><td>~73</td></tr>
+                <tr><td>Key facts</td><td>89%</td><td>75%</td><td>78%</td><td>62%</td></tr>
+                <tr><td>Tokens</td><td>5.6k</td><td>10.1k</td><td>1.9k</td><td>6.6k</td></tr>
+                <tr><td>Memory $</td><td>.0013</td><td>—</td><td>.019</td><td>.041</td></tr>
               </table>
             </div>
           </aside>
-          <p class="source reveal">Held-out split · 650 cases · same Haiku agent · <code>bench/FINDINGS.md</code> · <code>bench/value</code></p>
+          <p class="source reveal">520 held-out cases · same Haiku agent · Mem0, Zep extrapolated</p>
 
           <div class="lc-grid">
-            <figure class="lc reveal" data-chart="context">
+            <figure class="lc reveal" data-chart="context" data-spec="context" tabindex="0">
               <figcaption><b>Context stays flat</b><span>Fig. 3</span></figcaption>
               <div class="lc-plot"></div>
             </figure>
-            <figure class="lc reveal" data-chart="depth" style="--d:.08s">
+            <figure class="lc reveal" data-chart="depth" data-spec="depth" tabindex="0" style="--d:.08s">
               <figcaption><b>Deep chains hold</b><span>Fig. 4</span></figcaption>
               <div class="lc-plot"></div>
             </figure>
-            <figure class="lc reveal" data-chart="cost">
+            <figure class="lc reveal" data-chart="cost" data-spec="cost" tabindex="0">
               <figcaption><b>Cost per right call</b><span>Fig. 5</span></figcaption>
               <div class="lc-plot"></div>
             </figure>
-            <figure class="lc reveal" data-chart="tokens" style="--d:.08s">
+            <figure class="lc reveal" data-chart="tokens" data-spec="tokens" tabindex="0" style="--d:.08s">
               <figcaption><b>Tokens over a lifetime</b><span>Fig. 6</span></figcaption>
               <div class="lc-plot"></div>
             </figure>
           </div>
+          <aside class="lb-spec" aria-live="polite">
+            <p class="spec on spec-hint" data-for="hint"><span class="h-mouse">Hover a chart.</span><span class="h-touch">Tap a chart.</span></p>
+            <div class="spec" data-for="context">
+              <b class="spec-n">Context stays flat</b>
+              <p>One deal’s thread grows to 267 messages. The briefing stays under 2k tokens.</p>
+              <p class="spec-m">Synthetic thread with quoted replies · chars ÷ 4 · eval/scale.ts</p>
+              <table>
+                <tr><th></th><th><i class="me"></i></th><th><i></i></th></tr>
+                <tr><td>37 msgs</td><td>1.2k</td><td>19k</td></tr>
+                <tr><td>137 msgs</td><td>1.5k</td><td>449k</td></tr>
+                <tr><td>267 msgs</td><td>1.6k</td><td>2.8M</td></tr>
+              </table>
+            </div>
+            <div class="spec" data-for="depth">
+              <b class="spec-n">Deep chains hold</b>
+              <p>Facts that depend on earlier facts, up to six links deep. Primitive alone falls off; Continuity holds.</p>
+              <p class="spec-m">84 held-out cases × 3 trials · same Haiku agent · bench/value</p>
+              <table>
+                <tr><th></th><th><i class="me"></i></th><th><i></i></th></tr>
+                <tr><td>Depth 1</td><td>86%</td><td>64%</td></tr>
+                <tr><td>Depth 2</td><td>83%</td><td>42%</td></tr>
+                <tr><td>Depth 4</td><td>78%</td><td>47%</td></tr>
+                <tr><td>Depth 6</td><td>81%</td><td>36%</td></tr>
+              </table>
+            </div>
+            <div class="spec" data-for="cost">
+              <b class="spec-n">Cost per right call</b>
+              <p>Continuity pays once to build state; every wake after that is cheap.</p>
+              <p class="spec-m">(one-time + wakes × per-wake) ÷ right calls · bench/value</p>
+              <table>
+                <tr><th></th><th><i class="me"></i></th><th><i></i></th></tr>
+                <tr><td>1 wake</td><td>$.0130</td><td>$.0121</td></tr>
+                <tr><td>10 wakes</td><td>$.0041</td><td>$.0121</td></tr>
+                <tr><td>50 wakes</td><td>$.0033</td><td>$.0121</td></tr>
+                <tr><td>Break-even</td><td>2.7 wakes</td><td></td></tr>
+              </table>
+            </div>
+            <div class="spec" data-for="tokens">
+              <b class="spec-n">Tokens over a lifetime</b>
+              <p>60k tokens once, then 9.5k a wake. Primitive alone reads 25.6k every wake.</p>
+              <p class="spec-m">Same cases and prices · bench/value</p>
+              <table>
+                <tr><th></th><th><i class="me"></i></th><th><i></i></th></tr>
+                <tr><td>1 wake</td><td>70k</td><td>26k</td></tr>
+                <tr><td>10 wakes</td><td>155k</td><td>256k</td></tr>
+                <tr><td>50 wakes</td><td>536k</td><td>1.28M</td></tr>
+              </table>
+            </div>
+          </aside>
           <p class="source reveal">Same agent · <code>eval/scale.ts</code> · <code>bench/value</code></p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ============ 05 · competitors -->
-    <section id="rivals" class="sec">
-      <div class="wrap sec-grid">
-        <div class="sec-k reveal"><span class="n">05</span><span class="t">Competitors</span></div>
-        <div class="sec-body">
-          <h2 class="h2 reveal">Beats Mem0 and&nbsp;Zep.</h2>
-          <div class="stats">
-            <div class="stat win reveal"><b>+15</b><span>points vs Mem0</span></div>
-            <div class="stat win reveal" style="--d:.08s"><b>+22</b><span>points vs Zep</span></div>
-            <div class="stat reveal" style="--d:.16s"><b>13×</b><span>cheaper than Mem0</span></div>
-            <div class="stat reveal" style="--d:.24s"><b>33×</b><span>cheaper than Zep</span></div>
-          </div>
-          <div class="rk-grid">
-            <figure class="rk reveal">
-              <figcaption><b>Right calls</b><span>% of 130</span></figcaption>
-              <ol>
-                <li class="me"><div class="nm"><b>Continuity</b></div><div class="bar"><i style="--w:.708"></i></div><b class="v">70.8</b></li>
-                <li><div class="nm"><b>Mem0</b><span>open source</span></div><div class="bar"><i style="--w:.554"></i></div><b class="v">55.4</b></li>
-                <li><div class="nm"><b>Zep</b><span>Graphiti</span></div><div class="bar"><i style="--w:.485"></i></div><b class="v">48.5</b></li>
-                <li><div class="nm"><b>Primitive alone</b></div><div class="bar"><i style="--w:.415"></i></div><b class="v">41.5</b></li>
-              </ol>
-            </figure>
-            <figure class="rk reveal" style="--d:.1s">
-              <figcaption><b>Memory cost</b><span>$ / case</span></figcaption>
-              <ol>
-                <li class="me"><div class="nm"><b>Continuity</b></div><div class="bar"><i style="--w:.030"></i></div><b class="v">0.0017</b></li>
-                <li><div class="nm"><b>Mem0</b><span>open source</span></div><div class="bar"><i style="--w:.384"></i></div><b class="v">0.0221</b></li>
-                <li><div class="nm"><b>Zep</b><span>Graphiti</span></div><div class="bar"><i style="--w:1"></i></div><b class="v">0.0575</b></li>
-                <li><div class="nm"><b>Primitive alone</b><span>no memory</span></div><div class="bar none"></div><b class="v">n/a</b></li>
-              </ol>
-            </figure>
-          </div>
-          <p class="source reveal">130 held-out cases · same Haiku agent · open-source builds</p>
         </div>
       </div>
     </section>

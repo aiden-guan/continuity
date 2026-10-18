@@ -778,7 +778,7 @@
 .lb-key .lb-unit { margin-left: auto; color: var(--faint); }
 .lb {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-top: 14px;
   border-top: 1px solid var(--ink);
   border-left: 1px solid var(--line);
@@ -814,9 +814,9 @@
 .bench:not(.in) em { opacity: 0; transform: scale(0.6); }
 .bars {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 44px));
+  grid-template-columns: repeat(4, minmax(0, 34px));
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   height: 140px;
   margin-top: 10px;
 }
@@ -846,7 +846,7 @@
 /* a benchmark's spec: what it is, how it ran, three numbers */
 #proof .sec-body { position: relative; }
 .bench { cursor: default; outline: none; transition: background 0.25s; }
-.bench.on { background: var(--surface); }
+.bench.picked { background: var(--surface); }
 .bench:focus-visible { box-shadow: inset 0 0 0 2px var(--signal); }
 .lb-spec { margin-top: 20px; }
 .lb-spec.beside { position: absolute; top: 0; right: calc(100% + 40px); margin: 0; }
@@ -873,7 +873,6 @@
   .stat:nth-child(3) { padding-left: 0; border-left: 0; }
   .stat:nth-child(n + 3) { border-top: 1px solid var(--line); }
   .lb { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .bench:last-child { grid-column: 1 / -1; }
 }
 @media (max-width: 520px) {
   .stat { padding-right: 10px; }
