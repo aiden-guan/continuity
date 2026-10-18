@@ -16,19 +16,19 @@ import { rng } from '../core/util.ts';
 const dirs = process.argv.slice(2);
 if (!dirs.length) throw new Error('usage: node bench/value/analyze.ts <results-dir> …');
 
-function rowsOf(dir: string): Row[] {
+// one row per case|condition|trial across every directory (a later directory wins), last good row first
+const by = new Map<string, Row>();
+for (const dir of dirs) {
   const file = join(dir, 'rows.jsonl');
-  if (!existsSync(file)) return [];
-  const by = new Map<string, Row>();
+  if (!existsSync(file)) continue;
   for (const line of readFileSync(file, 'utf8').split('\n').filter(Boolean)) {
     const r = JSON.parse(line) as Row;
     const prev = by.get(r.key);
     if (!r.error || !prev || prev.error) by.set(r.key, r);
   }
-  return [...by.values()].filter((r) => !r.error && !r.unsupported);
 }
-const rows = dirs.flatMap(rowsOf);
-const errors = dirs.flatMap((d) => (existsSync(join(d, 'rows.jsonl')) ? readFileSync(join(d, 'rows.jsonl'), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l) as Row) : [])).filter((r) => r.error).length;
+const rows = [...by.values()].filter((r) => !r.error && !r.unsupported);
+const errors = [...by.values()].filter((r) => r.error).length;
 
 // ---- per-row metrics
 const DECISION_SKIP = new Set(['to_finance', 'to_supplier']);

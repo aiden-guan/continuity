@@ -94,7 +94,7 @@ function questionsOf(c: BenchCase, mb: Mailbox): Questions {
   const q3 = cands.length ? cands[c.variant % cands.length] : null;
   const q1 = mid.blockers.map((b) => BLOCKER_OF[b]).sort();
   const text = [
-    `Q1. Right after ${at_desc} arrived, which problems blocked placing the order at that moment? Choose every one that applied then: over_budget (the supplier's unit price at that time was above finance's approved cap at that time), late_units (some units were due after the deadline), disputed_date (the supplier and its freight forwarder disagreed on the delivery date), quote_owed (the supplier had promised a revised or updated quote that had not arrived yet). Answer ["none"] if nothing blocked the order then.`,
+    `Q1. Right after ${at_desc} arrived, which problems blocked placing the order at that moment? Choose every one that applied then: over_budget (the supplier's unit price at that time was above finance's approved cap at that time), late_units (the supplier's own current schedule had some units due after the deadline), disputed_date (the supplier and its freight forwarder disagreed on the delivery date; a late date that only the forwarder gave counts as disputed_date, not late_units), quote_owed (the supplier had promised a revised or updated quote that had not arrived yet). Answer ["none"] if nothing blocked the order then.`,
     `Q2. At that same moment (right after ${atMsg.id}), what was the supplier's unit price, and what was finance's approved cap per unit?`,
     q3 ? `Q3. Which message made ${q3.term === 'price' ? "the supplier's unit price" : "finance's approved cap"} of ${q3.value} no longer valid? Give its message id.` : 'Q3. (no question; answer null)',
   ].join('\n');
