@@ -8,10 +8,12 @@
 // The SQLite file is opened read-only and is never changed. Nothing moves implicitly: you name the file,
 // the target organization and (optionally) which tasks.
 //   copy   (default) evidence + projection rows copied as-is; ids kept; integrity = exact equality
-//   replay evidence + saved extraction proposals re-applied by today's resolver; evidence must match
-//          exactly, projection differences are reported (expected after semantic upgrades)
+//   replay evidence + saved extraction proposals re-applied by today's resolver, with the human decisions
+//          (approvals, verifications) re-applied where they were made; evidence must match exactly,
+//          projection differences are reported (expected after semantic upgrades)
 // After importing we check: evidence fingerprints, extraction versions, projection fingerprint (copy),
-// and an in-memory replay of the imported evidence, which must reproduce the imported projection.
+// that every human decision of the source landed (both modes), and an in-memory replay of the imported
+// evidence, which must reproduce the imported projection.
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
@@ -19,7 +21,7 @@ import { SqliteBackend } from '../src/store/sqlite.ts';
 import { PostgresBackend } from '../src/store/postgres.ts';
 import type { MemoryStore } from '../src/store/state.ts';
 import type { BlobIn } from '../src/store/backend.ts';
-import { replayTask } from '../src/engine/replay.ts';
+import { decisionLog, replayTask } from '../src/engine/replay.ts';
 import { storageConfig } from '../src/store/index.ts';
 
 const sha256 = (data: string | Buffer) => createHash('sha256').update(data).digest('hex');
@@ -65,13 +67,14 @@ export function projectionFingerprint(store: MemoryStore, taskId: string) {
     artifacts: store.artifactsForTask(taskId).map((art) => [art.id, art.filename, art.sha256, art.status, art.superseded_by]),
     checks: store.getChecks(taskId).map((c) => [c.id, c.status, c.detail]).sort(),
     transitions: store.transitionsForTask(taskId).map((t) => [t.type, t.summary]),
+    decisions: decisionLog(store, taskId),
   };
 }
 
 const sameJson = (x: unknown, y: unknown) => canonical(x) === canonical(y);
 
 /** Projection sections compared between source, target and replay. */
-const PROJECTION_PARTS = ['claims', 'obligations', 'artifacts', 'checks'] as const;
+const PROJECTION_PARTS = ['claims', 'obligations', 'artifacts', 'checks', 'decisions'] as const;
 type Projection = ReturnType<typeof projectionFingerprint>;
 const differingParts = (x: Projection, y: Projection) => PROJECTION_PARTS.filter((k) => !sameJson(x[k], y[k]));
 
@@ -184,6 +187,8 @@ export async function importSqlite(opts: { db: string; org: string; target: Post
       const tgtProjection = projectionFingerprint(landed, taskId);
       if (mode === 'copy') integrity.projection_identical = sameJson(srcProjection, tgtProjection);
       else integrity.projection_diff = differingParts(srcProjection, tgtProjection).join(', ') || 'none';
+      // approvals and verifications are not in the emails: whatever the mode, none may be lost on the way
+      integrity.decisions_preserved = sameJson(srcProjection.decisions, tgtProjection.decisions);
       // re-apply the imported evidence + proposals with today's resolver
       const reReplayed = await replayTask(landed, taskId);
       const replayDiff = differingParts(projectionFingerprint(reReplayed, taskId), tgtProjection);

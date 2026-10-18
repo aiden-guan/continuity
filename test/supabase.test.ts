@@ -20,6 +20,8 @@ import { SqliteBackend } from '../src/store/sqlite.ts';
 import type { PostgresBackend } from '../src/store/postgres.ts';
 import { importSqlite } from '../scripts/import-sqlite.ts';
 import { PG_URL, STORAGE, pg, closeAll, uniqueOrg } from './backends.ts';
+import { decisionStory } from './decisions-story.ts';
+import { approvalsForTask } from '../src/engine/approval-log.ts';
 
 const skip = !PG_URL ? 'CONTINUITY_TEST_DB_URL not set (npm run test:supabase)' : false;
 
@@ -243,6 +245,35 @@ test('SQLite import: dry-run inventory, exact copy with integrity checks, repeat
     // Rolling back removes the task and everything under it.
     await target.deleteTask(org, 'task_po4817');
     assert.equal(await target.getTask(org, 'task_po4817'), null, 'rollback removed the task and its rows');
+  } finally {
+    rmSync(workDir, { recursive: true, force: true });
+  }
+});
+
+test('SQLite import keeps human decisions in both modes, and checks that it did', { skip }, async () => {
+  const workDir = mkdtempSync(join(tmpdir(), 'continuity-import-decisions-'));
+  try {
+    // a source whose state depends on approvals and phone verifications, not only on email
+    const dbFile = join(workDir, 'source.db');
+    const source = new SqliteBackend(dbFile);
+    const story = await decisionStory(source, 'org_local');
+    const statuses = (store: typeof story.h.store) => approvalsForTask(store, story.taskId).map((x) => `${x.kind}:${x.status}:${x.decided_by}`);
+    const terms = (store: typeof story.h.store) => store.claimsForTask(story.taskId).filter((c) => c.key === 'payment.terms').map((c) => `${c.display}:${c.status}`);
+    const expected = { approvals: statuses(story.h.store), terms: terms(story.h.store) };
+    assert.ok(expected.approvals.includes('verify_change:verified:approver:Alex') && expected.approvals.includes('send:approved:approver:Alex'));
+    await source.close();
+
+    const target = (await pg()) as PostgresBackend;
+    for (const mode of ['replay', 'copy'] as const) {
+      const org = uniqueOrg(`import_${mode}`);
+      const [row] = (await importSqlite({ db: dbFile, org, target, apply: true, mode })).tasks;
+      assert.equal(row.status, 'imported', JSON.stringify(row));
+      assert.equal(row.integrity!.decisions_preserved, true, mode);
+      if (mode === 'replay') assert.equal(row.integrity!.replay_reproduces_projection, true);
+      const landed = (await target.loadTask(org, story.taskId)).store;
+      assert.deepEqual({ approvals: statuses(landed), terms: terms(landed) }, expected, mode);
+      await target.deleteTask(org, story.taskId);
+    }
   } finally {
     rmSync(workDir, { recursive: true, force: true });
   }
