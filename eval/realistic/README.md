@@ -24,6 +24,9 @@ node eval/realistic/validate.ts                 # check every thread file
 4. **Validated** ([schema.ts](schema.ts)): every gold term must quote, verbatim, the words that state it in
    the new text (above any quote) of the message it cites; message threading, parties, term keys, value
    formats and checkpoint order are checked. The rules the gold follows are in [AUTHORING.md](AUTHORING.md).
+5. **Revised 2026-10-18:** our own offer terms in the real-estate threads are labelled consistently
+   ([AUTHORING.md](AUTHORING.md) rule 13). Before, the gold listed our offered price in some threads and not
+   others (R13's opening offer but not R01's), and never our offered closing dates.
 
 Each thread names the hard cases it exercises (`features`): buried corrections, from/to changes, partial
 updates, contested values between two people on the same side, hedges, speakers without authority, forged

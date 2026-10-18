@@ -287,6 +287,13 @@
           "value": 1080000,
           "stated_in": "m1",
           "evidence": "we offer $1,080,000 for 301 Calloway St"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-22",
+          "stated_in": "m1",
+          "evidence": "closing by Tue Dec 22"
         }
       ],
       "obligations": [
@@ -378,6 +385,13 @@
           "value": 1110000,
           "stated_in": "m6",
           "evidence": "bring the price down to $1,110,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-22",
+          "stated_in": "m1",
+          "evidence": "closing by Tue Dec 22"
         }
       ],
       "superseded": [
@@ -489,6 +503,13 @@
           "value": 1110000,
           "stated_in": "m6",
           "evidence": "bring the price down to $1,110,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-22",
+          "stated_in": "m1",
+          "evidence": "closing by Tue Dec 22"
         }
       ],
       "superseded": [

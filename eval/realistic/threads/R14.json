@@ -249,6 +249,13 @@
           "value": 585000,
           "stated_in": "m2",
           "evidence": "we offer $585,000 for 88 Sorrel Bend"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-23",
+          "stated_in": "m2",
+          "evidence": "closing by Wed Dec 23"
         }
       ],
       "obligations": [
@@ -315,6 +322,13 @@
           "value": 598000,
           "stated_in": "m8",
           "evidence": "we counter at $598,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m8",
+          "evidence": "closing Dec 18 is fine"
         }
       ],
       "superseded": [
@@ -332,6 +346,14 @@
           "value": 585000,
           "stated_in": "m2",
           "evidence": "we offer $585,000 for 88 Sorrel Bend",
+          "replaced_in": "m8"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-23",
+          "stated_in": "m2",
+          "evidence": "closing by Wed Dec 23",
           "replaced_in": "m8"
         }
       ],
@@ -415,6 +437,13 @@
           "value": 607000,
           "stated_in": "m10",
           "evidence": "came in at $607,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m8",
+          "evidence": "closing Dec 18 is fine"
         }
       ],
       "superseded": [
@@ -432,6 +461,14 @@
           "value": 585000,
           "stated_in": "m2",
           "evidence": "we offer $585,000 for 88 Sorrel Bend",
+          "replaced_in": "m8"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-23",
+          "stated_in": "m2",
+          "evidence": "closing by Wed Dec 23",
           "replaced_in": "m8"
         }
       ],

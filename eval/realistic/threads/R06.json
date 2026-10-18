@@ -259,6 +259,20 @@
           "value": "accepted",
           "stated_in": "m5",
           "evidence": "We accept the seller's counter at $628,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-04",
+          "stated_in": "m5",
+          "evidence": "closing Friday Dec 4"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-13",
+          "stated_in": "m5",
+          "evidence": "inspection contingency through Nov 13"
         }
       ],
       "superseded": [
@@ -268,6 +282,14 @@
           "value": 610000,
           "stated_in": "m1",
           "evidence": "we offer $610,000 for 718 Juniper Ct",
+          "replaced_in": "m5"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-11",
+          "stated_in": "m1",
+          "evidence": "closing by Fri Dec 11",
           "replaced_in": "m5"
         }
       ],
@@ -357,6 +379,20 @@
           "value": "accepted",
           "stated_in": "m5",
           "evidence": "We accept the seller's counter at $628,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-04",
+          "stated_in": "m5",
+          "evidence": "closing Friday Dec 4"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-13",
+          "stated_in": "m5",
+          "evidence": "inspection contingency through Nov 13"
         }
       ],
       "superseded": [
@@ -366,6 +402,14 @@
           "value": 610000,
           "stated_in": "m1",
           "evidence": "we offer $610,000 for 718 Juniper Ct",
+          "replaced_in": "m5"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-11",
+          "stated_in": "m1",
+          "evidence": "closing by Fri Dec 11",
           "replaced_in": "m5"
         }
       ],
@@ -474,6 +518,20 @@
           "value": "accepted",
           "stated_in": "m5",
           "evidence": "We accept the seller's counter at $628,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-04",
+          "stated_in": "m5",
+          "evidence": "closing Friday Dec 4"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-13",
+          "stated_in": "m5",
+          "evidence": "inspection contingency through Nov 13"
         }
       ],
       "superseded": [
@@ -483,6 +541,14 @@
           "value": 610000,
           "stated_in": "m1",
           "evidence": "we offer $610,000 for 718 Juniper Ct",
+          "replaced_in": "m5"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-11",
+          "stated_in": "m1",
+          "evidence": "closing by Fri Dec 11",
           "replaced_in": "m5"
         }
       ],

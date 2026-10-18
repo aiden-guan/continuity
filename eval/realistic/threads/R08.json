@@ -288,6 +288,13 @@
           "value": 945000,
           "stated_in": "m5",
           "evidence": "We counter at $945,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-30",
+          "stated_in": "m1",
+          "evidence": "closing by Wed Dec 30"
         }
       ],
       "superseded": [
@@ -379,6 +386,13 @@
           "value": 955000,
           "stated_in": "m7",
           "evidence": "raising their offer from $945,000 to $955,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-30",
+          "stated_in": "m1",
+          "evidence": "closing by Wed Dec 30"
         }
       ],
       "superseded": [
@@ -520,6 +534,13 @@
           "value": "accepted",
           "stated_in": "m11",
           "evidence": "We accept: $960,000, closing Friday Dec 18"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m9",
+          "evidence": "closing Fri Dec 18"
         }
       ],
       "superseded": [
@@ -577,6 +598,14 @@
           "value": 955000,
           "stated_in": "m7",
           "evidence": "raising their offer from $945,000 to $955,000",
+          "replaced_in": "m9"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-30",
+          "stated_in": "m1",
+          "evidence": "closing by Wed Dec 30",
           "replaced_in": "m9"
         }
       ],

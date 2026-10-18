@@ -277,6 +277,20 @@
           "value": 752000,
           "stated_in": "m5",
           "evidence": "came in at $752,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 740000,
+          "stated_in": "m1",
+          "evidence": "we are offering $740,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m1",
+          "evidence": "closing by Fri Dec 18"
         }
       ],
       "obligations": [
@@ -356,6 +370,20 @@
           "value": 752000,
           "stated_in": "m5",
           "evidence": "came in at $752,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 740000,
+          "stated_in": "m1",
+          "evidence": "we are offering $740,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m1",
+          "evidence": "closing by Fri Dec 18"
         }
       ],
       "superseded": [
@@ -457,6 +485,20 @@
           "value": "accepted",
           "stated_in": "m8",
           "evidence": "buyer accepts Counter #2 at $752,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 752000,
+          "stated_in": "m8",
+          "evidence": "buyer accepts Counter #2 at $752,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m1",
+          "evidence": "closing by Fri Dec 18"
         }
       ],
       "superseded": [
@@ -467,6 +509,14 @@
           "stated_in": "m4",
           "evidence": "Seller counters at $775,000",
           "replaced_in": "m7"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 740000,
+          "stated_in": "m1",
+          "evidence": "we are offering $740,000",
+          "replaced_in": "m8"
         }
       ],
       "obligations": [

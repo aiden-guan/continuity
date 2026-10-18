@@ -241,6 +241,27 @@
           "value": "accepted",
           "stated_in": "m4",
           "evidence": "buyer accepts the counter at $905,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 905000,
+          "stated_in": "m4",
+          "evidence": "buyer accepts the counter at $905,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m1",
+          "evidence": "closing on or before Fri Dec 18"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "contingency.inspection_until",
+          "value": "2026-12-01",
+          "stated_in": "m1",
+          "evidence": "inspection contingency to Dec 1"
         }
       ],
       "documents": [
@@ -254,7 +275,17 @@
         "closing_deadline": "pass",
         "price_approval": "pass"
       },
-      "next_actor": "them"
+      "next_actor": "them",
+      "superseded": [
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 880000,
+          "stated_in": "m1",
+          "evidence": "offers $880,000",
+          "replaced_in": "m4"
+        }
+      ]
     },
     {
       "after": "m5",
@@ -286,6 +317,27 @@
           "value": "accepted",
           "stated_in": "m4",
           "evidence": "buyer accepts the counter at $905,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 905000,
+          "stated_in": "m4",
+          "evidence": "buyer accepts the counter at $905,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m1",
+          "evidence": "closing on or before Fri Dec 18"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "contingency.inspection_until",
+          "value": "2026-12-01",
+          "stated_in": "m1",
+          "evidence": "inspection contingency to Dec 1"
         }
       ],
       "contested": [
@@ -326,7 +378,17 @@
         "must_not": [
           "(agree|confirm|accept|fine|works)\\w*.{0,40}(dec(ember)?\\.? ?29|12/29)"
         ]
-      }
+      },
+      "superseded": [
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 880000,
+          "stated_in": "m1",
+          "evidence": "offers $880,000",
+          "replaced_in": "m4"
+        }
+      ]
     },
     {
       "after": "m7",
@@ -358,6 +420,27 @@
           "value": "accepted",
           "stated_in": "m4",
           "evidence": "buyer accepts the counter at $905,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 905000,
+          "stated_in": "m4",
+          "evidence": "buyer accepts the counter at $905,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m1",
+          "evidence": "closing on or before Fri Dec 18"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "contingency.inspection_until",
+          "value": "2026-12-01",
+          "stated_in": "m1",
+          "evidence": "inspection contingency to Dec 1"
         }
       ],
       "contested": [
@@ -384,6 +467,14 @@
           "stated_in": "m2",
           "evidence": "closing Friday, December 18",
           "replaced_in": "m7"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 880000,
+          "stated_in": "m1",
+          "evidence": "offers $880,000",
+          "replaced_in": "m4"
         }
       ],
       "obligations": [

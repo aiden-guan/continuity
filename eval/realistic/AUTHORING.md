@@ -65,6 +65,16 @@ The checkpoints state the **correct** state after the named message, by these ru
 12. **Normalized values:** money and numbers as JSON numbers (`11.4`, `845000`); dates `"YYYY-MM-DD"`;
     `delivery.schedule` as `[{"qty": 300, "date": "2026-10-23"}]` (the speaker's full resulting schedule);
     text as written (`"Net 45"`); `offer.status` `"withdrawn"`; acceptance `"accepted"`.
+13. **Our own offers (real estate).** An email we send to the seller's side that offers, counters or
+    accepts states our position. Every `price.purchase`, `closing.date` and `contingency.inspection_until`
+    it states explicitly is active for us (`buyer agent (us)`), per rule 0, from our opening offer on.
+    This includes "closing by Fri Dec 18" and the price we restate when accepting ("buyer accepts the
+    counter at $905,000"). A later different value of ours replaces the earlier one (`superseded`); a
+    restated value confirms it. These are **not** our offer: questions ("Can the seller come down to
+    $815,000?"), requests to change their terms ("can the seller extend to Nov 13?"), mail to our own
+    side (buyer, lender), durations ("10-day inspection contingency" is not a date), and "all other
+    terms per your counter" (it names no value). In procurement, the supplier quotes and what we write is
+    an ask, so only our `decision.order` applies.
 
 Put 2–3 checkpoints in each thread: at least one in the middle (after a change) and one at the end. Give
 the key checkpoint a `handoff`: what a fresh agent should do, with `must` / `must_not` as case-insensitive

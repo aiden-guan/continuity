@@ -299,6 +299,13 @@
           "value": 730000,
           "stated_in": "m6",
           "evidence": "came in at $730,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m1",
+          "evidence": "closing by Fri Dec 18"
         }
       ],
       "obligations": [
@@ -413,6 +420,13 @@
           "value": 730000,
           "stated_in": "m6",
           "evidence": "came in at $730,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m1",
+          "evidence": "closing by Fri Dec 18"
         }
       ],
       "obligations": [
@@ -527,6 +541,13 @@
           "value": 730000,
           "stated_in": "m6",
           "evidence": "came in at $730,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m1",
+          "evidence": "closing by Fri Dec 18"
         }
       ],
       "obligations": [

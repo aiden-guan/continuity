@@ -250,6 +250,13 @@
           "value": 555000,
           "stated_in": "m6",
           "evidence": "Best and final: we offer $555,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-10",
+          "stated_in": "m4",
+          "evidence": "closing Dec 10 works"
         }
       ],
       "superseded": [
@@ -268,6 +275,14 @@
           "stated_in": "m4",
           "evidence": "we counter at $545,000",
           "replaced_in": "m6"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-15",
+          "stated_in": "m1",
+          "evidence": "closing by Tue Dec 15",
+          "replaced_in": "m4"
         }
       ],
       "obligations": [
@@ -327,6 +342,13 @@
           "value": "seller accepted another offer (cash, no contingencies)",
           "stated_in": "m7",
           "evidence": "the seller accepted another offer this afternoon"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-10",
+          "stated_in": "m4",
+          "evidence": "closing Dec 10 works"
         }
       ],
       "superseded": [
@@ -345,6 +367,14 @@
           "stated_in": "m4",
           "evidence": "we counter at $545,000",
           "replaced_in": "m6"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-15",
+          "stated_in": "m1",
+          "evidence": "closing by Tue Dec 15",
+          "replaced_in": "m4"
         }
       ],
       "obligations": [
@@ -404,6 +434,13 @@
           "value": "seller accepted another offer (cash, no contingencies)",
           "stated_in": "m7",
           "evidence": "the seller accepted another offer this afternoon"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-10",
+          "stated_in": "m4",
+          "evidence": "closing Dec 10 works"
         }
       ],
       "superseded": [
@@ -422,6 +459,14 @@
           "stated_in": "m4",
           "evidence": "we counter at $545,000",
           "replaced_in": "m6"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-15",
+          "stated_in": "m1",
+          "evidence": "closing by Tue Dec 15",
+          "replaced_in": "m4"
         }
       ],
       "obligations": [
