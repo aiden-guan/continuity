@@ -35,9 +35,11 @@ export function setupHeroParticles({ hero, line, thread }) {
   let ink = token('--ink');
   let parts = [];
   let dot = 2;
-  let view = { w: 0, h: 0, dpr: 1 };
+  let view = { w: 0, h: 0, dpr: 1, lineY: 0 };
   let pointer = null;
   let introAt = 0;
+  let shown = 0;   // the dissolve as drawn: it eases after the scroll, so a fast flick still plays out
+  let lastNow = 0;
   let frameId = 0;
   let inView = true;
   let ready = false; // set once the webfont is in, so the samples match the real type
@@ -91,6 +93,7 @@ export function setupHeroParticles({ hero, line, thread }) {
     const lineY = tb.top - box.top + Math.round(tb.height * 0.6);
     const lineA = tb.left - box.left + margin;
     const lineB = tb.right - box.left - margin;
+    view.lineY = lineY;
 
     const step = Math.max(2, Math.round(size / 42));
     dot = Math.max(1.3, step * 0.74);
@@ -105,14 +108,15 @@ export function setupHeroParticles({ hero, line, thread }) {
       for (let x = Math.floor(step / 2); x < off.width; x += step) {
         if (data[(y * off.width + x) * 4 + 3] < 110) continue;
         const across = clamp01((x - left) / span);
-        const tx = Math.min(lineB, Math.max(lineA, x + (Math.random() - 0.5) * 160));
+        // letters land in order along the thread: the left of the line to its left end
+        const tx = lineA + across * (lineB - lineA) + (Math.random() - 0.5) * 8;
         next.push({
           hx: x, hy: y,
           tx, ty: lineY,
           // assembly runs left to right; dissolving starts at the end of "forget."
           inDelay: across * 0.55 + Math.random() * 0.45,
-          outDelay: (1 - across) * 0.65 + Math.random() * 0.35,
-          swirl: 14 + Math.random() * 46,
+          outDelay: (1 - across) * 0.7 + Math.random() * 0.3,
+          swirl: 6 + Math.random() * 22,
           angle: Math.random() * Math.PI * 2,
           spin: (Math.random() - 0.5) * 3.5,
           flake: x > forgetFrom && Math.random() < 0.07,
@@ -132,17 +136,22 @@ export function setupHeroParticles({ hero, line, thread }) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
+    // done by the time the thread has risen to 30% of the screen, so the landing is always in view
     const heroTop = hero.getBoundingClientRect().top;
-    const scrolled = clamp01(-heroTop / (innerHeight * 0.62));
+    const scrolled = clamp01(-heroTop / Math.max(260, view.lineY - innerHeight * 0.3));
+    const dt = lastNow ? Math.min(64, now - lastNow) : 16;
+    lastNow = now;
+    shown += (scrolled - shown) * (1 - Math.exp(-dt / 420));
+    if (Math.abs(scrolled - shown) < 0.0005) shown = scrolled;
     const since = now - introAt;
 
     ctx.fillStyle = ink;
     ctx.beginPath(); // every fully opaque particle goes into one path
-    let moving = false;
+    let moving = shown !== scrolled;
 
     for (const p of parts) {
       const intro = 1 - easeOut(clamp01((since - p.inDelay * INTRO_SPREAD) / INTRO_MS));
-      const out = clamp01((scrolled - p.outDelay * 0.5) / 0.5);
+      const out = clamp01((shown - p.outDelay * 0.4) / 0.6);
       let flake = 0;
       if (p.flake) {
         const s = Math.max(0, Math.sin(now / p.period * Math.PI * 2 + p.phase));
@@ -177,9 +186,10 @@ export function setupHeroParticles({ hero, line, thread }) {
       x += p.ox;
       y += p.oy;
 
-      const alpha = 1 - smooth(0.72, 1, t);
+      // fully visible all the way down; they only fade once they are on the thread
+      const alpha = 1 - smooth(0.95, 1, t);
       if (alpha <= 0.01) continue;
-      const s = dot * (1 - 0.45 * t);
+      const s = dot * (1 - 0.3 * t);
       if (alpha > 0.99) {
         ctx.rect(x - s / 2, y - s / 2, s, s);
       } else {
@@ -194,7 +204,11 @@ export function setupHeroParticles({ hero, line, thread }) {
     if (inView && (moving || parts.some((p) => p.flake))) frameId = requestAnimationFrame(frame);
   }
 
-  const kick = () => { if (!frameId && inView) frameId = requestAnimationFrame(frame); };
+  const kick = () => {
+    if (frameId || !inView) return;
+    lastNow = 0;
+    frameId = requestAnimationFrame(frame);
+  };
 
   // ------------------------------------------------------------ wiring
   let resizeTimer = 0;
