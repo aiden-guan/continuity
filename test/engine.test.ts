@@ -232,6 +232,29 @@ test('a ceiling we quote in our own RFQ is not a budget approval', async () => {
   assert.ok(ours.length >= 1 && ours.every((c) => c.status === 'proposed' && /not authoritative/.test(c.supersede_reason!)));
 });
 
+test('a promise of ours makes it our move only once it is overdue', async () => {
+  const promising: Extractor = {
+    name: 'fake-llm',
+    async extract(inp) {
+      const proposal: Proposal = await heuristicExtractor.extract(inp);
+      if (inp.event.direction === 'outbound') {
+        proposal.obligations.push({ kind: 'commitment', debtor: 'sender', text: 'Send the signed PO by Oct 30', topic_keys: [], expects_artifact: 'po', due: '2026-10-30', evidence: 'Signed PO to follow by Oct 30.', confidence: 0.9 });
+      }
+      return proposal;
+    },
+  };
+  const h = new Harness(procurementTask(addr), promising);
+  await h.out(addr.supplier, 'PO-4817', 'Thanks Dana. Signed PO to follow by Oct 30.', '2026-10-21T09:00:00Z');
+
+  const early = h.context(undefined, { now: '2026-10-22T09:00:00Z' });
+  assert.notEqual(early.next_actor, 'us', 'a promise not yet due leaves the ball with them');
+  assert.ok(early.suggested_actions.some((a) => a.kind === 'fulfil_our_commitment' && a.priority === 2));
+
+  const late = h.context(undefined, { now: '2026-11-02T09:00:00Z' });
+  assert.equal(late.next_actor, 'us');
+  assert.match(late.suggested_actions[0].action, /OVERDUE \(due 2026-10-30\)/);
+});
+
 test('unknown senders on a linked thread are recorded but cannot set terms', async () => {
   const { h, story } = await afterCanonical();
   await h.in({ from: 'mallory@evil.example', fromName: 'Mallory', to: addr.self, subject: 'Re: PO-4817', body: 'Price is now $9.00 per unit.', at: '2026-10-20T16:00:00Z', threadKey: 'supplier', inReplyTo: story.correction.messageId });

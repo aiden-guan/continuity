@@ -478,14 +478,18 @@ function suggestActions(store: StateStore, task: TaskSpec, s: SuggestInput) {
       continue;
     }
     const ours = o.kind === 'commitment';
+    // a question put to us needs an answer now; a promise of ours ("signed counter to follow tonight") does not
+    // make it our move until it is overdue or its condition has been met — until then the ball is with them
+    const overdue = !!o.due_at && o.due_at < s.today;
+    const urgent = !ours || overdue || !!o.condition_met_at;
     actions.push({
-      priority: 1,
+      priority: urgent ? 1 : 2,
       kind: ours ? 'fulfil_our_commitment' : 'answer_them',
       to: label(o.creditor), to_address: o.creditor, obligation_id: o.id,
       action: ours
-        ? `We committed to ${label(o.creditor)}: "${o.text}"${o.condition_met_at ? ' (its condition is now met)' : ''} — fulfil it or update them`
+        ? `We committed to ${label(o.creditor)}: "${o.text}"${o.condition_met_at ? ' (its condition is now met)' : overdue ? ` — OVERDUE (due ${o.due_at})` : ''} — fulfil it or update them`
         : `Answer ${label(o.creditor)}'s ${o.kind}: "${o.text}"`,
-      why: `Open since ${o.created_at}`,
+      why: ours && !urgent ? `Open since ${o.created_at}; not yet due` : `Open since ${o.created_at}`,
       evidence: [o.source_event_id],
     });
   }
