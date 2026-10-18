@@ -136,31 +136,21 @@
 }
 
 /* ============================================================ hero */
-.hero { position: relative; padding-top: 60px; }
+/* one full screen: the headline centred in the space above Fig. 1, which sits on the fold */
+.hero { position: relative; display: flex; flex-direction: column; min-height: 100vh; min-height: 100svh; padding-top: 60px; }
 
 /* "Agents forget." is drawn by particles.js; its DOM text stays for selection and screen readers */
 .hero-px { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; pointer-events: none; }
 .px .h-forget { color: transparent; }
 /* copy sits above the particles in flight; Fig. 1 sits below them, so they land on its thread */
-.hero > .wrap { position: relative; z-index: 3; }
+.hero > .wrap { position: relative; z-index: 3; display: flex; flex: 1; flex-direction: column; justify-content: center; }
 .h-keep { --d: 0.35s; }
 
-.meta-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 18px 0;
-  border-bottom: 1px solid var(--line);
-  font: 500 11px/1.3 var(--mono);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
 
-.hero-grid { padding: clamp(64px, 11vh, 120px) 0 clamp(40px, 6vh, 64px); }
+.hero-grid { padding: clamp(28px, 7vh, 112px) 0 clamp(28px, 4vh, 72px); }
 .hero-h {
   margin: 0;
-  font-size: clamp(50px, 9.4vw, 136px);
+  font-size: clamp(50px, min(9.4vw, 14vh), 136px);
   font-weight: 500;
   line-height: 0.92;
   letter-spacing: -0.058em;
@@ -171,7 +161,7 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 24px 48px;
-  margin-top: clamp(36px, 6vh, 64px);
+  margin-top: clamp(28px, 5vh, 64px);
 }
 .lede {
   max-width: 42ch;
@@ -183,11 +173,8 @@
 }
 .cta-row { display: flex; flex-wrap: wrap; gap: 10px; }
 
-.hero-fig canvas { display: block; width: 100%; height: clamp(190px, 24vh, 240px); }
-
-@media (max-width: 860px) {
-  .meta-row span:nth-child(2) { display: none; }
-}
+.hero-fig { margin-top: 0; }
+.hero-fig canvas { display: block; width: 100%; height: clamp(132px, 20vh, 240px); }
 
 /* ============================================================ figures */
 .fig { margin: clamp(48px, 7vw, 80px) 0 0; }
