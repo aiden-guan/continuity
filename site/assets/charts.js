@@ -187,9 +187,14 @@ function setupCheaper() {
     void row.offsetWidth; // restart the animation
     row.classList.add('jolt');
   };
+  let isOpen = false;
   const open = () => {
+    if (isOpen) return; // already open: re-entering must not restart the slams
+    isOpen = true;
     timers.forEach(clearTimeout);
     timers = [];
+    // opening shrinks the four numbers; hold the row's height so it never slides out from under the pointer
+    row.style.minHeight = `${row.offsetHeight}px`;
     row.classList.add('open');
     if (stillMotion) { row.classList.add('still'); return; }
     slams.forEach((s, i) => later(420 + i * 680, () => {
@@ -198,9 +203,12 @@ function setupCheaper() {
     }));
   };
   const close = () => {
+    if (!isOpen) return;
+    isOpen = false;
     timers.forEach(clearTimeout);
     timers = [];
     row.classList.remove('open', 'jolt', 'still');
+    row.style.minHeight = '';
     slams.forEach((s) => s.classList.remove('hit'));
   };
   if (matchMedia('(hover: none)').matches) {
@@ -208,8 +216,25 @@ function setupCheaper() {
     io.observe(row);
     return;
   }
-  row.addEventListener('mouseenter', open);
-  row.addEventListener('mouseleave', close);
+  // close only once the pointer is clearly away: the row widens and jolts while open, so its own edge moves,
+  // and a plain mouseleave there would close and reopen it over and over
+  const MARGIN = 28;
+  const away = (e) => {
+    const r = row.getBoundingClientRect();
+    if (e.clientX < r.left - MARGIN || e.clientX > r.right + MARGIN || e.clientY < r.top - MARGIN || e.clientY > r.bottom + MARGIN) {
+      document.removeEventListener('pointermove', away);
+      close();
+    }
+  };
+  row.addEventListener('pointerenter', () => {
+    document.removeEventListener('pointermove', away);
+    open();
+  });
+  row.addEventListener('pointerleave', () => document.addEventListener('pointermove', away));
+  document.documentElement.addEventListener('pointerleave', () => {
+    document.removeEventListener('pointermove', away);
+    close();
+  });
   row.addEventListener('focus', open);
   row.addEventListener('blur', close);
 }
