@@ -2,7 +2,7 @@
 // There is deliberately no semantic similarity here — a message that matches nothing stays
 // unlinked (and visible in the UI/API) instead of being quietly merged into the wrong task.
 import type { LinkLookup } from '../store/backend.ts';
-import type { EventInput } from '../types.ts';
+import type { EventInput, TaskSpec } from '../types.ts';
 
 export interface LinkResult { task_id: string; reason: string }
 
@@ -46,7 +46,20 @@ export async function resolveTask(store: LinkLookup, e: EventInput): Promise<Lin
       return { task_id: task.id, reason: `reference "${ref}" named in the task` };
     }
   }
+  // 7. a new thread from a known party, when exactly one task names that sender (the buyer writing
+  // "Wren Hollow — take the 805" without the alias). A sender on several tasks stays unlinked; this
+  // only routes the mail, it grants no authority (the resolver still checks who may set what)
+  if (e.direction === 'inbound') {
+    const sender = e.from.toLowerCase();
+    const theirs = tasks.filter((t) => t.participants?.includes(sender));
+    if (theirs.length === 1) return { task_id: theirs[0].id, reason: `sender ${sender} is a participant only on this task` };
+  }
   return null;
+}
+
+/** The addresses on a task other than our own, lowercased (what rule 7 matches a sender against). */
+export function participantAddresses(spec: Pick<TaskSpec, 'participants'>): string[] {
+  return spec.participants.filter((p) => p.role !== 'self').map((p) => p.address.toLowerCase());
 }
 
 /** Reference codes ("PO-4817", "LGL-4417") a task's goal names besides its alias. */

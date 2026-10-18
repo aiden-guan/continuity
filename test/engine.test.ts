@@ -125,6 +125,22 @@ test('an alias named with its own prefix beats a bare number on an earlier task 
   assert.equal(await link('Re: delivery'), null);
 });
 
+test('a new thread from a known party links to the one task that names them, and only then', async () => {
+  const tasks = [
+    { id: 'task_a', alias: 'PO-1001', participants: ['buyer@home.example', 'rep@supplier.example'] },
+    { id: 'task_b', alias: 'PO-1002', participants: ['rep@supplier.example'] },
+  ];
+  const store = { taskForThread: async () => null, eventByPrimitiveEmailId: async () => null, eventByMessageId: async () => null, tasks: async () => tasks };
+  const link = (from: string, direction = 'inbound') =>
+    resolveTask(store, { from, direction, subject: 'Wren Hollow', body_text: 'Take the 805.', references: [] } as unknown as EventInput);
+  const buyer = await link('Buyer@Home.example');
+  assert.equal(buyer?.task_id, 'task_a');
+  assert.match(buyer!.reason, /participant only on this task/);
+  assert.equal(await link('rep@supplier.example'), null, 'a sender on two tasks stays unlinked');
+  assert.equal(await link('deals@bulk-electronics.example'), null, 'a stranger stays unlinked');
+  assert.equal(await link('buyer@home.example', 'outbound'), null, 'only inbound mail is routed by sender');
+});
+
 test('newer is not truer: a third party contradicting the supplier is contested, not superseding', async () => {
   const forwarder = 'ops@fastfreight.example';
   const task = procurementTask(addr);
