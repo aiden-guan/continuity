@@ -7,3 +7,4 @@ data/
 eval/results/runs/
 bench/results/*
 !bench/results/README.md
+test-results/

@@ -6,7 +6,7 @@
 // (timeout, refusal, bad output) fails closed: the send is held for a human with the reason.
 //
 //   CONTINUITY_SEND_CHECK=off        disable (tripwire + declared intent only)
-//   CONTINUITY_SEND_CHECK_MODEL      model id (defaults like the extractor)
+//   CONTINUITY_SEND_CHECK_MODEL      model id (default claude-haiku-5-5)
 import { createHash } from 'node:crypto';
 import type Anthropic from '@anthropic-ai/sdk';
 import { anthropicClient, responseText, serverFallback } from '../anthropic.ts';
