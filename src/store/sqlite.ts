@@ -10,6 +10,7 @@ import type {
   ActionRow, Backend, BlobIn, BlobRef, CommitOptions, CommitResult, JobInput, JobOutcome, JobRow, LinkLookup, Principal, ReceiveResult, SignalRow, TaskSnapshot,
 } from './backend.ts';
 import type { Artifact, Claim, EventInput, Obligation, StoredEvent, TaskSpec } from '../types.ts';
+import { participantAddresses } from '../ingest/link.ts';
 import { stripAttachmentBytes } from './rows.ts';
 import { canonicalIso } from '../clock.ts';
 
@@ -244,7 +245,7 @@ export class SqliteBackend implements Backend {
       eventByPrimitiveEmailId: async (id) => this.#event('primitive_email_id = ? ORDER BY seq LIMIT 1', id),
       eventByMessageId: async (id) => this.#event('message_id = ? ORDER BY seq LIMIT 1', id),
       tasks: async () => (this.#q('SELECT id, alias, spec_json FROM tasks ORDER BY created_at').all() as { id: string; alias: string; spec_json: string }[])
-        .map((r) => ({ id: r.id, alias: r.alias, goal: (JSON.parse(r.spec_json) as { goal?: string }).goal })),
+        .map((r) => { const spec = JSON.parse(r.spec_json) as TaskSpec; return { id: r.id, alias: r.alias, goal: spec.goal, participants: participantAddresses(spec) }; }),
     });
 
     const id = this.#tx(() => {

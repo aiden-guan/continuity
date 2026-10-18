@@ -10,7 +10,7 @@ import type { StateStore } from '../store/state.ts';
 import type { Artifact, CheckResult, Claim, Obligation, StoredEvent, TaskSpec, Transition } from '../types.ts';
 import { isOpen, labelOf, partyOf } from '../engine/resolver.ts';
 import { openApprovals } from '../engine/approval-log.ts';
-import { domainFor, termOf, type SuggestedAction } from '../domain/pack.ts';
+import { domainFor, outcomeOf, termOf, type SuggestedAction } from '../domain/pack.ts';
 import '../domain/index.ts';
 import { stripQuoted } from '../extract/heuristic.ts';
 import { nowIso } from '../clock.ts';
@@ -42,7 +42,7 @@ export const TOKEN_UNIT = 'estimated_tokens (characters / 4)';
 
 // Transition types worth reporting as "changes"; bookkeeping transitions are left out.
 const REPORTABLE_TRANSITIONS = new Set([
-  'event_ingested', 'claim_added', 'claim_superseded', 'claim_contested', 'claim_retracted', 'claim_tentative', 'stale_evidence',
+  'event_ingested', 'claim_added', 'claim_superseded', 'claim_contested', 'claim_settled', 'claim_retracted', 'claim_tentative', 'stale_evidence',
   'obligation_opened', 'obligation_resolved', 'obligation_unverified', 'obligation_partially_fulfilled', 'obligation_condition_met', 'obligation_overdue',
   'artifact_added', 'artifact_status', 'artifact_superseded', 'offer_withdrawn', 'offer_reinstated', 'delivery_reported',
   'conflict_detected', 'conflict_resolved', 'injection_quarantined', 'interpretation_failed',
@@ -145,8 +145,11 @@ export function compileContext(store: StateStore, taskId: string, opts: CompileO
     cite(s.old_source);
     cite(s.changed_in);
   }
+  // our own mention of a term only another party sets ("could you approve up to $30.60?") is a request, not a
+  // statement about the deal: listing it as a tentative term made agents doubt the figure finance actually approved
+  const ownEcho = (c: Claim | null | undefined) => !!c && c.speaker === self && /is not authoritative for/.test(c.supersede_reason ?? '');
   const proposedTerms = claims
-    .filter((c) => c.status === 'proposed' && inFocus(c.speaker))
+    .filter((c) => c.status === 'proposed' && inFocus(c.speaker) && !ownEcho(c))
     .map((c) => ({ claim_id: c.id, party: label(c.speaker), term: c.key, value: c.display, why_not_applied: c.supersede_reason, source: c.source_event_id }));
   const tentative = capNewest(proposedTerms, histMax);
   for (const t of tentative.items) cite(t.source);
@@ -211,7 +214,7 @@ export function compileContext(store: StateStore, taskId: string, opts: CompileO
     obligations
       .filter((o) => o.kind !== 'commitment' && !isOpen(o) && inFocus(o.debtor))
       .map((o) => ({
-        id: o.id, asked_by: label(o.creditor), asked: o.text, ...(o.issue_key ? { issue: o.issue_key } : {}),
+        id: o.id, asked_by: label(o.creditor), asked: o.text, ...(o.issue_key ? { issue: o.issue_key } : {}), topics: o.topic_keys,
         status: o.status, resolution: o.resolution_note, resolved_in: o.resolved_by_event_id,
       })),
     histMax,
@@ -237,6 +240,7 @@ export function compileContext(store: StateStore, taskId: string, opts: CompileO
   const changeList = transitions
     .filter((t) => t.seq > cursor && REPORTABLE_TRANSITIONS.has(t.type))
     .filter((t) => !(t.type === 'event_ingested' && (t.detail as { direction?: string }).direction === 'outbound'))
+    .filter((t) => !(t.type === 'claim_tentative' && ownEcho(t.subject_id ? store.getClaim(t.subject_id) : null)))
     .map((t) => ({ seq: t.seq, at: t.at, type: t.type, summary: t.summary, event: t.event_id }));
   const changes = capNewest(changeList, 30);
 
@@ -374,6 +378,8 @@ function byKey(list: Claim[]) {
   return [...groups].map(([key, claims]) => ({ key, claims }));
 }
 
+const multipartKind = (task: TaskSpec, kind: string | null) => !!domainFor(task).documentKinds?.find((d) => d.kind === kind)?.multipart;
+
 export function artifactSummary(store: StateStore, task: TaskSpec, a: Artifact, cite: (id: string | null | undefined) => string | null = (x) => x ?? null) {
   const backed = store.claimsSupportedByArtifact(a.id);
   return {
@@ -387,11 +393,15 @@ export function artifactSummary(store: StateStore, task: TaskSpec, a: Artifact, 
     sha256: a.sha256,
     superseded_by: a.superseded_by ? store.getArtifact(a.superseded_by)?.filename ?? a.superseded_by : null,
     still_current_terms: backed.filter((c) => c.status === 'active').map((c) => `${c.key}: ${c.display}`),
-    stale_terms: backed
+    // the same rules as the document's status: a value that came back is current again, one part of a set is not
+    // made stale by the next part, and "now" is the speaker's value today, not the first value that replaced it
+    stale_terms: (multipartKind(task, a.kind) ? [] : backed)
       .filter((c) => c.status === 'superseded' || c.status === 'retracted')
-      .map((c) => {
-        const replacement = c.superseded_by ? store.getClaim(c.superseded_by) : null;
-        return { term: c.key, document_says: c.display, now: replacement?.display ?? '(withdrawn)', changed_by: cite(replacement?.source_event_id ?? null) };
+      .map((c) => ({ c, now: store.claimsForTask(task.id).find((x) => x.status === 'active' && x.key === c.key && x.speaker === c.speaker) ?? null }))
+      .filter(({ c, now }) => c.status === 'retracted' || !now || now.display !== c.display)
+      .map(({ c, now }) => {
+        const replacement = now ?? (c.superseded_by ? store.getClaim(c.superseded_by) : null);
+        return { term: c.key, document_says: c.display, now: c.status === 'retracted' ? '(withdrawn)' : replacement?.display ?? '(withdrawn)', changed_by: cite(replacement?.source_event_id ?? null) };
       }),
   };
 }
@@ -461,9 +471,19 @@ function suggestActions(store: StateStore, task: TaskSpec, s: SuggestInput) {
     const primary =
       task.participants.find((p) => p.role === 'counterparty' && (group ? p.group === group : p.address === c.speaker)) ??
       task.participants.find((p) => p.address === c.speaker);
-    actions.push({
+    const disagreement = sameKey.map((o) => `${label(o.speaker)} says ${o.display}`).join(' vs ');
+    // raised once, then wait for their answer (as with failing checks): we wrote to their side after it arose
+    const arose = [...s.allTransitions].reverse().find((t) => t.type === 'claim_contested'
+      && ((t.detail as { claims?: string[] }).claims ?? [t.subject_id]).some((id) => sameKey.some((o) => o.id === id)));
+    const side = task.participants.filter((p) => (group ? p.group === group : p.address === c.speaker)).map((p) => p.address);
+    const raised = !!arose && side.some((p) => !notAddressedSince(p, arose.seq));
+    actions.push(raised ? {
+      priority: 3, kind: 'awaiting_response', to: primary ? label(primary.address) : null, to_address: primary?.address ?? null,
+      action: `Already asked ${primary ? label(primary.address) : 'them'} to settle ${c.key} (${disagreement}) — awaiting their answer`,
+      why: 'Parties disagree; we have asked which is right', evidence: sameKey.map((o) => o.source_event_id),
+    } : {
       priority: 1, kind: 'resolve_contested', to: primary ? label(primary.address) : null, to_address: primary?.address ?? null,
-      action: `Resolve contradictory ${c.key}: ${sameKey.map((o) => `${label(o.speaker)} says ${o.display}`).join(' vs ')}`,
+      action: `Resolve contradictory ${c.key}: ${disagreement}`,
       why: 'Parties disagree; do not pick one silently',
       evidence: sameKey.map((o) => o.source_event_id),
     });
@@ -478,14 +498,18 @@ function suggestActions(store: StateStore, task: TaskSpec, s: SuggestInput) {
       continue;
     }
     const ours = o.kind === 'commitment';
+    // a question put to us needs an answer now; a promise of ours ("signed counter to follow tonight") does not
+    // make it our move until it is overdue or its condition has been met — until then the ball is with them
+    const overdue = !!o.due_at && o.due_at < s.today;
+    const urgent = !ours || overdue || !!o.condition_met_at;
     actions.push({
-      priority: 1,
+      priority: urgent ? 1 : 2,
       kind: ours ? 'fulfil_our_commitment' : 'answer_them',
       to: label(o.creditor), to_address: o.creditor, obligation_id: o.id,
       action: ours
-        ? `We committed to ${label(o.creditor)}: "${o.text}"${o.condition_met_at ? ' (its condition is now met)' : ''} — fulfil it or update them`
+        ? `We committed to ${label(o.creditor)}: "${o.text}"${o.condition_met_at ? ' (its condition is now met)' : overdue ? ` — OVERDUE (due ${o.due_at})` : ''} — fulfil it or update them`
         : `Answer ${label(o.creditor)}'s ${o.kind}: "${o.text}"`,
-      why: `Open since ${o.created_at}`,
+      why: ours && !urgent ? `Open since ${o.created_at}; not yet due` : `Open since ${o.created_at}`,
       evidence: [o.source_event_id],
     });
   }
@@ -496,6 +520,18 @@ function suggestActions(store: StateStore, task: TaskSpec, s: SuggestInput) {
     const outstanding = o.quantity != null ? o.quantity - (o.fulfilled_quantity ?? 0) : null;
     const overdue = !!o.due_at && o.due_at < s.today;
     const partial = o.status === 'partially_fulfilled' ? ` (${o.fulfilled_quantity} of ${o.quantity} delivered, ${outstanding} outstanding)` : '';
+    // "revised quote attached" with nothing attached (or the wrong file): tell them, unless we already have
+    const unverified = o.expects_artifact
+      ? [...s.allTransitions].reverse().find((t) => t.type === 'obligation_unverified' && t.subject_id === o.id)
+      : undefined;
+    if (unverified && notAddressedSince(o.debtor, unverified.seq)) {
+      actions.push({
+        priority: 1, kind: 'remind_commitment', to: label(o.debtor), to_address: o.debtor, obligation_id: o.id,
+        action: `Tell ${label(o.debtor)} the ${o.expects_artifact} did not come through: "${o.text}" — MISSING ATTACHMENT`,
+        why: unverified.summary, evidence: [o.source_event_id, ...(unverified.event_id ? [unverified.event_id] : [])],
+      });
+      continue;
+    }
     if (overdue) {
       actions.push({
         priority: 1, kind: 'remind_commitment', to: label(o.debtor), to_address: o.debtor, obligation_id: o.id,
@@ -520,13 +556,15 @@ function suggestActions(store: StateStore, task: TaskSpec, s: SuggestInput) {
     const reply = [...s.events].reverse().find((e) => e.direction === 'inbound' && e.from === o.debtor && (ingestSeqOf.get(e.id) ?? 0) > askedAt);
     if (!reply) continue;
     const askedAgain = !notAddressedSince(o.debtor, ingestSeqOf.get(reply.id) ?? 0);
+    // "let me check and get back to you": they promised an answer after we asked, so we wait for it
+    const promisedAnswer = s.openObs.some((x) => x.kind === 'commitment' && x.debtor === o.debtor && x.creditor === self && (ingestSeqOf.get(x.source_event_id) ?? 0) > askedAt);
     const issue = o.issue_key;
     actions.push({
-      priority: askedAgain ? 3 : 1,
-      kind: askedAgain ? 'awaiting_response' : 'follow_up_unanswered',
+      priority: askedAgain ? 3 : promisedAnswer ? 2 : 1,
+      kind: askedAgain || promisedAnswer ? 'awaiting_response' : 'follow_up_unanswered',
       to: label(o.debtor), to_address: o.debtor, obligation_id: o.id,
-      action: askedAgain
-        ? `Already followed up with ${label(o.debtor)} on "${o.text}"${issue ? ` [${issue}]` : ''} — awaiting their answer`
+      action: askedAgain || promisedAnswer
+        ? `${askedAgain ? 'Already followed up with' : 'Promised an answer by'} ${label(o.debtor)} on "${o.text}"${issue ? ` [${issue}]` : ''} — awaiting their answer`
         : `Ask ${label(o.debtor)} again${issue ? ` about ${issue}` : ''}: "${o.text}" — their reply ${reply.id} did not answer it`,
       why: issue ? `Other parts of this question were answered; ${issue} was not` : 'Replied without answering',
       evidence: [o.source_event_id, reply.id],
@@ -552,14 +590,44 @@ function suggestActions(store: StateStore, task: TaskSpec, s: SuggestInput) {
   });
   actions.push(...(domainActions ?? []));
 
+  // their offer is waiting on us: a counterparty stated or changed terms (a live offer claim introduced by that
+  // message) and nobody on our side has written to their side since. Unless another urgent action already goes
+  // to them, answering it — accept, counter or raise — is our move. While we still wait on our own side (an
+  // approver, the buyer) for an answer, it is a reminder, not urgent.
+  const groupOf = (address: string) => task.participants.find((p) => p.address === address)?.group ?? address;
+  const latestOffer = new Map<string, { seq: number; event: string }>();
+  for (const c of s.live) {
+    if (c.kind !== 'offer' || c.speaker === self || partyOf(task, c.speaker)?.role !== 'counterparty') continue;
+    const seq = ingestSeqOf.get(c.source_event_id) ?? 0;
+    if (seq > (latestOffer.get(c.speaker)?.seq ?? -1)) latestOffer.set(c.speaker, { seq, event: c.source_event_id });
+  }
+  for (const [party, offer] of latestOffer) {
+    if (goneParties.has(party)) continue;
+    const side = task.participants.filter((p) => groupOf(p.address) === groupOf(party)).map((p) => p.address);
+    if (!side.every((p) => notAddressedSince(p, offer.seq))) continue;
+    if (actions.some((a) => a.priority === 1 && a.to_address && side.includes(a.to_address))) continue;
+    const askedOwnSide = s.openObs.some((o) => o.creditor === self && o.kind !== 'commitment' && partyOf(task, o.debtor)?.role === 'internal');
+    actions.push({
+      priority: askedOwnSide ? 2 : 1, kind: 'respond_to_offer', to: label(party), to_address: party,
+      action: `Respond to ${label(party)}'s current terms (${offer.event}): accept, counter, or raise what does not work`,
+      why: askedOwnSide ? 'Their terms are waiting on us; we are waiting on our own approver first' : 'They stated or changed terms and we have not replied since',
+      evidence: [offer.event],
+    });
+  }
+
   actions.sort((a, b) => a.priority - b.priority);
   const waitingOn = s.openObs.filter((o) => o.debtor !== self);
   const urgent = actions.filter((a) => a.priority === 1);
-  const decided = !!pack.decisionKey && s.live.some((c) => c.key === pack.decisionKey && c.speaker === self);
-  const next_actor: NextActor = urgent.length ? 'us' : waitingOn.length ? 'them' : 'none';
+  const decided = !!pack.decisionKey && s.live.some((c) => c.key === pack.decisionKey && c.speaker === self && c.value !== 'declined');
+  // after we accept, a deal that still has to be executed and closed (a home purchase) waits on the other side;
+  // one that is done once we accept (a confirmed order) has nothing outstanding
+  const counterparty = task.participants.find((p) => p.role === 'counterparty');
+  const awaitingClose = decided && !!pack.afterAcceptance && !!counterparty && outcomeOf(pack, task, s.live) === 'accepted';
+  const next_actor: NextActor = urgent.length ? 'us' : waitingOn.length || awaitingClose ? 'them' : 'none';
   let reason: string;
   if (urgent.length) reason = `We need to act: ${urgent.map((a) => a.action).join(' | ')}`;
   else if (waitingOn.length) reason = `Waiting on: ${waitingOn.map((o) => `${label(o.debtor)} (${o.text})`).join('; ')}`;
+  else if (awaitingClose) reason = `Accepted; waiting on ${label(counterparty!.address)} for ${pack.afterAcceptance}`;
   else reason = decided ? 'Decision recorded; nothing outstanding' : 'Nothing outstanding';
   return { next_actor, reason, actions };
 }

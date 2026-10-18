@@ -7,6 +7,7 @@ import type {
 } from './backend.ts';
 import type { EventInput, StoredEvent, TaskSpec } from '../types.ts';
 import { stripAttachmentBytes } from './rows.ts';
+import { participantAddresses } from '../ingest/link.ts';
 import { compareIso } from '../clock.ts';
 import { openApprovalTaskIds } from '../engine/approval-log.ts';
 
@@ -114,7 +115,7 @@ export class MemoryBackend implements Backend {
       taskForThread: async (t) => s.taskForThread(t),
       eventByPrimitiveEmailId: async (id) => s.eventByPrimitiveEmailId(id),
       eventByMessageId: async (id) => s.eventByMessageId(id),
-      tasks: async () => s.listTasks().map((t) => ({ id: t.id, alias: t.alias, goal: t.goal })),
+      tasks: async () => s.listTasks().map((t) => ({ id: t.id, alias: t.alias, goal: t.goal, participants: participantAddresses(t) })),
     });
     if (s.findEventByDedupe(input.dedupe_key)) return this.receive(org, input, link, blobs); // raced with another delivery
 

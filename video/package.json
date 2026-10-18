@@ -16,7 +16,10 @@
     "record": "node scripts/record.mts",
     "narrate": "node scripts/narrate.mts",
     "render": "remotion render Demo out/continuity-demo.mp4",
-    "make": "npm run record -- $RECORD_FLAGS && npm run narrate && npm run render"
+    "make": "npm run record -- $RECORD_FLAGS && npm run narrate && npm run render",
+    "launch:score": "node --no-warnings scripts/launch-score.mts",
+    "launch:render": "remotion render Launch out/continuity-launch.mp4 --props='{\"withAudio\":true}' --crf=16 --x264-preset=slow --audio-bitrate=320k",
+    "launch:stills": "node --no-warnings scripts/stills.mts Launch"
   },
   "dependencies": {
     "@remotion/cli": "4.0.536",

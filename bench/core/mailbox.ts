@@ -7,6 +7,7 @@
 // cites sources in the same id space and the scorer maps them back to oracle keys.
 import { createHash } from 'node:crypto';
 import type { BenchCase, BenchEvent, Checkpoint } from './types.ts';
+import type { LiveView } from '../live/view.ts';
 
 export interface MailMessage {
   id: string; // m07
@@ -31,6 +32,8 @@ export interface Mailbox {
   byKey: Map<string, MailMessage>;
   trigger: MailMessage;
   now: string;
+  /** Set when the case was delivered over real Primitive mail (bench/live): tools and ingestion read from Primitive. */
+  live?: LiveView;
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -127,6 +130,9 @@ export function triggerBlock(mb: Mailbox): string {
 /** Map any id an agent might cite (m07, a filename, an attachment marker) back to an oracle event key. */
 export function resolveSourceId(mb: Mailbox, id: string): string | null {
   const s = id.trim();
+  // a live run cites Primitive's own row ids
+  const liveM = mb.live?.idToM.get(s) ?? [...(mb.live?.idToM ?? [])].find(([real]) => s.includes(real))?.[1];
+  if (liveM) return mb.byId.get(liveM)!.key;
   const direct = mb.byId.get(s) ?? mb.byId.get(s.replace(/^\[?message id:\s*/i, '').replace(/\]$/, ''));
   if (direct) return direct.key;
   const m = s.match(/\bm\d{2,3}\b/);

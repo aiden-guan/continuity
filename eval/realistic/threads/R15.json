@@ -1,0 +1,693 @@
+{
+  "id": "R15",
+  "domain": "real_estate",
+  "title": "Full deal: offer, counter, counter-back, inspection, buyer approval, appraisal, closing moved, our written acceptance",
+  "features": [
+    "long_thread",
+    "acceptance",
+    "quoted_history",
+    "document_versions",
+    "answered_question",
+    "distractor_numbers",
+    "terse_shorthand",
+    "from_to_change"
+  ],
+  "task": {
+    "id": "task_r15",
+    "alias": "KES-5",
+    "goal": "Buy 5 Kestrel Point Dr for the Dunmores: price no more than $1,240,000 and within the appraisal, closing by Wed Dec 30.",
+    "item": "5 Kestrel Point Dr",
+    "domain": "real_estate",
+    "requirements": [
+      {
+        "key": "requirement.max_price",
+        "value": 1240000,
+        "display": "$1,240,000",
+        "hard": true
+      },
+      {
+        "key": "requirement.close_by",
+        "value": "2026-12-30",
+        "display": "Wed Dec 30",
+        "hard": true
+      },
+      {
+        "key": "requirement.opening_offer",
+        "value": 1175000,
+        "display": "$1,175,000",
+        "hard": false
+      }
+    ],
+    "participants": [
+      {
+        "address": "closings@harrowgate-homes.primitive.email",
+        "name": "Harrowgate Buyer Agent",
+        "role": "self",
+        "label": "buyer agent (us)",
+        "authority": [
+          "decision.",
+          "deal."
+        ]
+      },
+      {
+        "address": "ian.mercer@bluefin-coastal.example",
+        "name": "Ian Mercer (Bluefin Coastal Realty, listing agent)",
+        "role": "counterparty",
+        "label": "listing agent",
+        "authority": [
+          "price.",
+          "closing.",
+          "contingency.",
+          "decision.",
+          "deal."
+        ],
+        "group": "seller"
+      },
+      {
+        "address": "chloe.dunmore@dunmore-home.example",
+        "name": "Chloe Dunmore (buyer)",
+        "role": "internal",
+        "label": "buyer",
+        "authority": [
+          "budget."
+        ]
+      },
+      {
+        "address": "appraisal.ops@tidemark-bank.example",
+        "name": "Tidemark Bank (lender)",
+        "role": "internal",
+        "label": "lender",
+        "authority": [
+          "appraisal."
+        ]
+      },
+      {
+        "address": "schedule@beacon-homeinspect.example",
+        "name": "Beacon Home Inspections",
+        "role": "internal",
+        "label": "inspector",
+        "authority": [
+          "inspection."
+        ]
+      },
+      {
+        "address": "escrow@anchor-title.example",
+        "name": "Anchor Title (escrow)",
+        "role": "internal",
+        "label": "title company",
+        "authority": [
+          "payment."
+        ]
+      }
+    ],
+    "self_address": "closings@harrowgate-homes.primitive.email"
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "outbound",
+      "from": "closings@harrowgate-homes.primitive.email",
+      "fromName": "Harrowgate Buyer Agent",
+      "to": "ian.mercer@bluefin-coastal.example",
+      "subject": "Offer: 5 Kestrel Point Dr (KES-5)",
+      "at": "2026-10-19T14:00:00Z",
+      "in_reply_to": null,
+      "body": "Ian,\n\nOn behalf of Chloe and Ravi Dunmore we offer $1,175,000 for 5 Kestrel Point Dr (MLS #KP-90314), closing by Wed Dec 30, $37,000 EMD, financing through Tidemark Bank.\n\nPlease send the seller's response.\n\nHarrowgate Buyer Agent"
+    },
+    {
+      "id": "m2",
+      "direction": "inbound",
+      "from": "ian.mercer@bluefin-coastal.example",
+      "fromName": "Ian Mercer",
+      "to": "closings@harrowgate-homes.primitive.email",
+      "subject": "RE: Offer: 5 Kestrel Point Dr (KES-5)",
+      "at": "2026-10-20T15:10:00Z",
+      "in_reply_to": "m1",
+      "body": "Seller counters at $1,245,000, closing Monday Dec 14. Inspection contingency until Friday Oct 30. Counter #1 attached.\n\nFlood zone AE - last owner's flood policy was $3,180/yr. HOA $1,100/yr.\n\nIan Mercer\nBluefin Coastal Realty  843-555-0161\n\n -----Original Message-----\nFrom: \tHarrowgate Buyer Agent\nSent:\tMonday, October 19, 2026 9:00 AM\nTo:\tMercer, Ian\nSubject:\tOffer: 5 Kestrel Point Dr (KES-5)\n\nIan,\n\nOn behalf of Chloe and Ravi Dunmore we offer $1,175,000 for 5 Kestrel Point Dr (MLS #KP-90314), closing by Wed Dec 30, $37,000 EMD, financing through Tidemark Bank.\n\nPlease send the seller's response.\n\nHarrowgate Buyer Agent",
+      "attachments": [
+        {
+          "filename": "Bluefin-Counter-1-KES-5.pdf",
+          "lines": [
+            "BLUEFIN COASTAL REALTY - SELLER COUNTER OFFER #1",
+            "Property: 5 Kestrel Point Dr    MLS #KP-90314    Ref: KES-5",
+            "Purchase price: $1,245,000",
+            "Closing date: Monday, December 14, 2026",
+            "Inspection contingency until Friday, October 30, 2026",
+            "Earnest money deposit: $37,000"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m3",
+      "direction": "outbound",
+      "from": "closings@harrowgate-homes.primitive.email",
+      "fromName": "Harrowgate Buyer Agent",
+      "to": "chloe.dunmore@dunmore-home.example",
+      "subject": "Kestrel Point - counter",
+      "at": "2026-10-20T16:00:00Z",
+      "in_reply_to": null,
+      "body": "Chloe - seller countered at $1.245M, closing Dec 14. I'm going to counter back. Can you confirm you're comfortable going up to $1,240,000 if needed?"
+    },
+    {
+      "id": "m4",
+      "direction": "inbound",
+      "from": "schedule@beacon-homeinspect.example",
+      "fromName": "Beacon Home Inspections",
+      "to": "closings@harrowgate-homes.primitive.email",
+      "subject": "Booked: 5 Kestrel Point Dr",
+      "at": "2026-10-21T13:30:00Z",
+      "in_reply_to": null,
+      "body": "Inspection is scheduled for Monday Oct 26, 9:00am, incl. wind mitigation. Fee $650. Report same week.\n\nBeacon Home Inspections"
+    },
+    {
+      "id": "m5",
+      "direction": "outbound",
+      "from": "closings@harrowgate-homes.primitive.email",
+      "fromName": "Harrowgate Buyer Agent",
+      "to": "ian.mercer@bluefin-coastal.example",
+      "subject": "RE: Offer: 5 Kestrel Point Dr (KES-5)",
+      "at": "2026-10-21T14:20:00Z",
+      "in_reply_to": "m2",
+      "body": "Ian - we counter at $1,205,000, other terms per your counter #1.\n\nHarrowgate\n\n -----Original Message-----\nFrom: \tMercer, Ian\nSent:\tTuesday, October 20, 2026 10:10 AM\nTo:\tHarrowgate Buyer Agent\nSubject:\tRE: Offer: 5 Kestrel Point Dr (KES-5)\n\nSeller counters at $1,245,000, closing Monday Dec 14. Inspection contingency until Friday Oct 30. Counter #1 attached.\n\nFlood zone AE - last owner's flood policy was $3,180/yr. HOA $1,100/yr.\n\nIan Mercer\nBluefin Coastal Realty  843-555-0161\n\n -----Original Message-----\nFrom: \tHarrowgate Buyer Agent\nSent:\tMonday, October 19, 2026 9:00 AM\nTo:\tMercer, Ian\nSubject:\tOffer: 5 Kestrel Point Dr (KES-5)\n\nIan,\n\nOn behalf of Chloe and Ravi Dunmore we offer $1,175,000 for 5 Kestrel Point Dr (MLS #KP-90314), closing by Wed Dec 30, $37,000 EMD, financing through Tidemark Bank.\n\nPlease send the seller's response.\n\nHarrowgate Buyer Agent"
+    },
+    {
+      "id": "m6",
+      "direction": "inbound",
+      "from": "ian.mercer@bluefin-coastal.example",
+      "fromName": "Ian Mercer",
+      "to": "closings@harrowgate-homes.primitive.email",
+      "subject": "RE: Offer: 5 Kestrel Point Dr (KES-5)",
+      "at": "2026-10-22T19:40:00Z",
+      "in_reply_to": "m5",
+      "body": "Seller can come down from $1,245,000 to $1,225,000. Closing as countered.\n\nIan\n\n -----Original Message-----\nFrom: \tHarrowgate Buyer Agent\nSent:\tWednesday, October 21, 2026 9:20 AM\nTo:\tMercer, Ian\nSubject:\tRE: Offer: 5 Kestrel Point Dr (KES-5)\n\nIan - we counter at $1,205,000, other terms per your counter #1.\n\nHarrowgate\n\n -----Original Message-----\nFrom: \tMercer, Ian\nSent:\tTuesday, October 20, 2026 10:10 AM\nTo:\tHarrowgate Buyer Agent\nSubject:\tRE: Offer: 5 Kestrel Point Dr (KES-5)\n\nSeller counters at $1,245,000, closing Monday Dec 14. Inspection contingency until Friday Oct 30. Counter #1 attached.\n\nFlood zone AE - last owner's flood policy was $3,180/yr. HOA $1,100/yr.\n\nIan Mercer\nBluefin Coastal Realty  843-555-0161\n\n -----Original Message-----\nFrom: \tHarrowgate Buyer Agent\nSent:\tMonday, October 19, 2026 9:00 AM\nTo:\tMercer, Ian\nSubject:\tOffer: 5 Kestrel Point Dr (KES-5)\n\nIan,\n\nOn behalf of Chloe and Ravi Dunmore we offer $1,175,000 for 5 Kestrel Point Dr (MLS #KP-90314), closing by Wed Dec 30, $37,000 EMD, financing through Tidemark Bank.\n\nPlease send the seller's response.\n\nHarrowgate Buyer Agent"
+    },
+    {
+      "id": "m7",
+      "direction": "inbound",
+      "from": "chloe.dunmore@dunmore-home.example",
+      "fromName": "Chloe Dunmore",
+      "to": "closings@harrowgate-homes.primitive.email",
+      "subject": "Re: Kestrel Point - counter",
+      "at": "2026-10-23T00:15:00Z",
+      "in_reply_to": "m3",
+      "body": "Yes - approved up to $1,240,000. Would love 1.22 if you can get it but we won't lose the house over 5k.\n\nChloe\n\nOn Tue, Oct 20, 2026 at 11:00 AM Harrowgate Buyer Agent <closings@harrowgate-homes.primitive.email> wrote:\n> Chloe - seller countered at $1.245M, closing Dec 14. I'm going to counter back. Can you confirm you're comfortable going up to $1,240,000 if needed?"
+    },
+    {
+      "id": "m8",
+      "direction": "inbound",
+      "from": "appraisal.ops@tidemark-bank.example",
+      "fromName": "Tidemark Bank",
+      "to": "closings@harrowgate-homes.primitive.email",
+      "subject": "Appraisal - 5 Kestrel Point Dr / loan TB-6620417",
+      "at": "2026-10-28T16:00:00Z",
+      "in_reply_to": null,
+      "body": "The appraisal for 5 Kestrel Point Dr came in at $1,230,000. Flood cert ordered separately.\n\nTidemark Bank Appraisal Ops"
+    },
+    {
+      "id": "m9",
+      "direction": "inbound",
+      "from": "ian.mercer@bluefin-coastal.example",
+      "fromName": "Ian Mercer",
+      "to": "closings@harrowgate-homes.primitive.email",
+      "subject": "RE: Offer: 5 Kestrel Point Dr (KES-5)",
+      "at": "2026-10-29T15:05:00Z",
+      "in_reply_to": "m6",
+      "body": "Closing needs to move to Tuesday Dec 22 - the seller's purchase in Asheville slipped a week. Price unchanged at $1,225,000. Revised counter #2 attached.\n\nIan\n\nIan Mercer/BLUEFIN@BLUEFIN\n10/22/2026 02:40 PM\nTo: Harrowgate Buyer Agent\ncc:\nSubject: RE: Offer: 5 Kestrel Point Dr (KES-5)\n\nSeller can come down from $1,245,000 to $1,225,000. Closing as countered.\n\nIan\n\n -----Original Message-----\nFrom: \tHarrowgate Buyer Agent\nSent:\tWednesday, October 21, 2026 9:20 AM\nTo:\tMercer, Ian\nSubject:\tRE: Offer: 5 Kestrel Point Dr (KES-5)\n\nIan - we counter at $1,205,000, other terms per your counter #1.\n\nHarrowgate\n\n -----Original Message-----\nFrom: \tMercer, Ian\nSent:\tTuesday, October 20, 2026 10:10 AM\nTo:\tHarrowgate Buyer Agent\nSubject:\tRE: Offer: 5 Kestrel Point Dr (KES-5)\n\nSeller counters at $1,245,000, closing Monday Dec 14. Inspection contingency until Friday Oct 30. Counter #1 attached.\n\nFlood zone AE - last owner's flood policy was $3,180/yr. HOA $1,100/yr.\n\nIan Mercer\nBluefin Coastal Realty  843-555-0161\n\n -----Original Message-----\nFrom: \tHarrowgate Buyer Agent\nSent:\tMonday, October 19, 2026 9:00 AM\nTo:\tMercer, Ian\nSubject:\tOffer: 5 Kestrel Point Dr (KES-5)\n\nIan,\n\nOn behalf of Chloe and Ravi Dunmore we offer $1,175,000 for 5 Kestrel Point Dr (MLS #KP-90314), closing by Wed Dec 30, $37,000 EMD, financing through Tidemark Bank.\n\nPlease send the seller's response.\n\nHarrowgate Buyer Agent",
+      "attachments": [
+        {
+          "filename": "Bluefin-Counter-2-KES-5.pdf",
+          "lines": [
+            "BLUEFIN COASTAL REALTY - SELLER COUNTER OFFER #2 (REVISED)",
+            "Property: 5 Kestrel Point Dr    MLS #KP-90314    Ref: KES-5",
+            "Purchase price: $1,225,000",
+            "Closing date: Tuesday, December 22, 2026 (revised)",
+            "Inspection contingency until Friday, October 30, 2026",
+            "Earnest money deposit: $37,000"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m10",
+      "direction": "outbound",
+      "from": "closings@harrowgate-homes.primitive.email",
+      "fromName": "Harrowgate Buyer Agent",
+      "to": "chloe.dunmore@dunmore-home.example",
+      "subject": "Re: Kestrel Point - counter",
+      "at": "2026-10-29T16:00:00Z",
+      "in_reply_to": "m7",
+      "body": "Chloe - seller is at $1.225M and closing moves to Tue Dec 22 (still before your Dec 30 deadline). Appraisal came in at $1.23M so the loan covers it. OK for me to accept?\n\nOn Thu, Oct 22, 2026 at 7:15 PM Chloe Dunmore <chloe.dunmore@dunmore-home.example> wrote:\n> Yes - approved up to $1,240,000. Would love 1.22 if you can get it but we won't lose the house over 5k.\n>\n> Chloe\n>\n> On Tue, Oct 20, 2026 at 11:00 AM Harrowgate Buyer Agent <closings@harrowgate-homes.primitive.email> wrote:\n> > Chloe - seller countered at $1.245M, closing Dec 14. I'm going to counter back. Can you confirm you're comfortable going up to $1,240,000 if needed?"
+    },
+    {
+      "id": "m11",
+      "direction": "inbound",
+      "from": "chloe.dunmore@dunmore-home.example",
+      "fromName": "Chloe Dunmore",
+      "to": "closings@harrowgate-homes.primitive.email",
+      "subject": "Re: Kestrel Point - counter",
+      "at": "2026-10-30T01:20:00Z",
+      "in_reply_to": "m10",
+      "body": "yes!! accept. Ravi agrees.\n\nC\n\nOn Thu, Oct 29, 2026 at 11:00 AM Harrowgate Buyer Agent <closings@harrowgate-homes.primitive.email> wrote:\n> Chloe - seller is at $1.225M and closing moves to Tue Dec 22 (still before your Dec 30 deadline). Appraisal came in at $1.23M so the loan covers it. OK for me to accept?\n>\n> On Thu, Oct 22, 2026 at 7:15 PM Chloe Dunmore <chloe.dunmore@dunmore-home.example> wrote:\n> > Yes - approved up to $1,240,000. Would love 1.22 if you can get it but we won't lose the house over 5k.\n> >\n> > Chloe\n> >\n> > On Tue, Oct 20, 2026 at 11:00 AM Harrowgate Buyer Agent <closings@harrowgate-homes.primitive.email> wrote:\n> > > Chloe - seller countered at $1.245M, closing Dec 14. I'm going to counter back. Can you confirm you're comfortable going up to $1,240,000 if needed?"
+    },
+    {
+      "id": "m12",
+      "direction": "outbound",
+      "from": "closings@harrowgate-homes.primitive.email",
+      "fromName": "Harrowgate Buyer Agent",
+      "to": "ian.mercer@bluefin-coastal.example",
+      "subject": "RE: Offer: 5 Kestrel Point Dr (KES-5)",
+      "at": "2026-10-30T13:30:00Z",
+      "in_reply_to": "m9",
+      "body": "Ian,\n\nWe accept the seller's counter at $1,225,000, closing Tuesday Dec 22, per revised counter #2. The Dunmores will sign today and the $37,000 EMD goes to Anchor Title within 3 business days.\n\nPlease send the fully executed agreement.\n\nHarrowgate Buyer Agent\n\n -----Original Message-----\nFrom: \tMercer, Ian\nSent:\tThursday, October 29, 2026 10:05 AM\nTo:\tHarrowgate Buyer Agent\nSubject:\tRE: Offer: 5 Kestrel Point Dr (KES-5)\n\nClosing needs to move to Tuesday Dec 22 - the seller's purchase in Asheville slipped a week. Price unchanged at $1,225,000. Revised counter #2 attached.\n\nIan\n\nIan Mercer/BLUEFIN@BLUEFIN\n10/22/2026 02:40 PM\nTo: Harrowgate Buyer Agent\ncc:\nSubject: RE: Offer: 5 Kestrel Point Dr (KES-5)\n\nSeller can come down from $1,245,000 to $1,225,000. Closing as countered.\n\nIan\n\n -----Original Message-----\nFrom: \tHarrowgate Buyer Agent\nSent:\tWednesday, October 21, 2026 9:20 AM\nTo:\tMercer, Ian\nSubject:\tRE: Offer: 5 Kestrel Point Dr (KES-5)\n\nIan - we counter at $1,205,000, other terms per your counter #1.\n\nHarrowgate\n\n -----Original Message-----\nFrom: \tMercer, Ian\nSent:\tTuesday, October 20, 2026 10:10 AM\nTo:\tHarrowgate Buyer Agent\nSubject:\tRE: Offer: 5 Kestrel Point Dr (KES-5)\n\nSeller counters at $1,245,000, closing Monday Dec 14. Inspection contingency until Friday Oct 30. Counter #1 attached.\n\nFlood zone AE - last owner's flood policy was $3,180/yr. HOA $1,100/yr.\n\nIan Mercer\nBluefin Coastal Realty  843-555-0161\n\n -----Original Message-----\nFrom: \tHarrowgate Buyer Agent\nSent:\tMonday, October 19, 2026 9:00 AM\nTo:\tMercer, Ian\nSubject:\tOffer: 5 Kestrel Point Dr (KES-5)\n\nIan,\n\nOn behalf of Chloe and Ravi Dunmore we offer $1,175,000 for 5 Kestrel Point Dr (MLS #KP-90314), closing by Wed Dec 30, $37,000 EMD, financing through Tidemark Bank.\n\nPlease send the seller's response.\n\nHarrowgate Buyer Agent"
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m6",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 1225000,
+          "stated_in": "m6",
+          "evidence": "Seller can come down from $1,245,000 to $1,225,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-14",
+          "stated_in": "m2",
+          "evidence": "closing Monday Dec 14"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-10-30",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until Friday Oct 30"
+        },
+        {
+          "party": "inspector",
+          "term": "inspection.date",
+          "value": "2026-10-26",
+          "stated_in": "m4",
+          "evidence": "Inspection is scheduled for Monday Oct 26"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 1205000,
+          "stated_in": "m5",
+          "evidence": "we counter at $1,205,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-30",
+          "stated_in": "m1",
+          "evidence": "closing by Wed Dec 30"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 1245000,
+          "stated_in": "m2",
+          "evidence": "Seller counters at $1,245,000",
+          "replaced_in": "m6"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 1175000,
+          "stated_in": "m1",
+          "evidence": "we offer $1,175,000 for 5 Kestrel Point Dr",
+          "replaced_in": "m5"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "seller's response to the offer",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "buyer",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "comfortable going up to $1,240,000",
+          "status": "open",
+          "opened_in": "m3"
+        },
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "response to our $1,205,000 counter",
+          "status": "answered",
+          "opened_in": "m5",
+          "resolved_in": "m6"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Bluefin-Counter-1-KES-5.pdf",
+          "status": "partially_stale"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "unknown",
+        "price_approval": "unknown"
+      },
+      "next_actor": "them"
+    },
+    {
+      "after": "m9",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 1225000,
+          "stated_in": "m6",
+          "evidence": "Seller can come down from $1,245,000 to $1,225,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-22",
+          "stated_in": "m9",
+          "evidence": "Closing needs to move to Tuesday Dec 22"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-10-30",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until Friday Oct 30"
+        },
+        {
+          "party": "inspector",
+          "term": "inspection.date",
+          "value": "2026-10-26",
+          "stated_in": "m4",
+          "evidence": "Inspection is scheduled for Monday Oct 26"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 1240000,
+          "stated_in": "m7",
+          "evidence": "approved up to $1,240,000"
+        },
+        {
+          "party": "lender",
+          "term": "appraisal.value",
+          "value": 1230000,
+          "stated_in": "m8",
+          "evidence": "came in at $1,230,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 1205000,
+          "stated_in": "m5",
+          "evidence": "we counter at $1,205,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-30",
+          "stated_in": "m1",
+          "evidence": "closing by Wed Dec 30"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 1245000,
+          "stated_in": "m2",
+          "evidence": "Seller counters at $1,245,000",
+          "replaced_in": "m6"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-14",
+          "stated_in": "m2",
+          "evidence": "closing Monday Dec 14",
+          "replaced_in": "m9"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 1175000,
+          "stated_in": "m1",
+          "evidence": "we offer $1,175,000 for 5 Kestrel Point Dr",
+          "replaced_in": "m5"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "seller's response to the offer",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "buyer",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "comfortable going up to $1,240,000",
+          "status": "answered",
+          "opened_in": "m3",
+          "resolved_in": "m7"
+        },
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "response to our $1,205,000 counter",
+          "status": "answered",
+          "opened_in": "m5",
+          "resolved_in": "m6"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Bluefin-Counter-1-KES-5.pdf",
+          "status": "superseded"
+        },
+        {
+          "filename": "Bluefin-Counter-2-KES-5.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "pass",
+        "price_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "listing agent",
+        "must": [
+          "accept",
+          "1,225,000|1\\.225",
+          "dec(ember)?\\.? 22|22nd"
+        ],
+        "must_not": [
+          "dec(ember)?\\.? 14|14th",
+          "1,245,000|1\\.245"
+        ]
+      }
+    },
+    {
+      "after": "m12",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 1225000,
+          "stated_in": "m6",
+          "evidence": "Seller can come down from $1,245,000 to $1,225,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-22",
+          "stated_in": "m9",
+          "evidence": "Closing needs to move to Tuesday Dec 22"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-10-30",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until Friday Oct 30"
+        },
+        {
+          "party": "inspector",
+          "term": "inspection.date",
+          "value": "2026-10-26",
+          "stated_in": "m4",
+          "evidence": "Inspection is scheduled for Monday Oct 26"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 1240000,
+          "stated_in": "m7",
+          "evidence": "approved up to $1,240,000"
+        },
+        {
+          "party": "lender",
+          "term": "appraisal.value",
+          "value": 1230000,
+          "stated_in": "m8",
+          "evidence": "came in at $1,230,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 1225000,
+          "stated_in": "m12",
+          "evidence": "We accept the seller's counter at $1,225,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "decision.accept",
+          "value": "accepted",
+          "stated_in": "m12",
+          "evidence": "We accept the seller's counter at $1,225,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-22",
+          "stated_in": "m12",
+          "evidence": "closing Tuesday Dec 22"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 1245000,
+          "stated_in": "m2",
+          "evidence": "Seller counters at $1,245,000",
+          "replaced_in": "m6"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-14",
+          "stated_in": "m2",
+          "evidence": "closing Monday Dec 14",
+          "replaced_in": "m9"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 1175000,
+          "stated_in": "m1",
+          "evidence": "we offer $1,175,000 for 5 Kestrel Point Dr",
+          "replaced_in": "m5"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 1205000,
+          "stated_in": "m5",
+          "evidence": "we counter at $1,205,000",
+          "replaced_in": "m12"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-30",
+          "stated_in": "m1",
+          "evidence": "closing by Wed Dec 30",
+          "replaced_in": "m12"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "seller's response to the offer",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "buyer",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "comfortable going up to $1,240,000",
+          "status": "answered",
+          "opened_in": "m3",
+          "resolved_in": "m7"
+        },
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "response to our $1,205,000 counter",
+          "status": "answered",
+          "opened_in": "m5",
+          "resolved_in": "m6"
+        },
+        {
+          "owed_by": "buyer",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "OK to accept",
+          "status": "answered",
+          "opened_in": "m10",
+          "resolved_in": "m11"
+        },
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "send the fully executed agreement",
+          "status": "open",
+          "opened_in": "m12"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Bluefin-Counter-1-KES-5.pdf",
+          "status": "superseded"
+        },
+        {
+          "filename": "Bluefin-Counter-2-KES-5.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "pass",
+        "price_approval": "pass"
+      },
+      "next_actor": "them"
+    }
+  ],
+  "notes": "Twelve messages across four counterparties. The seller goes $1,245,000 -> $1,225,000; we go $1,175,000 -> $1,205,000 -> accept at $1,225,000. The seller moves closing from Dec 14 to Dec 22 in a revised counter (still inside the Dec 30 deadline). The buyer approves $1,240,000; the appraisal is $1,230,000, which covers the price. At the key checkpoint everything passes and we should accept, restating $1,225,000 and Dec 22 (not Dec 14, not $1,245,000). The thread ends with OUR acceptance (decision.accept \"accepted\", outbound), so the final next_actor is them (executed contract). The buyer saying \"yes, accept\" is approval to us, not a deal term. Distractors: $37,000 EMD, MLS #, flood-insurance quote, HOA, inspection fee, loan #."
+}

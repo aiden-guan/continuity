@@ -1,0 +1,449 @@
+{
+  "id": "P03",
+  "domain": "procurement",
+  "title": "LED driver order: sales rep and logistics coordinator give different delivery dates; contested until the coordinator corrects himself",
+  "features": [
+    "contested",
+    "quoted_history",
+    "distractor_numbers",
+    "answered_question",
+    "terse_shorthand"
+  ],
+  "task": {
+    "id": "task_p03",
+    "alias": "PO-7718",
+    "goal": "Buy 2,000 LD-60 60W LED drivers for PO-7718. All 2,000 must arrive by Mon Dec 7; unit price must not exceed $8.40.",
+    "item": "LD-60 60W constant-current LED drivers",
+    "self_address": "sourcing@brightline-fixtures.primitive.email",
+    "domain": "procurement",
+    "participants": [
+      {
+        "address": "sourcing@brightline-fixtures.primitive.email",
+        "name": "Brightline Sourcing Agent",
+        "role": "self",
+        "label": "Brightline (us)",
+        "authority": [
+          "decision."
+        ]
+      },
+      {
+        "address": "d.whitfield@kepler-power.example",
+        "name": "Dana Whitfield (Kepler Power, Inside Sales)",
+        "role": "counterparty",
+        "label": "supplier",
+        "authority": [
+          "price.",
+          "delivery.",
+          "order.",
+          "payment.",
+          "quote.",
+          "offer."
+        ],
+        "group": "kepler"
+      },
+      {
+        "address": "m.feld@kepler-power.example",
+        "name": "Marcus Feld (Kepler Power, Logistics)",
+        "role": "counterparty",
+        "label": "supplier logistics",
+        "authority": [
+          "delivery."
+        ],
+        "group": "kepler"
+      },
+      {
+        "address": "i.vargas@brightline-fixtures.example",
+        "name": "Ines Vargas (Brightline Finance)",
+        "role": "internal",
+        "label": "finance",
+        "authority": [
+          "budget."
+        ]
+      }
+    ],
+    "requirements": [
+      {
+        "key": "requirement.quantity",
+        "value": 2000,
+        "display": "2,000 units",
+        "hard": true
+      },
+      {
+        "key": "requirement.deliver_all_by",
+        "value": "2026-12-07",
+        "display": "Mon Dec 7",
+        "hard": true
+      },
+      {
+        "key": "requirement.max_unit_price",
+        "value": 8.4,
+        "display": "$8.40",
+        "hard": true
+      }
+    ]
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "outbound",
+      "from": "sourcing@brightline-fixtures.primitive.email",
+      "fromName": "Brightline Sourcing Agent",
+      "to": "d.whitfield@kepler-power.example",
+      "subject": "RFQ PO-7718 - 2,000 LD-60 drivers",
+      "at": "2026-11-16T15:00:00Z",
+      "in_reply_to": null,
+      "body": "Dana,\n\nPO-7718: we need 2,000 LD-60 60W constant-current drivers (0-10V dim, Class 2) delivered to Brightline, Building C, by Mon Dec 7 - that's the start of the line changeover. Please quote unit price and a firm delivery date.\n\nThanks\nBrightline Sourcing"
+    },
+    {
+      "id": "m2",
+      "direction": "outbound",
+      "from": "sourcing@brightline-fixtures.primitive.email",
+      "fromName": "Brightline Sourcing Agent",
+      "to": "i.vargas@brightline-fixtures.example",
+      "subject": "PO-7718 approval",
+      "at": "2026-11-16T15:04:00Z",
+      "in_reply_to": null,
+      "body": "Ines, can you approve up to $8.40/ea for PO-7718 (2,000 LD-60 drivers)? Last buy was $8.65 on PO-7302.\n\nthx"
+    },
+    {
+      "id": "m3",
+      "direction": "inbound",
+      "from": "d.whitfield@kepler-power.example",
+      "fromName": "Dana Whitfield",
+      "to": "sourcing@brightline-fixtures.primitive.email",
+      "subject": "RE: RFQ PO-7718 - 2,000 LD-60 drivers",
+      "at": "2026-11-17T18:12:00Z",
+      "in_reply_to": "m1",
+      "body": "Hi there,\n\n2,000 LD-60 at $8.15/ea. They deliver Thu Dec 3 to your Building C dock. Net 45. I've copied Marcus Feld in our logistics group, he books the freight.\n\nDana Whitfield\nKepler Power Systems | Inside Sales | 775-555-0136 | opp #K-118204\n\n -----Original Message-----\nFrom: \tBrightline Sourcing\nSent:\tMonday, November 16, 2026 10:00 AM\nTo:\tWhitfield, Dana\nSubject:\tRFQ PO-7718 - 2,000 LD-60 drivers\n\nDana,\n\nPO-7718: we need 2,000 LD-60 60W constant-current drivers (0-10V dim, Class 2) delivered to Brightline, Building C, by Mon Dec 7 - that's the start of the line changeover. Please quote unit price and a firm delivery date.\n\nThanks\nBrightline Sourcing"
+    },
+    {
+      "id": "m4",
+      "direction": "inbound",
+      "from": "i.vargas@brightline-fixtures.example",
+      "fromName": "Ines Vargas",
+      "to": "sourcing@brightline-fixtures.primitive.email",
+      "subject": "RE: PO-7718 approval",
+      "at": "2026-11-17T20:40:00Z",
+      "in_reply_to": "m2",
+      "body": "ok - approved to $8.40 per unit. proj 26-114.\n\nIV\n\n -----Original Message-----\nFrom: \tBrightline Sourcing\nSent:\tMonday, November 16, 2026 10:04 AM\nTo:\tVargas, Ines\nSubject:\tPO-7718 approval\n\nInes, can you approve up to $8.40/ea for PO-7718 (2,000 LD-60 drivers)? Last buy was $8.65 on PO-7302.\n\nthx"
+    },
+    {
+      "id": "m5",
+      "direction": "inbound",
+      "from": "m.feld@kepler-power.example",
+      "fromName": "Marcus Feld",
+      "to": "sourcing@brightline-fixtures.primitive.email",
+      "subject": "RE: RFQ PO-7718 - 2,000 LD-60 drivers",
+      "at": "2026-11-18T14:25:00Z",
+      "in_reply_to": "m3",
+      "body": "Brightline team,\n\nFreight booked for PO-7718: LD-60 drivers, 5 pallets, 1,140 lb, PRO# 0448-21933. Delivers Wed 12/9 to Building C, liftgate not required.\n\nMarcus Feld\nKepler Power - Logistics\n775-555-0171\n\n -----Original Message-----\nFrom: \tWhitfield, Dana\nSent:\tTuesday, November 17, 2026 1:12 PM\nTo:\tBrightline Sourcing\nSubject:\tRE: RFQ PO-7718 - 2,000 LD-60 drivers\n\nHi there,\n\n2,000 LD-60 at $8.15/ea. They deliver Thu Dec 3 to your Building C dock. Net 45. I've copied Marcus Feld in our logistics group, he books the freight.\n\nDana Whitfield\nKepler Power Systems | Inside Sales | 775-555-0136 | opp #K-118204\n\n -----Original Message-----\nFrom: \tBrightline Sourcing\nSent:\tMonday, November 16, 2026 10:00 AM\nTo:\tWhitfield, Dana\nSubject:\tRFQ PO-7718 - 2,000 LD-60 drivers\n\nDana,\n\nPO-7718: we need 2,000 LD-60 60W constant-current drivers (0-10V dim, Class 2) delivered to Brightline, Building C, by Mon Dec 7 - that's the start of the line changeover. Please quote unit price and a firm delivery date.\n\nThanks\nBrightline Sourcing"
+    },
+    {
+      "id": "m6",
+      "direction": "outbound",
+      "from": "sourcing@brightline-fixtures.primitive.email",
+      "fromName": "Brightline Sourcing Agent",
+      "to": "d.whitfield@kepler-power.example",
+      "subject": "RE: RFQ PO-7718 - 2,000 LD-60 drivers",
+      "at": "2026-11-18T15:10:00Z",
+      "in_reply_to": "m5",
+      "body": "Dana / Marcus -\n\nWe have two dates: Dana's email says Thu Dec 3, Marcus's freight booking says Wed 12/9. Which is it? 12/9 misses our Dec 7 need date for the changeover.\n\nBrightline Sourcing\n\n -----Original Message-----\nFrom: \tFeld, Marcus\nSent:\tWednesday, November 18, 2026 9:25 AM\nTo:\tBrightline Sourcing\nSubject:\tRE: RFQ PO-7718 - 2,000 LD-60 drivers\n\nBrightline team,\n\nFreight booked for PO-7718: LD-60 drivers, 5 pallets, 1,140 lb, PRO# 0448-21933. Delivers Wed 12/9 to Building C, liftgate not required.\n\nMarcus Feld\nKepler Power - Logistics\n775-555-0171\n\n -----Original Message-----\nFrom: \tWhitfield, Dana\nSent:\tTuesday, November 17, 2026 1:12 PM\nTo:\tBrightline Sourcing\nSubject:\tRE: RFQ PO-7718 - 2,000 LD-60 drivers\n\nHi there,\n\n2,000 LD-60 at $8.15/ea. They deliver Thu Dec 3 to your Building C dock. Net 45. I've copied Marcus Feld in our logistics group, he books the freight.\n\nDana Whitfield\nKepler Power Systems | Inside Sales | 775-555-0136 | opp #K-118204\n\n -----Original Message-----\nFrom: \tBrightline Sourcing\nSent:\tMonday, November 16, 2026 10:00 AM\nTo:\tWhitfield, Dana\nSubject:\tRFQ PO-7718 - 2,000 LD-60 drivers\n\nDana,\n\nPO-7718: we need 2,000 LD-60 60W constant-current drivers (0-10V dim, Class 2) delivered to Brightline, Building C, by Mon Dec 7 - that's the start of the line changeover. Please quote unit price and a firm delivery date.\n\nThanks\nBrightline Sourcing"
+    },
+    {
+      "id": "m7",
+      "direction": "inbound",
+      "from": "d.whitfield@kepler-power.example",
+      "fromName": "Dana Whitfield",
+      "to": "sourcing@brightline-fixtures.primitive.email",
+      "subject": "RE: RFQ PO-7718 - 2,000 LD-60 drivers",
+      "at": "2026-11-19T16:00:00Z",
+      "in_reply_to": "m6",
+      "body": "Dec 3 is right - they ship from our Reno DC, not the factory, and I confirmed stock this morning. 2,000 deliver Thu Dec 3. I'll have Marcus fix the booking.\n\nDana\n\n -----Original Message-----\nFrom: \tBrightline Sourcing\nSent:\tWednesday, November 18, 2026 10:10 AM\nTo:\tWhitfield, Dana\nSubject:\tRE: RFQ PO-7718 - 2,000 LD-60 drivers\n\nDana / Marcus -\n\nWe have two dates: Dana's email says Thu Dec 3, Marcus's freight booking says Wed 12/9. Which is it? 12/9 misses our Dec 7 need date for the changeover.\n\nBrightline Sourcing\n\n -----Original Message-----\nFrom: \tFeld, Marcus\nSent:\tWednesday, November 18, 2026 9:25 AM\nTo:\tBrightline Sourcing\nSubject:\tRE: RFQ PO-7718 - 2,000 LD-60 drivers\n\nBrightline team,\n\nFreight booked for PO-7718: LD-60 drivers, 5 pallets, 1,140 lb, PRO# 0448-21933. Delivers Wed 12/9 to Building C, liftgate not required.\n\nMarcus Feld\nKepler Power - Logistics\n775-555-0171\n\n -----Original Message-----\nFrom: \tWhitfield, Dana\nSent:\tTuesday, November 17, 2026 1:12 PM\nTo:\tBrightline Sourcing\nSubject:\tRE: RFQ PO-7718 - 2,000 LD-60 drivers\n\nHi there,\n\n2,000 LD-60 at $8.15/ea. They deliver Thu Dec 3 to your Building C dock. Net 45. I've copied Marcus Feld in our logistics group, he books the freight.\n\nDana Whitfield\nKepler Power Systems | Inside Sales | 775-555-0136 | opp #K-118204\n\n -----Original Message-----\nFrom: \tBrightline Sourcing\nSent:\tMonday, November 16, 2026 10:00 AM\nTo:\tWhitfield, Dana\nSubject:\tRFQ PO-7718 - 2,000 LD-60 drivers\n\nDana,\n\nPO-7718: we need 2,000 LD-60 60W constant-current drivers (0-10V dim, Class 2) delivered to Brightline, Building C, by Mon Dec 7 - that's the start of the line changeover. Please quote unit price and a firm delivery date.\n\nThanks\nBrightline Sourcing"
+    },
+    {
+      "id": "m8",
+      "direction": "inbound",
+      "from": "m.feld@kepler-power.example",
+      "fromName": "Marcus Feld",
+      "to": "sourcing@brightline-fixtures.primitive.email",
+      "subject": "RE: RFQ PO-7718 - 2,000 LD-60 drivers",
+      "at": "2026-11-19T19:35:00Z",
+      "in_reply_to": "m7",
+      "body": "Correction on my end - the 12/9 was the Las Vegas truck for PO-7713, wrong PO. PO-7718 rebooked on PRO# 0448-22107, delivers Thu 12/3 to Building C.\n\nMarcus\n\n -----Original Message-----\nFrom: \tWhitfield, Dana\nSent:\tThursday, November 19, 2026 11:00 AM\nTo:\tBrightline Sourcing\nSubject:\tRE: RFQ PO-7718 - 2,000 LD-60 drivers\n\nDec 3 is right - they ship from our Reno DC, not the factory, and I confirmed stock this morning. 2,000 deliver Thu Dec 3. I'll have Marcus fix the booking.\n\nDana\n\n -----Original Message-----\nFrom: \tBrightline Sourcing\nSent:\tWednesday, November 18, 2026 10:10 AM\nTo:\tWhitfield, Dana\nSubject:\tRE: RFQ PO-7718 - 2,000 LD-60 drivers\n\nDana / Marcus -\n\nWe have two dates: Dana's email says Thu Dec 3, Marcus's freight booking says Wed 12/9. Which is it? 12/9 misses our Dec 7 need date for the changeover.\n\nBrightline Sourcing\n\n -----Original Message-----\nFrom: \tFeld, Marcus\nSent:\tWednesday, November 18, 2026 9:25 AM\nTo:\tBrightline Sourcing\nSubject:\tRE: RFQ PO-7718 - 2,000 LD-60 drivers\n\nBrightline team,\n\nFreight booked for PO-7718: LD-60 drivers, 5 pallets, 1,140 lb, PRO# 0448-21933. Delivers Wed 12/9 to Building C, liftgate not required.\n\nMarcus Feld\nKepler Power - Logistics\n775-555-0171\n\n -----Original Message-----\nFrom: \tWhitfield, Dana\nSent:\tTuesday, November 17, 2026 1:12 PM\nTo:\tBrightline Sourcing\nSubject:\tRE: RFQ PO-7718 - 2,000 LD-60 drivers\n\nHi there,\n\n2,000 LD-60 at $8.15/ea. They deliver Thu Dec 3 to your Building C dock. Net 45. I've copied Marcus Feld in our logistics group, he books the freight.\n\nDana Whitfield\nKepler Power Systems | Inside Sales | 775-555-0136 | opp #K-118204\n\n -----Original Message-----\nFrom: \tBrightline Sourcing\nSent:\tMonday, November 16, 2026 10:00 AM\nTo:\tWhitfield, Dana\nSubject:\tRFQ PO-7718 - 2,000 LD-60 drivers\n\nDana,\n\nPO-7718: we need 2,000 LD-60 60W constant-current drivers (0-10V dim, Class 2) delivered to Brightline, Building C, by Mon Dec 7 - that's the start of the line changeover. Please quote unit price and a firm delivery date.\n\nThanks\nBrightline Sourcing"
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m5",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 8.15,
+          "stated_in": "m3",
+          "evidence": "2,000 LD-60 at $8.15/ea"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 2000,
+          "stated_in": "m3",
+          "evidence": "2,000 LD-60 at $8.15/ea"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 45",
+          "stated_in": "m3",
+          "evidence": "Net 45"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 8.4,
+          "stated_in": "m4",
+          "evidence": "approved to $8.40 per unit"
+        }
+      ],
+      "contested": [
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 2000,
+              "date": "2026-12-03"
+            }
+          ],
+          "stated_in": "m3",
+          "evidence": "They deliver Thu Dec 3 to your Building C dock"
+        },
+        {
+          "party": "supplier logistics",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 2000,
+              "date": "2026-12-09"
+            }
+          ],
+          "stated_in": "m5",
+          "evidence": "Delivers Wed 12/9 to Building C"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "unknown",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "supplier",
+        "must": [
+          "(dec(ember)?\\.? ?3\\b|12/3)",
+          "(dec(ember)?\\.? ?9\\b|12/9)"
+        ],
+        "must_not": [
+          "\\bwe (accept|confirm the order)",
+          "\\$?8\\.40"
+        ]
+      }
+    },
+    {
+      "after": "m7",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 8.15,
+          "stated_in": "m3",
+          "evidence": "2,000 LD-60 at $8.15/ea"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 2000,
+          "stated_in": "m3",
+          "evidence": "2,000 LD-60 at $8.15/ea"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 45",
+          "stated_in": "m3",
+          "evidence": "Net 45"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 8.4,
+          "stated_in": "m4",
+          "evidence": "approved to $8.40 per unit"
+        }
+      ],
+      "contested": [
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 2000,
+              "date": "2026-12-03"
+            }
+          ],
+          "stated_in": "m7",
+          "evidence": "2,000 deliver Thu Dec 3"
+        },
+        {
+          "party": "supplier logistics",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 2000,
+              "date": "2026-12-09"
+            }
+          ],
+          "stated_in": "m5",
+          "evidence": "Delivers Wed 12/9 to Building C"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 2000,
+              "date": "2026-12-03"
+            }
+          ],
+          "stated_in": "m3",
+          "evidence": "They deliver Thu Dec 3 to your Building C dock",
+          "replaced_in": "m7"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Brightline (us)",
+          "kind": "question",
+          "about": "which delivery date is right, Dec 3 or 12/9",
+          "status": "answered",
+          "opened_in": "m6",
+          "resolved_in": "m7"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "unknown",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "them"
+    },
+    {
+      "after": "m8",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 8.15,
+          "stated_in": "m3",
+          "evidence": "2,000 LD-60 at $8.15/ea"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 2000,
+          "stated_in": "m3",
+          "evidence": "2,000 LD-60 at $8.15/ea"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 45",
+          "stated_in": "m3",
+          "evidence": "Net 45"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 8.4,
+          "stated_in": "m4",
+          "evidence": "approved to $8.40 per unit"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 2000,
+              "date": "2026-12-03"
+            }
+          ],
+          "stated_in": "m7",
+          "evidence": "2,000 deliver Thu Dec 3"
+        },
+        {
+          "party": "supplier logistics",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 2000,
+              "date": "2026-12-03"
+            }
+          ],
+          "stated_in": "m8",
+          "evidence": "delivers Thu 12/3 to Building C"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "supplier logistics",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 2000,
+              "date": "2026-12-09"
+            }
+          ],
+          "stated_in": "m5",
+          "evidence": "Delivers Wed 12/9 to Building C",
+          "replaced_in": "m8"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Brightline (us)",
+          "kind": "question",
+          "about": "which delivery date is right, Dec 3 or 12/9",
+          "status": "answered",
+          "opened_in": "m6",
+          "resolved_in": "m7"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "supplier",
+        "must": [
+          "(dec(ember)?\\.? ?3\\b|12/3)",
+          "accept|confirm|go ahead|proceed"
+        ],
+        "must_not": [
+          "12/9|dec(ember)?\\.? ?9\\b"
+        ]
+      }
+    }
+  ],
+  "notes": "Two speakers in the same group (kepler): the sales rep says Dec 3 (m3), the logistics coordinator (authority delivery. only) books Wed 12/9 (m5) -> contested, delivery_deadline unknown (12/9 would miss Dec 7). m7 is the trap: the rep restates Dec 3 and says she will have Marcus fix it, but that only refreshes HER value; Marcus's 12/9 is still his latest statement, so the term stays contested at the m7 checkpoint (her restatement supersedes her own m3 statement with the same value). Only m8, where Marcus corrects himself to 12/3, removes the conflict: both speakers now say 2,000 on 12/3. Marcus never states a quantity; his schedule qty is the full 2,000 order he booked. Distractors: opp #, PRO numbers, 5 pallets / 1,140 lb, PO-7713 and PO-7302, $8.65 old price, proj 26-114, phone numbers."
+}

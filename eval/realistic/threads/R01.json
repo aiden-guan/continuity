@@ -1,0 +1,566 @@
+{
+  "id": "R01",
+  "domain": "real_estate",
+  "title": "118 Larkspur: appraisal lands under the counter; seller reduces \"from $775,000 to $752,000\" in a revised counter that supersedes the first",
+  "features": [
+    "from_to_change",
+    "document_versions",
+    "quoted_history",
+    "distractor_numbers",
+    "acceptance",
+    "answered_question"
+  ],
+  "task": {
+    "id": "deal_lark118",
+    "alias": "LARK-118",
+    "goal": "Buy 118 Larkspur Ln for our buyer: price no more than $780,000 and within the appraisal, closing by Fri Dec 18.",
+    "item": "118 Larkspur Ln",
+    "self_address": "agent@baywater-homes.primitive.email",
+    "domain": "real_estate",
+    "participants": [
+      {
+        "address": "agent@baywater-homes.primitive.email",
+        "name": "Baywater Homes Buyer Agent",
+        "role": "self",
+        "label": "buyer agent (us)",
+        "authority": [
+          "decision.",
+          "deal."
+        ]
+      },
+      {
+        "address": "p.desai@oakridge-realty.example",
+        "name": "Priya Desai (Oakridge Realty, listing agent)",
+        "role": "counterparty",
+        "label": "listing agent",
+        "authority": [
+          "price.",
+          "closing.",
+          "contingency.",
+          "decision.",
+          "deal."
+        ],
+        "group": "seller"
+      },
+      {
+        "address": "sam.whitfield@whitfield-family.example",
+        "name": "Sam Whitfield (buyer)",
+        "role": "internal",
+        "label": "buyer",
+        "authority": [
+          "budget."
+        ]
+      },
+      {
+        "address": "loans@cedarpoint-mortgage.example",
+        "name": "Cedar Point Mortgage (lender)",
+        "role": "internal",
+        "label": "lender",
+        "authority": [
+          "appraisal."
+        ]
+      },
+      {
+        "address": "book@trueline-inspect.example",
+        "name": "Trueline Inspections",
+        "role": "internal",
+        "label": "inspector",
+        "authority": [
+          "inspection."
+        ]
+      },
+      {
+        "address": "escrow@anchor-title.example",
+        "name": "Anchor Title (escrow)",
+        "role": "internal",
+        "label": "title company",
+        "authority": [
+          "payment."
+        ]
+      }
+    ],
+    "requirements": [
+      {
+        "key": "requirement.max_price",
+        "value": 780000,
+        "display": "$780,000",
+        "hard": true
+      },
+      {
+        "key": "requirement.close_by",
+        "value": "2026-12-18",
+        "display": "Fri Dec 18",
+        "hard": true
+      },
+      {
+        "key": "requirement.opening_offer",
+        "value": 740000,
+        "display": "$740,000",
+        "hard": false
+      }
+    ]
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "outbound",
+      "from": "agent@baywater-homes.primitive.email",
+      "fromName": "Baywater Homes Buyer Agent",
+      "to": "p.desai@oakridge-realty.example",
+      "subject": "118 Larkspur Ln - offer (LARK-118)",
+      "at": "2026-11-02T16:00:00Z",
+      "in_reply_to": null,
+      "body": "Priya,\n\nOn behalf of Sam Whitfield we are offering $740,000 for 118 Larkspur Ln (MLS #4418207), closing by Fri Dec 18, with a 10-day inspection contingency and $15,000 earnest money. Pre-approval letter from Cedar Point is on file.\n\nBaywater Homes"
+    },
+    {
+      "id": "m2",
+      "direction": "outbound",
+      "from": "agent@baywater-homes.primitive.email",
+      "fromName": "Baywater Homes Buyer Agent",
+      "to": "sam.whitfield@whitfield-family.example",
+      "subject": "Larkspur - your ceiling",
+      "at": "2026-11-02T16:10:00Z",
+      "in_reply_to": null,
+      "body": "Sam - offer is in at $740k. Can you confirm $780,000 is your absolute top for Larkspur?"
+    },
+    {
+      "id": "m3",
+      "direction": "inbound",
+      "from": "sam.whitfield@whitfield-family.example",
+      "fromName": "Sam Whitfield",
+      "to": "agent@baywater-homes.primitive.email",
+      "subject": "RE: Larkspur - your ceiling",
+      "at": "2026-11-02T23:40:00Z",
+      "in_reply_to": "m2",
+      "body": "Yes - $780k is the top. Don't go over.\n\nSam\n\n -----Original Message-----\nFrom: \tBaywater Homes\nSent:\tMonday, November 02, 2026 10:10 AM\nTo:\tWhitfield, Sam\nSubject:\tLarkspur - your ceiling\n\nSam - offer is in at $740k. Can you confirm $780,000 is your absolute top for Larkspur?"
+    },
+    {
+      "id": "m4",
+      "direction": "inbound",
+      "from": "p.desai@oakridge-realty.example",
+      "fromName": "Priya Desai",
+      "to": "agent@baywater-homes.primitive.email",
+      "subject": "RE: 118 Larkspur Ln - offer (LARK-118)",
+      "at": "2026-11-04T17:20:00Z",
+      "in_reply_to": "m1",
+      "body": "Hi,\n\nThanks for the offer. Seller counters at $775,000, closing Friday, Dec 18, inspection contingency until Friday, Nov 20. They'll also give a $3,000 credit toward closing costs. Counter #1 attached.\n\nPriya Desai\nOakridge Realty | 408-555-0193\n\n -----Original Message-----\nFrom: \tBaywater Homes\nSent:\tMonday, November 02, 2026 10:00 AM\nTo:\tDesai, Priya\nSubject:\t118 Larkspur Ln - offer (LARK-118)\n\nPriya,\n\nOn behalf of Sam Whitfield we are offering $740,000 for 118 Larkspur Ln (MLS #4418207), closing by Fri Dec 18, with a 10-day inspection contingency and $15,000 earnest money. Pre-approval letter from Cedar Point is on file.\n\nBaywater Homes",
+      "attachments": [
+        {
+          "filename": "Oakridge-Counter-LARK-118.pdf",
+          "lines": [
+            "OAKRIDGE REALTY - SELLER COUNTER OFFER #1",
+            "Property: 118 Larkspur Ln   Date: Nov 4, 2026   Ref: LARK-118",
+            "Purchase price: $775,000",
+            "Closing date: Friday, Dec 18, 2026",
+            "Inspection contingency until Friday, Nov 20, 2026",
+            "Earnest money deposit: $15,000",
+            "Seller credit toward buyer closing costs: $3,000"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m5",
+      "direction": "inbound",
+      "from": "loans@cedarpoint-mortgage.example",
+      "fromName": "Cedar Point Mortgage",
+      "to": "agent@baywater-homes.primitive.email",
+      "subject": "Appraisal - 118 Larkspur Ln (loan #CP-778130)",
+      "at": "2026-11-12T15:05:00Z",
+      "in_reply_to": null,
+      "body": "Appraisal for 118 Larkspur came in at $752,000. Report attached. LTV at the counter price would be over our 80% - borrower would need to bring the difference.\n\nCedar Point Mortgage\nprocessing | 408-555-0110",
+      "attachments": [
+        {
+          "filename": "Appraisal-118-Larkspur.pdf",
+          "lines": [
+            "UNIFORM RESIDENTIAL APPRAISAL REPORT - SUMMARY",
+            "Subject: 118 Larkspur Ln   Loan #CP-778130",
+            "Effective date: Nov 10, 2026",
+            "Comparable 1: 104 Larkspur Ln, sold Sep 2026, $748,500",
+            "Comparable 2: 22 Thistle Ct, sold Aug 2026, $761,000",
+            "Appraised value: $752,000"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m6",
+      "direction": "outbound",
+      "from": "agent@baywater-homes.primitive.email",
+      "fromName": "Baywater Homes Buyer Agent",
+      "to": "p.desai@oakridge-realty.example",
+      "subject": "RE: 118 Larkspur Ln - offer (LARK-118)",
+      "at": "2026-11-12T16:30:00Z",
+      "in_reply_to": "m4",
+      "body": "Priya - appraisal came back at $752,000, $23,000 under the counter. Buyer won't cover the gap. Will the seller come down to appraised value?\n\nBaywater Homes\n\n -----Original Message-----\nFrom: \tDesai, Priya\nSent:\tWednesday, November 04, 2026 11:20 AM\nTo:\tBaywater Homes\nSubject:\tRE: 118 Larkspur Ln - offer (LARK-118)\n\nHi,\n\nThanks for the offer. Seller counters at $775,000, closing Friday, Dec 18, inspection contingency until Friday, Nov 20. They'll also give a $3,000 credit toward closing costs. Counter #1 attached.\n\nPriya Desai\nOakridge Realty | 408-555-0193\n\n -----Original Message-----\nFrom: \tBaywater Homes\nSent:\tMonday, November 02, 2026 10:00 AM\nTo:\tDesai, Priya\nSubject:\t118 Larkspur Ln - offer (LARK-118)\n\nPriya,\n\nOn behalf of Sam Whitfield we are offering $740,000 for 118 Larkspur Ln (MLS #4418207), closing by Fri Dec 18, with a 10-day inspection contingency and $15,000 earnest money. Pre-approval letter from Cedar Point is on file.\n\nBaywater Homes"
+    },
+    {
+      "id": "m7",
+      "direction": "inbound",
+      "from": "p.desai@oakridge-realty.example",
+      "fromName": "Priya Desai",
+      "to": "agent@baywater-homes.primitive.email",
+      "subject": "RE: 118 Larkspur Ln - offer (LARK-118)",
+      "at": "2026-11-13T18:00:00Z",
+      "in_reply_to": "m6",
+      "body": "Talked to the sellers last night. They'll reduce the price from $775,000 to $752,000 to match the appraisal. All other terms of Counter #1 stand, $3k credit included. Revised Counter #2 attached - it supersedes the one from 11/4.\n\nPriya\n\n -----Original Message-----\nFrom: \tBaywater Homes\nSent:\tThursday, November 12, 2026 10:30 AM\nTo:\tDesai, Priya\nSubject:\tRE: 118 Larkspur Ln - offer (LARK-118)\n\nPriya - appraisal came back at $752,000, $23,000 under the counter. Buyer won't cover the gap. Will the seller come down to appraised value?\n\nBaywater Homes\n\n -----Original Message-----\nFrom: \tDesai, Priya\nSent:\tWednesday, November 04, 2026 11:20 AM\nTo:\tBaywater Homes\nSubject:\tRE: 118 Larkspur Ln - offer (LARK-118)\n\nHi,\n\nThanks for the offer. Seller counters at $775,000, closing Friday, Dec 18, inspection contingency until Friday, Nov 20. They'll also give a $3,000 credit toward closing costs. Counter #1 attached.\n\nPriya Desai\nOakridge Realty | 408-555-0193\n\n -----Original Message-----\nFrom: \tBaywater Homes\nSent:\tMonday, November 02, 2026 10:00 AM\nTo:\tDesai, Priya\nSubject:\t118 Larkspur Ln - offer (LARK-118)\n\nPriya,\n\nOn behalf of Sam Whitfield we are offering $740,000 for 118 Larkspur Ln (MLS #4418207), closing by Fri Dec 18, with a 10-day inspection contingency and $15,000 earnest money. Pre-approval letter from Cedar Point is on file.\n\nBaywater Homes",
+      "attachments": [
+        {
+          "filename": "Oakridge-Counter-LARK-118-rev2.pdf",
+          "lines": [
+            "OAKRIDGE REALTY - SELLER COUNTER OFFER #2 (REVISED)",
+            "Property: 118 Larkspur Ln   Date: Nov 13, 2026   Ref: LARK-118",
+            "Purchase price: $752,000 (revised from $775,000)",
+            "All other terms of Counter Offer #1 dated Nov 4, 2026 remain unchanged."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m8",
+      "direction": "outbound",
+      "from": "agent@baywater-homes.primitive.email",
+      "fromName": "Baywater Homes Buyer Agent",
+      "to": "p.desai@oakridge-realty.example",
+      "subject": "RE: 118 Larkspur Ln - offer (LARK-118)",
+      "at": "2026-11-13T20:15:00Z",
+      "in_reply_to": "m7",
+      "body": "Priya - buyer accepts Counter #2 at $752,000. Please send the fully executed copy.\n\nBaywater Homes\n\n -----Original Message-----\nFrom: \tDesai, Priya\nSent:\tFriday, November 13, 2026 12:00 PM\nTo:\tBaywater Homes\nSubject:\tRE: 118 Larkspur Ln - offer (LARK-118)\n\nTalked to the sellers last night. They'll reduce the price from $775,000 to $752,000 to match the appraisal. All other terms of Counter #1 stand, $3k credit included. Revised Counter #2 attached - it supersedes the one from 11/4.\n\nPriya\n\n -----Original Message-----\nFrom: \tBaywater Homes\nSent:\tThursday, November 12, 2026 10:30 AM\nTo:\tDesai, Priya\nSubject:\tRE: 118 Larkspur Ln - offer (LARK-118)\n\nPriya - appraisal came back at $752,000, $23,000 under the counter. Buyer won't cover the gap. Will the seller come down to appraised value?\n\nBaywater Homes\n\n -----Original Message-----\nFrom: \tDesai, Priya\nSent:\tWednesday, November 04, 2026 11:20 AM\nTo:\tBaywater Homes\nSubject:\tRE: 118 Larkspur Ln - offer (LARK-118)\n\nHi,\n\nThanks for the offer. Seller counters at $775,000, closing Friday, Dec 18, inspection contingency until Friday, Nov 20. They'll also give a $3,000 credit toward closing costs. Counter #1 attached.\n\nPriya Desai\nOakridge Realty | 408-555-0193\n\n -----Original Message-----\nFrom: \tBaywater Homes\nSent:\tMonday, November 02, 2026 10:00 AM\nTo:\tDesai, Priya\nSubject:\t118 Larkspur Ln - offer (LARK-118)\n\nPriya,\n\nOn behalf of Sam Whitfield we are offering $740,000 for 118 Larkspur Ln (MLS #4418207), closing by Fri Dec 18, with a 10-day inspection contingency and $15,000 earnest money. Pre-approval letter from Cedar Point is on file.\n\nBaywater Homes"
+    },
+    {
+      "id": "m9",
+      "direction": "inbound",
+      "from": "p.desai@oakridge-realty.example",
+      "fromName": "Priya Desai",
+      "to": "agent@baywater-homes.primitive.email",
+      "subject": "RE: 118 Larkspur Ln - offer (LARK-118)",
+      "at": "2026-11-13T21:05:00Z",
+      "in_reply_to": "m8",
+      "body": "great - sellers sign tonight, I'll send the executed copy first thing tmrw.\nP\n\n -----Original Message-----\nFrom: \tBaywater Homes\nSent:\tFriday, November 13, 2026 2:15 PM\nTo:\tDesai, Priya\nSubject:\tRE: 118 Larkspur Ln - offer (LARK-118)\n\nPriya - buyer accepts Counter #2 at $752,000. Please send the fully executed copy.\n\nBaywater Homes\n\n -----Original Message-----\nFrom: \tDesai, Priya\nSent:\tFriday, November 13, 2026 12:00 PM\nTo:\tBaywater Homes\nSubject:\tRE: 118 Larkspur Ln - offer (LARK-118)\n\nTalked to the sellers last night. They'll reduce the price from $775,000 to $752,000 to match the appraisal. All other terms of Counter #1 stand, $3k credit included. Revised Counter #2 attached - it supersedes the one from 11/4.\n\nPriya\n\n -----Original Message-----\nFrom: \tBaywater Homes\nSent:\tThursday, November 12, 2026 10:30 AM\nTo:\tDesai, Priya\nSubject:\tRE: 118 Larkspur Ln - offer (LARK-118)\n\nPriya - appraisal came back at $752,000, $23,000 under the counter. Buyer won't cover the gap. Will the seller come down to appraised value?\n\nBaywater Homes\n\n -----Original Message-----\nFrom: \tDesai, Priya\nSent:\tWednesday, November 04, 2026 11:20 AM\nTo:\tBaywater Homes\nSubject:\tRE: 118 Larkspur Ln - offer (LARK-118)\n\nHi,\n\nThanks for the offer. Seller counters at $775,000, closing Friday, Dec 18, inspection contingency until Friday, Nov 20. They'll also give a $3,000 credit toward closing costs. Counter #1 attached.\n\nPriya Desai\nOakridge Realty | 408-555-0193\n\n -----Original Message-----\nFrom: \tBaywater Homes\nSent:\tMonday, November 02, 2026 10:00 AM\nTo:\tDesai, Priya\nSubject:\t118 Larkspur Ln - offer (LARK-118)\n\nPriya,\n\nOn behalf of Sam Whitfield we are offering $740,000 for 118 Larkspur Ln (MLS #4418207), closing by Fri Dec 18, with a 10-day inspection contingency and $15,000 earnest money. Pre-approval letter from Cedar Point is on file.\n\nBaywater Homes"
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m5",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 775000,
+          "stated_in": "m4",
+          "evidence": "Seller counters at $775,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m4",
+          "evidence": "closing Friday, Dec 18"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-20",
+          "stated_in": "m4",
+          "evidence": "inspection contingency until Friday, Nov 20"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 780000,
+          "stated_in": "m3",
+          "evidence": "$780k is the top"
+        },
+        {
+          "party": "lender",
+          "term": "appraisal.value",
+          "value": 752000,
+          "stated_in": "m5",
+          "evidence": "came in at $752,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 740000,
+          "stated_in": "m1",
+          "evidence": "we are offering $740,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m1",
+          "evidence": "closing by Fri Dec 18"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "buyer",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "confirm $780,000 ceiling",
+          "status": "answered",
+          "opened_in": "m2",
+          "resolved_in": "m3"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Oakridge-Counter-LARK-118.pdf",
+          "status": "current"
+        },
+        {
+          "filename": "Appraisal-118-Larkspur.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "fail",
+        "price_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "listing agent",
+        "must": [
+          "752"
+        ],
+        "must_not": [
+          "780",
+          "\\baccept"
+        ]
+      }
+    },
+    {
+      "after": "m7",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 752000,
+          "stated_in": "m7",
+          "evidence": "reduce the price from $775,000 to $752,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m4",
+          "evidence": "closing Friday, Dec 18"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-20",
+          "stated_in": "m4",
+          "evidence": "inspection contingency until Friday, Nov 20"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 780000,
+          "stated_in": "m3",
+          "evidence": "$780k is the top"
+        },
+        {
+          "party": "lender",
+          "term": "appraisal.value",
+          "value": 752000,
+          "stated_in": "m5",
+          "evidence": "came in at $752,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 740000,
+          "stated_in": "m1",
+          "evidence": "we are offering $740,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m1",
+          "evidence": "closing by Fri Dec 18"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 775000,
+          "stated_in": "m4",
+          "evidence": "Seller counters at $775,000",
+          "replaced_in": "m7"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "will seller come down to appraised value",
+          "status": "answered",
+          "opened_in": "m6",
+          "resolved_in": "m7"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Oakridge-Counter-LARK-118.pdf",
+          "status": "superseded"
+        },
+        {
+          "filename": "Oakridge-Counter-LARK-118-rev2.pdf",
+          "status": "current"
+        },
+        {
+          "filename": "Appraisal-118-Larkspur.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "pass",
+        "price_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "listing agent",
+        "must": [
+          "accept",
+          "752"
+        ],
+        "must_not": [
+          "775,?000",
+          "780"
+        ]
+      }
+    },
+    {
+      "after": "m9",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 752000,
+          "stated_in": "m7",
+          "evidence": "reduce the price from $775,000 to $752,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m4",
+          "evidence": "closing Friday, Dec 18"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-20",
+          "stated_in": "m4",
+          "evidence": "inspection contingency until Friday, Nov 20"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 780000,
+          "stated_in": "m3",
+          "evidence": "$780k is the top"
+        },
+        {
+          "party": "lender",
+          "term": "appraisal.value",
+          "value": 752000,
+          "stated_in": "m5",
+          "evidence": "came in at $752,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "decision.accept",
+          "value": "accepted",
+          "stated_in": "m8",
+          "evidence": "buyer accepts Counter #2 at $752,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 752000,
+          "stated_in": "m8",
+          "evidence": "buyer accepts Counter #2 at $752,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m1",
+          "evidence": "closing by Fri Dec 18"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 775000,
+          "stated_in": "m4",
+          "evidence": "Seller counters at $775,000",
+          "replaced_in": "m7"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 740000,
+          "stated_in": "m1",
+          "evidence": "we are offering $740,000",
+          "replaced_in": "m8"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "send the fully executed counter",
+          "status": "open",
+          "opened_in": "m8",
+          "resolved_in": null
+        },
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "commitment",
+          "about": "send the executed copy tomorrow",
+          "status": "open",
+          "opened_in": "m9",
+          "resolved_in": null
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Oakridge-Counter-LARK-118.pdf",
+          "status": "superseded"
+        },
+        {
+          "filename": "Oakridge-Counter-LARK-118-rev2.pdf",
+          "status": "current"
+        },
+        {
+          "filename": "Appraisal-118-Larkspur.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "pass",
+        "price_approval": "pass"
+      },
+      "next_actor": "them"
+    }
+  ],
+  "notes": "Counter #1 ($775,000) is under the buyer's $780k ceiling but $23,000 over the $752,000 appraisal, so appraisal_gap fails at checkpoint 1 even though price_budget passes; the agent must raise the appraisal without revealing the $780k ceiling. m7 restates the price only as 'from $775,000 to $752,000', and Counter #2 says 'all other terms of Counter #1 remain unchanged', so closing and inspection contingency still come from m4 while Counter #1 is superseded. Distractors: MLS #, loan #CP-778130, $15,000 EMD, $3,000 seller credit, 80% LTV, comparable sales $748,500 / $761,000, phone numbers."
+}

@@ -1,0 +1,603 @@
+{
+  "id": "R10",
+  "domain": "real_estate",
+  "title": "Appraisal gap closed by a revised counter, then the listing office forwards the ORIGINAL counter email and PDF",
+  "features": [
+    "late_forward",
+    "quoted_history",
+    "document_versions",
+    "distractor_numbers",
+    "terse_shorthand"
+  ],
+  "task": {
+    "id": "task_r10",
+    "alias": "CAL-301",
+    "goal": "Buy 301 Calloway St for Sam Whitcomb: price no more than $1,150,000 and within the appraisal, closing by Tue Dec 22.",
+    "item": "301 Calloway St",
+    "domain": "real_estate",
+    "requirements": [
+      {
+        "key": "requirement.max_price",
+        "value": 1150000,
+        "display": "$1,150,000",
+        "hard": true
+      },
+      {
+        "key": "requirement.close_by",
+        "value": "2026-12-22",
+        "display": "Tue Dec 22",
+        "hard": true
+      },
+      {
+        "key": "requirement.opening_offer",
+        "value": 1080000,
+        "display": "$1,080,000",
+        "hard": false
+      }
+    ],
+    "participants": [
+      {
+        "address": "agent@fernhill-buyers.primitive.email",
+        "name": "Fernhill Buyer Agent",
+        "role": "self",
+        "label": "buyer agent (us)",
+        "authority": [
+          "decision.",
+          "deal."
+        ]
+      },
+      {
+        "address": "nadia.brooks@keelharbor-realty.example",
+        "name": "Nadia Brooks (Keel & Harbor Realty, listing agent)",
+        "role": "counterparty",
+        "label": "listing agent",
+        "authority": [
+          "price.",
+          "closing.",
+          "contingency.",
+          "decision.",
+          "deal."
+        ],
+        "group": "seller"
+      },
+      {
+        "address": "sam.whitcomb@whitcomb-mail.example",
+        "name": "Sam Whitcomb (buyer)",
+        "role": "internal",
+        "label": "buyer",
+        "authority": [
+          "budget."
+        ]
+      },
+      {
+        "address": "appraisals@oakridge-federal.example",
+        "name": "Oakridge Federal (lender)",
+        "role": "internal",
+        "label": "lender",
+        "authority": [
+          "appraisal."
+        ]
+      },
+      {
+        "address": "jobs@northstar-inspect.example",
+        "name": "Northstar Inspections",
+        "role": "internal",
+        "label": "inspector",
+        "authority": [
+          "inspection."
+        ]
+      },
+      {
+        "address": "escrow@bellwether-title.example",
+        "name": "Bellwether Title (escrow)",
+        "role": "internal",
+        "label": "title company",
+        "authority": [
+          "payment."
+        ]
+      },
+      {
+        "address": "becca.lund@keelharbor-realty.example",
+        "name": "Becca Lund (Keel & Harbor Realty, transaction coordinator)",
+        "role": "counterparty",
+        "label": "listing office assistant",
+        "authority": [
+          "price.",
+          "closing.",
+          "contingency.",
+          "decision.",
+          "deal."
+        ],
+        "group": "seller"
+      }
+    ],
+    "self_address": "agent@fernhill-buyers.primitive.email"
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "outbound",
+      "from": "agent@fernhill-buyers.primitive.email",
+      "fromName": "Fernhill Buyer Agent",
+      "to": "nadia.brooks@keelharbor-realty.example",
+      "subject": "Offer - 301 Calloway St / CAL-301",
+      "at": "2026-11-16T15:00:00Z",
+      "in_reply_to": null,
+      "body": "Nadia,\n\nOn behalf of Sam Whitcomb we offer $1,080,000 for 301 Calloway St (MLS #C-5512047), closing by Tue Dec 22, $34,500 EMD, financing through Oakridge Federal.\n\nPlease send the seller's response.\n\nFernhill Buyer Agent"
+    },
+    {
+      "id": "m2",
+      "direction": "inbound",
+      "from": "nadia.brooks@keelharbor-realty.example",
+      "fromName": "Nadia Brooks",
+      "to": "agent@fernhill-buyers.primitive.email",
+      "subject": "RE: Offer - 301 Calloway St / CAL-301",
+      "at": "2026-11-17T16:00:00Z",
+      "in_reply_to": "m1",
+      "body": "Seller counters at $1,135,000, closing Monday Dec 21. Inspection contingency until Monday Nov 30 (Thanksgiving week, so a bit longer). Counter #1 attached.\n\nHOA $310/mo; 2025 taxes $14,206.\n\nNadia Brooks\nKeel & Harbor Realty  206-555-0187\n\n -----Original Message-----\nFrom: \tFernhill Buyer Agent\nSent:\tMonday, November 16, 2026 10:00 AM\nTo:\tBrooks, Nadia\nSubject:\tOffer - 301 Calloway St / CAL-301\n\nNadia,\n\nOn behalf of Sam Whitcomb we offer $1,080,000 for 301 Calloway St (MLS #C-5512047), closing by Tue Dec 22, $34,500 EMD, financing through Oakridge Federal.\n\nPlease send the seller's response.\n\nFernhill Buyer Agent",
+      "attachments": [
+        {
+          "filename": "KeelHarbor-Counter-1-CAL-301.pdf",
+          "lines": [
+            "KEEL & HARBOR REALTY - SELLER COUNTER OFFER #1",
+            "Property: 301 Calloway St    MLS #C-5512047    Ref: CAL-301",
+            "Purchase price: $1,135,000",
+            "Closing date: Monday, December 21, 2026",
+            "Inspection contingency until Monday, November 30, 2026",
+            "Earnest money deposit: $34,500"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m3",
+      "direction": "outbound",
+      "from": "agent@fernhill-buyers.primitive.email",
+      "fromName": "Fernhill Buyer Agent",
+      "to": "sam.whitcomb@whitcomb-mail.example",
+      "subject": "Calloway counter",
+      "at": "2026-11-17T17:00:00Z",
+      "in_reply_to": null,
+      "body": "Sam - seller countered at $1.135M, closing Dec 21. Can you confirm you're comfortable going up to $1,150,000 if needed? Appraisal is ordered."
+    },
+    {
+      "id": "m4",
+      "direction": "inbound",
+      "from": "sam.whitcomb@whitcomb-mail.example",
+      "fromName": "Sam Whitcomb",
+      "to": "agent@fernhill-buyers.primitive.email",
+      "subject": "Re: Calloway counter",
+      "at": "2026-11-18T02:00:00Z",
+      "in_reply_to": "m3",
+      "body": "Confirmed, approved up to $1,150,000. Hoping the appraisal helps us.\n\nSam\n\nOn Tue, Nov 17, 2026 at 12:00 PM Fernhill Buyer Agent <agent@fernhill-buyers.primitive.email> wrote:\n> Sam - seller countered at $1.135M, closing Dec 21. Can you confirm you're comfortable going up to $1,150,000 if needed? Appraisal is ordered."
+    },
+    {
+      "id": "m5",
+      "direction": "inbound",
+      "from": "appraisals@oakridge-federal.example",
+      "fromName": "Oakridge Federal",
+      "to": "agent@fernhill-buyers.primitive.email",
+      "subject": "Appraisal - 301 Calloway St (loan OF-2207719)",
+      "at": "2026-11-19T15:20:00Z",
+      "in_reply_to": null,
+      "body": "The appraisal for 301 Calloway St came in at $1,110,000. Per program guidelines we lend against the lower of price or appraised value.\n\nOakridge Federal Appraisals"
+    },
+    {
+      "id": "m6",
+      "direction": "outbound",
+      "from": "agent@fernhill-buyers.primitive.email",
+      "fromName": "Fernhill Buyer Agent",
+      "to": "nadia.brooks@keelharbor-realty.example",
+      "subject": "RE: Offer - 301 Calloway St / CAL-301",
+      "at": "2026-11-19T16:05:00Z",
+      "in_reply_to": "m2",
+      "body": "Nadia,\n\nThe appraisal came in at $1,110,000, $25,000 under the seller's counter. Sam's loan only covers the appraised value, so we're asking the seller to bring the price down to $1,110,000. Everything else in counter #1 is fine.\n\nFernhill Buyer Agent\n\n -----Original Message-----\nFrom: \tBrooks, Nadia\nSent:\tTuesday, November 17, 2026 11:00 AM\nTo:\tFernhill Buyer Agent\nSubject:\tRE: Offer - 301 Calloway St / CAL-301\n\nSeller counters at $1,135,000, closing Monday Dec 21. Inspection contingency until Monday Nov 30 (Thanksgiving week, so a bit longer). Counter #1 attached.\n\nHOA $310/mo; 2025 taxes $14,206.\n\nNadia Brooks\nKeel & Harbor Realty  206-555-0187\n\n -----Original Message-----\nFrom: \tFernhill Buyer Agent\nSent:\tMonday, November 16, 2026 10:00 AM\nTo:\tBrooks, Nadia\nSubject:\tOffer - 301 Calloway St / CAL-301\n\nNadia,\n\nOn behalf of Sam Whitcomb we offer $1,080,000 for 301 Calloway St (MLS #C-5512047), closing by Tue Dec 22, $34,500 EMD, financing through Oakridge Federal.\n\nPlease send the seller's response.\n\nFernhill Buyer Agent"
+    },
+    {
+      "id": "m7",
+      "direction": "inbound",
+      "from": "nadia.brooks@keelharbor-realty.example",
+      "fromName": "Nadia Brooks",
+      "to": "agent@fernhill-buyers.primitive.email",
+      "subject": "RE: Offer - 301 Calloway St / CAL-301",
+      "at": "2026-11-20T18:30:00Z",
+      "in_reply_to": "m6",
+      "body": "Seller's revised price is $1,110,000. Closing stays Monday Dec 21, contingency unchanged. Counter #2 attached.\n\nNadia\n\n -----Original Message-----\nFrom: \tFernhill Buyer Agent\nSent:\tThursday, November 19, 2026 11:05 AM\nTo:\tBrooks, Nadia\nSubject:\tRE: Offer - 301 Calloway St / CAL-301\n\nNadia,\n\nThe appraisal came in at $1,110,000, $25,000 under the seller's counter. Sam's loan only covers the appraised value, so we're asking the seller to bring the price down to $1,110,000. Everything else in counter #1 is fine.\n\nFernhill Buyer Agent\n\n -----Original Message-----\nFrom: \tBrooks, Nadia\nSent:\tTuesday, November 17, 2026 11:00 AM\nTo:\tFernhill Buyer Agent\nSubject:\tRE: Offer - 301 Calloway St / CAL-301\n\nSeller counters at $1,135,000, closing Monday Dec 21. Inspection contingency until Monday Nov 30 (Thanksgiving week, so a bit longer). Counter #1 attached.\n\nHOA $310/mo; 2025 taxes $14,206.\n\nNadia Brooks\nKeel & Harbor Realty  206-555-0187\n\n -----Original Message-----\nFrom: \tFernhill Buyer Agent\nSent:\tMonday, November 16, 2026 10:00 AM\nTo:\tBrooks, Nadia\nSubject:\tOffer - 301 Calloway St / CAL-301\n\nNadia,\n\nOn behalf of Sam Whitcomb we offer $1,080,000 for 301 Calloway St (MLS #C-5512047), closing by Tue Dec 22, $34,500 EMD, financing through Oakridge Federal.\n\nPlease send the seller's response.\n\nFernhill Buyer Agent",
+      "attachments": [
+        {
+          "filename": "KeelHarbor-Counter-2-CAL-301.pdf",
+          "lines": [
+            "KEEL & HARBOR REALTY - SELLER COUNTER OFFER #2 (REVISED)",
+            "Property: 301 Calloway St    MLS #C-5512047    Ref: CAL-301",
+            "Purchase price: $1,110,000 (revised)",
+            "Closing date: Monday, December 21, 2026",
+            "Inspection contingency until Monday, November 30, 2026",
+            "Earnest money deposit: $34,500"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m8",
+      "direction": "inbound",
+      "from": "becca.lund@keelharbor-realty.example",
+      "fromName": "Becca Lund",
+      "to": "agent@fernhill-buyers.primitive.email",
+      "subject": "FW: RE: Offer - 301 Calloway St / CAL-301",
+      "at": "2026-11-20T22:10:00Z",
+      "in_reply_to": null,
+      "body": "Nadia asked me to send this over for your file.\n\nBecca Lund | Transaction Coordinator | Keel & Harbor Realty\n\n---------------------- Forwarded by Becca Lund/KHR@KEELHARBOR on 11/20/2026 05:10 PM ---------------------------\n\nFrom: \tBrooks, Nadia\nSent:\tTuesday, November 17, 2026 11:00 AM\nTo:\tFernhill Buyer Agent\nSubject:\tRE: Offer - 301 Calloway St / CAL-301\n\nSeller counters at $1,135,000, closing Monday Dec 21. Inspection contingency until Monday Nov 30 (Thanksgiving week, so a bit longer). Counter #1 attached.\n\nHOA $310/mo; 2025 taxes $14,206.\n\nNadia Brooks\nKeel & Harbor Realty  206-555-0187\n\n -----Original Message-----\nFrom: \tFernhill Buyer Agent\nSent:\tMonday, November 16, 2026 10:00 AM\nTo:\tBrooks, Nadia\nSubject:\tOffer - 301 Calloway St / CAL-301\n\nNadia,\n\nOn behalf of Sam Whitcomb we offer $1,080,000 for 301 Calloway St (MLS #C-5512047), closing by Tue Dec 22, $34,500 EMD, financing through Oakridge Federal.\n\nPlease send the seller's response.\n\nFernhill Buyer Agent",
+      "attachments": [
+        {
+          "filename": "KeelHarbor-Counter-1-CAL-301.pdf",
+          "lines": [
+            "KEEL & HARBOR REALTY - SELLER COUNTER OFFER #1",
+            "Property: 301 Calloway St    MLS #C-5512047    Ref: CAL-301",
+            "Purchase price: $1,135,000",
+            "Closing date: Monday, December 21, 2026",
+            "Inspection contingency until Monday, November 30, 2026",
+            "Earnest money deposit: $34,500"
+          ]
+        }
+      ]
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m5",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 1135000,
+          "stated_in": "m2",
+          "evidence": "Seller counters at $1,135,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-21",
+          "stated_in": "m2",
+          "evidence": "closing Monday Dec 21"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-30",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until Monday Nov 30"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 1150000,
+          "stated_in": "m4",
+          "evidence": "approved up to $1,150,000"
+        },
+        {
+          "party": "lender",
+          "term": "appraisal.value",
+          "value": 1110000,
+          "stated_in": "m5",
+          "evidence": "came in at $1,110,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 1080000,
+          "stated_in": "m1",
+          "evidence": "we offer $1,080,000 for 301 Calloway St"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-22",
+          "stated_in": "m1",
+          "evidence": "closing by Tue Dec 22"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "seller's response to the offer",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "buyer",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "comfortable going up to $1,150,000",
+          "status": "answered",
+          "opened_in": "m3",
+          "resolved_in": "m4"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "KeelHarbor-Counter-1-CAL-301.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "fail",
+        "price_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "listing agent",
+        "must": [
+          "apprais",
+          "1,110,000|1\\.11"
+        ],
+        "must_not": [
+          "we accept"
+        ]
+      }
+    },
+    {
+      "after": "m7",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 1110000,
+          "stated_in": "m7",
+          "evidence": "Seller's revised price is $1,110,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-21",
+          "stated_in": "m2",
+          "evidence": "closing Monday Dec 21"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-30",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until Monday Nov 30"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 1150000,
+          "stated_in": "m4",
+          "evidence": "approved up to $1,150,000"
+        },
+        {
+          "party": "lender",
+          "term": "appraisal.value",
+          "value": 1110000,
+          "stated_in": "m5",
+          "evidence": "came in at $1,110,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 1110000,
+          "stated_in": "m6",
+          "evidence": "bring the price down to $1,110,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-22",
+          "stated_in": "m1",
+          "evidence": "closing by Tue Dec 22"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 1135000,
+          "stated_in": "m2",
+          "evidence": "Seller counters at $1,135,000",
+          "replaced_in": "m7"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 1080000,
+          "stated_in": "m1",
+          "evidence": "we offer $1,080,000 for 301 Calloway St",
+          "replaced_in": "m6"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "seller's response to the offer",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "buyer",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "comfortable going up to $1,150,000",
+          "status": "answered",
+          "opened_in": "m3",
+          "resolved_in": "m4"
+        },
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "bring the price down to the $1,110,000 appraisal",
+          "status": "answered",
+          "opened_in": "m6",
+          "resolved_in": "m7"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "KeelHarbor-Counter-1-CAL-301.pdf",
+          "status": "superseded"
+        },
+        {
+          "filename": "KeelHarbor-Counter-2-CAL-301.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "pass",
+        "price_approval": "pass"
+      },
+      "next_actor": "us"
+    },
+    {
+      "after": "m8",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 1110000,
+          "stated_in": "m7",
+          "evidence": "Seller's revised price is $1,110,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-21",
+          "stated_in": "m2",
+          "evidence": "closing Monday Dec 21"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-30",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until Monday Nov 30"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 1150000,
+          "stated_in": "m4",
+          "evidence": "approved up to $1,150,000"
+        },
+        {
+          "party": "lender",
+          "term": "appraisal.value",
+          "value": 1110000,
+          "stated_in": "m5",
+          "evidence": "came in at $1,110,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 1110000,
+          "stated_in": "m6",
+          "evidence": "bring the price down to $1,110,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-22",
+          "stated_in": "m1",
+          "evidence": "closing by Tue Dec 22"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 1135000,
+          "stated_in": "m2",
+          "evidence": "Seller counters at $1,135,000",
+          "replaced_in": "m7"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 1080000,
+          "stated_in": "m1",
+          "evidence": "we offer $1,080,000 for 301 Calloway St",
+          "replaced_in": "m6"
+        }
+      ],
+      "tentative": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 1135000,
+          "stated_in": "m8",
+          "evidence": "Purchase price: $1,135,000",
+          "why": "stale_forward"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "seller's response to the offer",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "buyer",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "comfortable going up to $1,150,000",
+          "status": "answered",
+          "opened_in": "m3",
+          "resolved_in": "m4"
+        },
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "bring the price down to the $1,110,000 appraisal",
+          "status": "answered",
+          "opened_in": "m6",
+          "resolved_in": "m7"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "KeelHarbor-Counter-1-CAL-301.pdf",
+          "status": "superseded"
+        },
+        {
+          "filename": "KeelHarbor-Counter-2-CAL-301.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "pass",
+        "price_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "listing agent",
+        "must": [
+          "accept",
+          "1,110,000|1\\.11"
+        ],
+        "must_not": [
+          "1,135,000|1\\.135"
+        ]
+      }
+    }
+  ],
+  "notes": "The seller's first counter is $1,135,000; after the $1,110,000 appraisal the seller revises to $1,110,000 (counter #2). Hours later the listing office's transaction coordinator sends \"FW:\" of the ORIGINAL counter email with counter #1 attached (\"for your file\"). That is a stale forward of the listing agent's older statement: the $1,135,000 must not come back (tentative stale_forward, attributed to the listing agent whose counter it is); the current price stays $1,110,000 and we should accept at that price. The forwarded PDF repeats the unchanged closing date and contingency, which are just corroboration. Distractors: $34,500 EMD, MLS #, HOA, tax figure, loan #."
+}

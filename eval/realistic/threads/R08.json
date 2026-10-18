@@ -1,0 +1,652 @@
+{
+  "id": "R08",
+  "domain": "real_estate",
+  "title": "Seven price moves between buyer agent and listing agent, each a from/to change, ending in mutual acceptance at $960,000",
+  "features": [
+    "long_thread",
+    "from_to_change",
+    "quoted_history",
+    "document_versions",
+    "distractor_numbers",
+    "acceptance",
+    "terse_shorthand"
+  ],
+  "task": {
+    "id": "task_r08",
+    "alias": "WEX-56",
+    "goal": "Buy 56 Wexley Lane for the Iyers: price no more than $975,000 and within the appraisal, closing by Wed Dec 30.",
+    "item": "56 Wexley Lane",
+    "domain": "real_estate",
+    "requirements": [
+      {
+        "key": "requirement.max_price",
+        "value": 975000,
+        "display": "$975,000",
+        "hard": true
+      },
+      {
+        "key": "requirement.close_by",
+        "value": "2026-12-30",
+        "display": "Wed Dec 30",
+        "hard": true
+      },
+      {
+        "key": "requirement.opening_offer",
+        "value": 925000,
+        "display": "$925,000",
+        "hard": false
+      }
+    ],
+    "participants": [
+      {
+        "address": "team@corvid-homes.primitive.email",
+        "name": "Corvid Homes Buyer Agent",
+        "role": "self",
+        "label": "buyer agent (us)",
+        "authority": [
+          "decision.",
+          "deal."
+        ]
+      },
+      {
+        "address": "helen.szabo@brightwater-realty.example",
+        "name": "Helen Szabo (Brightwater Realty, listing agent)",
+        "role": "counterparty",
+        "label": "listing agent",
+        "authority": [
+          "price.",
+          "closing.",
+          "contingency.",
+          "decision.",
+          "deal."
+        ],
+        "group": "seller"
+      },
+      {
+        "address": "raj.iyer@iyer-family.example",
+        "name": "Raj Iyer (buyer)",
+        "role": "internal",
+        "label": "buyer",
+        "authority": [
+          "budget."
+        ]
+      },
+      {
+        "address": "valuations@keystone-homeloans.example",
+        "name": "Keystone Home Loans (lender)",
+        "role": "internal",
+        "label": "lender",
+        "authority": [
+          "appraisal."
+        ]
+      },
+      {
+        "address": "book@plumbline-inspect.example",
+        "name": "Plumbline Inspections",
+        "role": "internal",
+        "label": "inspector",
+        "authority": [
+          "inspection."
+        ]
+      },
+      {
+        "address": "escrow@lakeshore-title.example",
+        "name": "Lakeshore Title (escrow)",
+        "role": "internal",
+        "label": "title company",
+        "authority": [
+          "payment."
+        ]
+      }
+    ],
+    "self_address": "team@corvid-homes.primitive.email"
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "outbound",
+      "from": "team@corvid-homes.primitive.email",
+      "fromName": "Corvid Homes Buyer Agent",
+      "to": "helen.szabo@brightwater-realty.example",
+      "subject": "Offer 56 Wexley Lane - WEX-56",
+      "at": "2026-11-09T15:00:00Z",
+      "in_reply_to": null,
+      "body": "Helen,\n\nOn behalf of Raj and Meera Iyer we offer $925,000 for 56 Wexley Lane (MLS #W-7731205, listed at $995,000), closing by Wed Dec 30, $30,000 EMD, conventional financing through Keystone.\n\nLook forward to the seller's response.\n\nCorvid Homes Buyer Agent"
+    },
+    {
+      "id": "m2",
+      "direction": "inbound",
+      "from": "helen.szabo@brightwater-realty.example",
+      "fromName": "Helen Szabo",
+      "to": "team@corvid-homes.primitive.email",
+      "subject": "RE: Offer 56 Wexley Lane - WEX-56",
+      "at": "2026-11-10T16:20:00Z",
+      "in_reply_to": "m1",
+      "body": "Thanks. Seller counters at $989,000, closing Monday Dec 21. Inspection contingency until Friday Nov 20. Counter #1 attached.\n\nHOA is $240/qtr, taxes ~$11,980/yr if your buyers ask.\n\nHelen Szabo\nBrightwater Realty | 617-555-0129\n\n -----Original Message-----\nFrom: \tCorvid Homes Buyer Agent\nSent:\tMonday, November 09, 2026 10:00 AM\nTo:\tSzabo, Helen\nSubject:\tOffer 56 Wexley Lane - WEX-56\n\nHelen,\n\nOn behalf of Raj and Meera Iyer we offer $925,000 for 56 Wexley Lane (MLS #W-7731205, listed at $995,000), closing by Wed Dec 30, $30,000 EMD, conventional financing through Keystone.\n\nLook forward to the seller's response.\n\nCorvid Homes Buyer Agent",
+      "attachments": [
+        {
+          "filename": "Brightwater-Counter-1-WEX-56.pdf",
+          "lines": [
+            "BRIGHTWATER REALTY - SELLER COUNTER OFFER #1",
+            "Property: 56 Wexley Lane    MLS #W-7731205    Ref: WEX-56",
+            "Purchase price: $989,000",
+            "Closing date: Monday, December 21, 2026",
+            "Inspection contingency until Friday, November 20, 2026",
+            "Earnest money deposit: $30,000"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m3",
+      "direction": "outbound",
+      "from": "team@corvid-homes.primitive.email",
+      "fromName": "Corvid Homes Buyer Agent",
+      "to": "raj.iyer@iyer-family.example",
+      "subject": "Wexley - counter at 989",
+      "at": "2026-11-10T17:05:00Z",
+      "in_reply_to": null,
+      "body": "Raj - seller countered at $989k, close Dec 21. I'd like to counter in the mid 940s. Before I go further: is $975,000 still your hard max?"
+    },
+    {
+      "id": "m4",
+      "direction": "inbound",
+      "from": "raj.iyer@iyer-family.example",
+      "fromName": "Raj Iyer",
+      "to": "team@corvid-homes.primitive.email",
+      "subject": "Re: Wexley - counter at 989",
+      "at": "2026-11-10T22:40:00Z",
+      "in_reply_to": "m3",
+      "body": "Yes. $975,000 is our max, Meera agrees. Go get it lower if you can.\n\nRaj\n\nOn Tue, Nov 10, 2026 at 12:05 PM Corvid Homes Buyer Agent <team@corvid-homes.primitive.email> wrote:\n> Raj - seller countered at $989k, close Dec 21. I'd like to counter in the mid 940s. Before I go further: is $975,000 still your hard max?"
+    },
+    {
+      "id": "m5",
+      "direction": "outbound",
+      "from": "team@corvid-homes.primitive.email",
+      "fromName": "Corvid Homes Buyer Agent",
+      "to": "helen.szabo@brightwater-realty.example",
+      "subject": "RE: Offer 56 Wexley Lane - WEX-56",
+      "at": "2026-11-11T14:10:00Z",
+      "in_reply_to": "m2",
+      "body": "Helen,\n\nWe counter at $945,000, all other terms per your counter #1.\n\nCorvid Homes Buyer Agent\n\n -----Original Message-----\nFrom: \tSzabo, Helen\nSent:\tTuesday, November 10, 2026 11:20 AM\nTo:\tCorvid Homes Buyer Agent\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nThanks. Seller counters at $989,000, closing Monday Dec 21. Inspection contingency until Friday Nov 20. Counter #1 attached.\n\nHOA is $240/qtr, taxes ~$11,980/yr if your buyers ask.\n\nHelen Szabo\nBrightwater Realty | 617-555-0129\n\n -----Original Message-----\nFrom: \tCorvid Homes Buyer Agent\nSent:\tMonday, November 09, 2026 10:00 AM\nTo:\tSzabo, Helen\nSubject:\tOffer 56 Wexley Lane - WEX-56\n\nHelen,\n\nOn behalf of Raj and Meera Iyer we offer $925,000 for 56 Wexley Lane (MLS #W-7731205, listed at $995,000), closing by Wed Dec 30, $30,000 EMD, conventional financing through Keystone.\n\nLook forward to the seller's response.\n\nCorvid Homes Buyer Agent"
+    },
+    {
+      "id": "m6",
+      "direction": "inbound",
+      "from": "helen.szabo@brightwater-realty.example",
+      "fromName": "Helen Szabo",
+      "to": "team@corvid-homes.primitive.email",
+      "subject": "RE: Offer 56 Wexley Lane - WEX-56",
+      "at": "2026-11-11T20:35:00Z",
+      "in_reply_to": "m5",
+      "body": "Seller can move from $989,000 to $972,000. Everything else stays. She's not going to keep dropping 17k a round tho.\n\nH\n\n -----Original Message-----\nFrom: \tCorvid Homes Buyer Agent\nSent:\tWednesday, November 11, 2026 9:10 AM\nTo:\tSzabo, Helen\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nHelen,\n\nWe counter at $945,000, all other terms per your counter #1.\n\nCorvid Homes Buyer Agent\n\n -----Original Message-----\nFrom: \tSzabo, Helen\nSent:\tTuesday, November 10, 2026 11:20 AM\nTo:\tCorvid Homes Buyer Agent\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nThanks. Seller counters at $989,000, closing Monday Dec 21. Inspection contingency until Friday Nov 20. Counter #1 attached.\n\nHOA is $240/qtr, taxes ~$11,980/yr if your buyers ask.\n\nHelen Szabo\nBrightwater Realty | 617-555-0129\n\n -----Original Message-----\nFrom: \tCorvid Homes Buyer Agent\nSent:\tMonday, November 09, 2026 10:00 AM\nTo:\tSzabo, Helen\nSubject:\tOffer 56 Wexley Lane - WEX-56\n\nHelen,\n\nOn behalf of Raj and Meera Iyer we offer $925,000 for 56 Wexley Lane (MLS #W-7731205, listed at $995,000), closing by Wed Dec 30, $30,000 EMD, conventional financing through Keystone.\n\nLook forward to the seller's response.\n\nCorvid Homes Buyer Agent"
+    },
+    {
+      "id": "m7",
+      "direction": "outbound",
+      "from": "team@corvid-homes.primitive.email",
+      "fromName": "Corvid Homes Buyer Agent",
+      "to": "helen.szabo@brightwater-realty.example",
+      "subject": "RE: Offer 56 Wexley Lane - WEX-56",
+      "at": "2026-11-12T15:00:00Z",
+      "in_reply_to": "m6",
+      "body": "Understood. The Iyers are raising their offer from $945,000 to $955,000. Clean offer, nothing else changes.\n\n -----Original Message-----\nFrom: \tSzabo, Helen\nSent:\tWednesday, November 11, 2026 3:35 PM\nTo:\tCorvid Homes Buyer Agent\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nSeller can move from $989,000 to $972,000. Everything else stays. She's not going to keep dropping 17k a round tho.\n\nH\n\n -----Original Message-----\nFrom: \tCorvid Homes Buyer Agent\nSent:\tWednesday, November 11, 2026 9:10 AM\nTo:\tSzabo, Helen\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nHelen,\n\nWe counter at $945,000, all other terms per your counter #1.\n\nCorvid Homes Buyer Agent\n\n -----Original Message-----\nFrom: \tSzabo, Helen\nSent:\tTuesday, November 10, 2026 11:20 AM\nTo:\tCorvid Homes Buyer Agent\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nThanks. Seller counters at $989,000, closing Monday Dec 21. Inspection contingency until Friday Nov 20. Counter #1 attached.\n\nHOA is $240/qtr, taxes ~$11,980/yr if your buyers ask.\n\nHelen Szabo\nBrightwater Realty | 617-555-0129\n\n -----Original Message-----\nFrom: \tCorvid Homes Buyer Agent\nSent:\tMonday, November 09, 2026 10:00 AM\nTo:\tSzabo, Helen\nSubject:\tOffer 56 Wexley Lane - WEX-56\n\nHelen,\n\nOn behalf of Raj and Meera Iyer we offer $925,000 for 56 Wexley Lane (MLS #W-7731205, listed at $995,000), closing by Wed Dec 30, $30,000 EMD, conventional financing through Keystone.\n\nLook forward to the seller's response.\n\nCorvid Homes Buyer Agent"
+    },
+    {
+      "id": "m8",
+      "direction": "inbound",
+      "from": "helen.szabo@brightwater-realty.example",
+      "fromName": "Helen Szabo",
+      "to": "team@corvid-homes.primitive.email",
+      "subject": "RE: Offer 56 Wexley Lane - WEX-56",
+      "at": "2026-11-12T21:15:00Z",
+      "in_reply_to": "m7",
+      "body": "Talked to her tonight. Price goes from $972,000 to $965,000, and she can close Friday Dec 18 instead of the 21st if that helps your folks (her lease starts the 19th).\n\nHelen\n\n -----Original Message-----\nFrom: \tCorvid Homes Buyer Agent\nSent:\tThursday, November 12, 2026 10:00 AM\nTo:\tSzabo, Helen\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nUnderstood. The Iyers are raising their offer from $945,000 to $955,000. Clean offer, nothing else changes.\n\n -----Original Message-----\nFrom: \tSzabo, Helen\nSent:\tWednesday, November 11, 2026 3:35 PM\nTo:\tCorvid Homes Buyer Agent\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nSeller can move from $989,000 to $972,000. Everything else stays. She's not going to keep dropping 17k a round tho.\n\nH\n\n -----Original Message-----\nFrom: \tCorvid Homes Buyer Agent\nSent:\tWednesday, November 11, 2026 9:10 AM\nTo:\tSzabo, Helen\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nHelen,\n\nWe counter at $945,000, all other terms per your counter #1.\n\nCorvid Homes Buyer Agent\n\n -----Original Message-----\nFrom: \tSzabo, Helen\nSent:\tTuesday, November 10, 2026 11:20 AM\nTo:\tCorvid Homes Buyer Agent\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nThanks. Seller counters at $989,000, closing Monday Dec 21. Inspection contingency until Friday Nov 20. Counter #1 attached.\n\nHOA is $240/qtr, taxes ~$11,980/yr if your buyers ask.\n\nHelen Szabo\nBrightwater Realty | 617-555-0129\n\n -----Original Message-----\nFrom: \tCorvid Homes Buyer Agent\nSent:\tMonday, November 09, 2026 10:00 AM\nTo:\tSzabo, Helen\nSubject:\tOffer 56 Wexley Lane - WEX-56\n\nHelen,\n\nOn behalf of Raj and Meera Iyer we offer $925,000 for 56 Wexley Lane (MLS #W-7731205, listed at $995,000), closing by Wed Dec 30, $30,000 EMD, conventional financing through Keystone.\n\nLook forward to the seller's response.\n\nCorvid Homes Buyer Agent"
+    },
+    {
+      "id": "m9",
+      "direction": "outbound",
+      "from": "team@corvid-homes.primitive.email",
+      "fromName": "Corvid Homes Buyer Agent",
+      "to": "helen.szabo@brightwater-realty.example",
+      "subject": "RE: Offer 56 Wexley Lane - WEX-56",
+      "at": "2026-11-13T14:30:00Z",
+      "in_reply_to": "m8",
+      "body": "Helen - final from us: $960,000, closing Fri Dec 18. If she says yes we'll sign today.\n\nCorvid\n\n -----Original Message-----\nFrom: \tSzabo, Helen\nSent:\tThursday, November 12, 2026 4:15 PM\nTo:\tCorvid Homes Buyer Agent\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nTalked to her tonight. Price goes from $972,000 to $965,000, and she can close Friday Dec 18 instead of the 21st if that helps your folks (her lease starts the 19th).\n\nHelen\n\n -----Original Message-----\nFrom: \tCorvid Homes Buyer Agent\nSent:\tThursday, November 12, 2026 10:00 AM\nTo:\tSzabo, Helen\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nUnderstood. The Iyers are raising their offer from $945,000 to $955,000. Clean offer, nothing else changes.\n\n -----Original Message-----\nFrom: \tSzabo, Helen\nSent:\tWednesday, November 11, 2026 3:35 PM\nTo:\tCorvid Homes Buyer Agent\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nSeller can move from $989,000 to $972,000. Everything else stays. She's not going to keep dropping 17k a round tho.\n\nH\n\n -----Original Message-----\nFrom: \tCorvid Homes Buyer Agent\nSent:\tWednesday, November 11, 2026 9:10 AM\nTo:\tSzabo, Helen\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nHelen,\n\nWe counter at $945,000, all other terms per your counter #1.\n\nCorvid Homes Buyer Agent\n\n -----Original Message-----\nFrom: \tSzabo, Helen\nSent:\tTuesday, November 10, 2026 11:20 AM\nTo:\tCorvid Homes Buyer Agent\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nThanks. Seller counters at $989,000, closing Monday Dec 21. Inspection contingency until Friday Nov 20. Counter #1 attached.\n\nHOA is $240/qtr, taxes ~$11,980/yr if your buyers ask.\n\nHelen Szabo\nBrightwater Realty | 617-555-0129\n\n -----Original Message-----\nFrom: \tCorvid Homes Buyer Agent\nSent:\tMonday, November 09, 2026 10:00 AM\nTo:\tSzabo, Helen\nSubject:\tOffer 56 Wexley Lane - WEX-56\n\nHelen,\n\nOn behalf of Raj and Meera Iyer we offer $925,000 for 56 Wexley Lane (MLS #W-7731205, listed at $995,000), closing by Wed Dec 30, $30,000 EMD, conventional financing through Keystone.\n\nLook forward to the seller's response.\n\nCorvid Homes Buyer Agent"
+    },
+    {
+      "id": "m10",
+      "direction": "inbound",
+      "from": "helen.szabo@brightwater-realty.example",
+      "fromName": "Helen Szabo",
+      "to": "team@corvid-homes.primitive.email",
+      "subject": "RE: Offer 56 Wexley Lane - WEX-56",
+      "at": "2026-11-13T18:50:00Z",
+      "in_reply_to": "m9",
+      "body": "Seller accepts $960,000 with closing Friday Dec 18. Counter #2 attached for signatures.\n\nHelen\n\n -----Original Message-----\nFrom: \tCorvid Homes Buyer Agent\nSent:\tFriday, November 13, 2026 9:30 AM\nTo:\tSzabo, Helen\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nHelen - final from us: $960,000, closing Fri Dec 18. If she says yes we'll sign today.\n\nCorvid\n\n -----Original Message-----\nFrom: \tSzabo, Helen\nSent:\tThursday, November 12, 2026 4:15 PM\nTo:\tCorvid Homes Buyer Agent\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nTalked to her tonight. Price goes from $972,000 to $965,000, and she can close Friday Dec 18 instead of the 21st if that helps your folks (her lease starts the 19th).\n\nHelen\n\n -----Original Message-----\nFrom: \tCorvid Homes Buyer Agent\nSent:\tThursday, November 12, 2026 10:00 AM\nTo:\tSzabo, Helen\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nUnderstood. The Iyers are raising their offer from $945,000 to $955,000. Clean offer, nothing else changes.\n\n -----Original Message-----\nFrom: \tSzabo, Helen\nSent:\tWednesday, November 11, 2026 3:35 PM\nTo:\tCorvid Homes Buyer Agent\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nSeller can move from $989,000 to $972,000. Everything else stays. She's not going to keep dropping 17k a round tho.\n\nH\n\n -----Original Message-----\nFrom: \tCorvid Homes Buyer Agent\nSent:\tWednesday, November 11, 2026 9:10 AM\nTo:\tSzabo, Helen\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nHelen,\n\nWe counter at $945,000, all other terms per your counter #1.\n\nCorvid Homes Buyer Agent\n\n -----Original Message-----\nFrom: \tSzabo, Helen\nSent:\tTuesday, November 10, 2026 11:20 AM\nTo:\tCorvid Homes Buyer Agent\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nThanks. Seller counters at $989,000, closing Monday Dec 21. Inspection contingency until Friday Nov 20. Counter #1 attached.\n\nHOA is $240/qtr, taxes ~$11,980/yr if your buyers ask.\n\nHelen Szabo\nBrightwater Realty | 617-555-0129\n\n -----Original Message-----\nFrom: \tCorvid Homes Buyer Agent\nSent:\tMonday, November 09, 2026 10:00 AM\nTo:\tSzabo, Helen\nSubject:\tOffer 56 Wexley Lane - WEX-56\n\nHelen,\n\nOn behalf of Raj and Meera Iyer we offer $925,000 for 56 Wexley Lane (MLS #W-7731205, listed at $995,000), closing by Wed Dec 30, $30,000 EMD, conventional financing through Keystone.\n\nLook forward to the seller's response.\n\nCorvid Homes Buyer Agent",
+      "attachments": [
+        {
+          "filename": "Brightwater-Counter-2-WEX-56.pdf",
+          "lines": [
+            "BRIGHTWATER REALTY - SELLER COUNTER OFFER #2 (FINAL)",
+            "Property: 56 Wexley Lane    MLS #W-7731205    Ref: WEX-56",
+            "Purchase price: $960,000",
+            "Closing date: Friday, December 18, 2026",
+            "Inspection contingency until Friday, November 20, 2026",
+            "Earnest money deposit: $30,000"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m11",
+      "direction": "outbound",
+      "from": "team@corvid-homes.primitive.email",
+      "fromName": "Corvid Homes Buyer Agent",
+      "to": "helen.szabo@brightwater-realty.example",
+      "subject": "RE: Offer 56 Wexley Lane - WEX-56",
+      "at": "2026-11-13T20:05:00Z",
+      "in_reply_to": "m10",
+      "body": "We accept: $960,000, closing Friday Dec 18. Signed counter #2 coming back from the Iyers tonight; $30,000 EMD to Lakeshore Title within 3 business days.\n\nThanks Helen\nCorvid Homes Buyer Agent\n\n -----Original Message-----\nFrom: \tSzabo, Helen\nSent:\tFriday, November 13, 2026 1:50 PM\nTo:\tCorvid Homes Buyer Agent\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nSeller accepts $960,000 with closing Friday Dec 18. Counter #2 attached for signatures.\n\nHelen\n\n -----Original Message-----\nFrom: \tCorvid Homes Buyer Agent\nSent:\tFriday, November 13, 2026 9:30 AM\nTo:\tSzabo, Helen\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nHelen - final from us: $960,000, closing Fri Dec 18. If she says yes we'll sign today.\n\nCorvid\n\n -----Original Message-----\nFrom: \tSzabo, Helen\nSent:\tThursday, November 12, 2026 4:15 PM\nTo:\tCorvid Homes Buyer Agent\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nTalked to her tonight. Price goes from $972,000 to $965,000, and she can close Friday Dec 18 instead of the 21st if that helps your folks (her lease starts the 19th).\n\nHelen\n\n -----Original Message-----\nFrom: \tCorvid Homes Buyer Agent\nSent:\tThursday, November 12, 2026 10:00 AM\nTo:\tSzabo, Helen\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nUnderstood. The Iyers are raising their offer from $945,000 to $955,000. Clean offer, nothing else changes.\n\n -----Original Message-----\nFrom: \tSzabo, Helen\nSent:\tWednesday, November 11, 2026 3:35 PM\nTo:\tCorvid Homes Buyer Agent\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nSeller can move from $989,000 to $972,000. Everything else stays. She's not going to keep dropping 17k a round tho.\n\nH\n\n -----Original Message-----\nFrom: \tCorvid Homes Buyer Agent\nSent:\tWednesday, November 11, 2026 9:10 AM\nTo:\tSzabo, Helen\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nHelen,\n\nWe counter at $945,000, all other terms per your counter #1.\n\nCorvid Homes Buyer Agent\n\n -----Original Message-----\nFrom: \tSzabo, Helen\nSent:\tTuesday, November 10, 2026 11:20 AM\nTo:\tCorvid Homes Buyer Agent\nSubject:\tRE: Offer 56 Wexley Lane - WEX-56\n\nThanks. Seller counters at $989,000, closing Monday Dec 21. Inspection contingency until Friday Nov 20. Counter #1 attached.\n\nHOA is $240/qtr, taxes ~$11,980/yr if your buyers ask.\n\nHelen Szabo\nBrightwater Realty | 617-555-0129\n\n -----Original Message-----\nFrom: \tCorvid Homes Buyer Agent\nSent:\tMonday, November 09, 2026 10:00 AM\nTo:\tSzabo, Helen\nSubject:\tOffer 56 Wexley Lane - WEX-56\n\nHelen,\n\nOn behalf of Raj and Meera Iyer we offer $925,000 for 56 Wexley Lane (MLS #W-7731205, listed at $995,000), closing by Wed Dec 30, $30,000 EMD, conventional financing through Keystone.\n\nLook forward to the seller's response.\n\nCorvid Homes Buyer Agent"
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m6",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 972000,
+          "stated_in": "m6",
+          "evidence": "Seller can move from $989,000 to $972,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-21",
+          "stated_in": "m2",
+          "evidence": "closing Monday Dec 21"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-20",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until Friday Nov 20"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 975000,
+          "stated_in": "m4",
+          "evidence": "$975,000 is our max"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 945000,
+          "stated_in": "m5",
+          "evidence": "We counter at $945,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-30",
+          "stated_in": "m1",
+          "evidence": "closing by Wed Dec 30"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 989000,
+          "stated_in": "m2",
+          "evidence": "Seller counters at $989,000",
+          "replaced_in": "m6"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 925000,
+          "stated_in": "m1",
+          "evidence": "we offer $925,000 for 56 Wexley Lane",
+          "replaced_in": "m5"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "seller's response to the offer",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "buyer",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "is $975,000 still the hard max",
+          "status": "answered",
+          "opened_in": "m3",
+          "resolved_in": "m4"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Brightwater-Counter-1-WEX-56.pdf",
+          "status": "partially_stale"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "unknown",
+        "price_approval": "pass"
+      },
+      "next_actor": "us"
+    },
+    {
+      "after": "m8",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 965000,
+          "stated_in": "m8",
+          "evidence": "Price goes from $972,000 to $965,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m8",
+          "evidence": "she can close Friday Dec 18 instead of the 21st"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-20",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until Friday Nov 20"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 975000,
+          "stated_in": "m4",
+          "evidence": "$975,000 is our max"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 955000,
+          "stated_in": "m7",
+          "evidence": "raising their offer from $945,000 to $955,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-30",
+          "stated_in": "m1",
+          "evidence": "closing by Wed Dec 30"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 989000,
+          "stated_in": "m2",
+          "evidence": "Seller counters at $989,000",
+          "replaced_in": "m6"
+        },
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 972000,
+          "stated_in": "m6",
+          "evidence": "Seller can move from $989,000 to $972,000",
+          "replaced_in": "m8"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-21",
+          "stated_in": "m2",
+          "evidence": "closing Monday Dec 21",
+          "replaced_in": "m8"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 925000,
+          "stated_in": "m1",
+          "evidence": "we offer $925,000 for 56 Wexley Lane",
+          "replaced_in": "m5"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 945000,
+          "stated_in": "m5",
+          "evidence": "We counter at $945,000",
+          "replaced_in": "m7"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "seller's response to the offer",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "buyer",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "is $975,000 still the hard max",
+          "status": "answered",
+          "opened_in": "m3",
+          "resolved_in": "m4"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Brightwater-Counter-1-WEX-56.pdf",
+          "status": "partially_stale"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "unknown",
+        "price_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "listing agent",
+        "must": [
+          "dec(ember)?\\.? 18|18th"
+        ],
+        "must_not": [
+          "972,000",
+          "989,000",
+          "dec(ember)?\\.? 21"
+        ]
+      }
+    },
+    {
+      "after": "m11",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 960000,
+          "stated_in": "m10",
+          "evidence": "Seller accepts $960,000 with closing Friday Dec 18"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m8",
+          "evidence": "she can close Friday Dec 18 instead of the 21st"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-20",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until Friday Nov 20"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 975000,
+          "stated_in": "m4",
+          "evidence": "$975,000 is our max"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 960000,
+          "stated_in": "m9",
+          "evidence": "final from us: $960,000, closing Fri Dec 18"
+        },
+        {
+          "party": "listing agent",
+          "term": "decision.accept",
+          "value": "accepted",
+          "stated_in": "m10",
+          "evidence": "Seller accepts $960,000 with closing Friday Dec 18"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "decision.accept",
+          "value": "accepted",
+          "stated_in": "m11",
+          "evidence": "We accept: $960,000, closing Friday Dec 18"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m9",
+          "evidence": "closing Fri Dec 18"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 989000,
+          "stated_in": "m2",
+          "evidence": "Seller counters at $989,000",
+          "replaced_in": "m6"
+        },
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 972000,
+          "stated_in": "m6",
+          "evidence": "Seller can move from $989,000 to $972,000",
+          "replaced_in": "m8"
+        },
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 965000,
+          "stated_in": "m8",
+          "evidence": "Price goes from $972,000 to $965,000",
+          "replaced_in": "m10"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-21",
+          "stated_in": "m2",
+          "evidence": "closing Monday Dec 21",
+          "replaced_in": "m8"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 925000,
+          "stated_in": "m1",
+          "evidence": "we offer $925,000 for 56 Wexley Lane",
+          "replaced_in": "m5"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 945000,
+          "stated_in": "m5",
+          "evidence": "We counter at $945,000",
+          "replaced_in": "m7"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 955000,
+          "stated_in": "m7",
+          "evidence": "raising their offer from $945,000 to $955,000",
+          "replaced_in": "m9"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-30",
+          "stated_in": "m1",
+          "evidence": "closing by Wed Dec 30",
+          "replaced_in": "m9"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "seller's response to the offer",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "buyer",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "is $975,000 still the hard max",
+          "status": "answered",
+          "opened_in": "m3",
+          "resolved_in": "m4"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Brightwater-Counter-1-WEX-56.pdf",
+          "status": "superseded"
+        },
+        {
+          "filename": "Brightwater-Counter-2-WEX-56.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "unknown",
+        "price_approval": "pass"
+      },
+      "next_actor": "them"
+    }
+  ],
+  "notes": "Our side goes $925,000 -> $945,000 -> $955,000 -> $960,000; the seller goes $989,000 -> $972,000 -> $965,000 -> $960,000, mostly said as \"from X to Y\". Each new statement replaces only that speaker's own previous price; the other side's price is untouched. Closing moves from Dec 21 to Dec 18 in the seller's third move. Every reply quotes the whole chain, so all old prices keep reappearing below the new text. Counter #1 becomes partially stale and is superseded by counter #2. Distractors: $995,000 list price, MLS #, HOA, taxes, $30,000 EMD."
+}

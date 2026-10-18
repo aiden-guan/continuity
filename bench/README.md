@@ -178,7 +178,9 @@ effort or mock setting: pick a new `--name`.
 
 - The scenarios are synthetic, though realistic and reviewed. Real anonymised threads labelled by domain experts are
   the next step before claiming production readiness, followed by shadow-mode agreement with humans on live traffic.
-- Primitive-native runs on a replayed mailbox with Primitive's documented shapes, not the live API. That keeps it
-  deterministic, but live smoke tests belong in `npm run demo:live`.
+- By default Primitive-native runs on a replayed mailbox with Primitive's documented shapes, not the live API. That keeps
+  it deterministic. **Live mode** ([live/README.md](live/README.md)) sends the same cases as real email through Primitive
+  and points both Primitive-native and Continuity at the real API; send limits make it practical for the golden set and
+  samples, not whole splits.
 - The retrieval baseline is lexical (BM25), because Primitive semantic search is Pro-gated on this account.
 - The ship gates in the report are engineering targets, not academic standards.

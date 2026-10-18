@@ -9,6 +9,9 @@
 //  - When two different parties disagree on a term, both claims become "contested"; neither wins,
 //    and one side revising does not settle it while the other still disagrees.
 //  - Hedged, low-confidence, or non-authoritative claims are kept as "proposed" and change nothing.
+//  - Our own decisions apply, and so do our offers on the terms the domain lets us offer on (a buyer's counter):
+//    our current position, per speaker, never standing in for the counterparty's terms. Accepting their terms
+//    retires an earlier offer of ours that differs from them.
 //  - A forwarded copy of older evidence is recorded but never overwrites the current claim; any other
 //    message wins by arrival order (its Date header is the sender's claim), with a date_skew flag.
 //    Likewise a forward older than the speaker's retraction (or offer withdrawal) never revives the
@@ -66,11 +69,31 @@ export function partyOf(task: TaskSpec, address: string): Participant | null {
   return task.participants.find((p) => p.address.toLowerCase() === wanted) ?? null;
 }
 
+/** The (first) recipient of a message, lowercased. */
+const recipientOf = (e: Pick<StoredEvent, 'to'>) => (e.to[0] ?? '').toLowerCase();
+
 export function labelOf(task: TaskSpec, address: string): string {
   return partyOf(task, address)?.label ?? address;
 }
 
 const EFFECTIVE_CLAIM_TRANSITIONS = new Set(['claim_added', 'claim_superseded', 'claim_contested', 'claim_held_for_verification', 'claim_verified']);
+
+const COUNT_WORDS: Record<string, number> = { both: 2, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
+
+/** How many documents a promise or request names ("2 signed copies", "all 3 Acme signature pages", "both BEOs"); null for one.
+ *  Between the number and the document noun only document adjectives or capitalised names may stand. */
+export function documentCount(text: string, kind: string): number | null {
+  const noun = `(?:copies|documents?|docs|pages|signature pages|counterparts|versions|entities|invoices|quotes|quotations|beos?|pods?|bols?|certificates|statements|forms|${kind.replace(/[_-]/g, '[ _-]')}s?)`;
+  const rx = new RegExp(`\\b(?:all\\s+)?(\\d{1,2}|both|two|three|four|five|six|seven|eight|nine|ten)\\s+((?:\\S+\\s+){0,4}?)${noun}\\b`, 'gi');
+  const adjective = /^(signed|countersigned|executed|original|revised|updated|separate|scanned|certified|final)$/i;
+  for (const m of text.matchAll(rx)) {
+    const words = m[2].trim().split(/\s+/).filter(Boolean);
+    if (!words.every((w) => adjective.test(w) || /^[A-Z]/.test(w))) continue;
+    const n = COUNT_WORDS[m[1].toLowerCase()] ?? Number(m[1]);
+    return n > 1 && n <= 20 ? n : null;
+  }
+  return null;
+}
 
 function groupOf(task: TaskSpec, address: string): string {
   return partyOf(task, address)?.group ?? address.toLowerCase();
@@ -160,8 +183,21 @@ export function applyProposal(inp: ApplyInput) {
   }
 
   // ---- 1. artifacts: a newer doc of the same kind from the same owner replaces the older one
+  // a byte-identical copy of a document already replaced ("for your files", the original quote re-sent after
+  // the revision) is history: it is superseded on arrival, and nothing it says applies (see 2)
+  const staleCopies = new Map<string, Artifact>();
+  for (const incoming of inp.artifacts) {
+    const original = store.artifactsForTask(task.id).find((x) => x.id !== incoming.id && x.event_id !== incoming.event_id && x.sha256 === incoming.sha256 && x.status === 'superseded');
+    if (original) staleCopies.set(incoming.filename, original);
+  }
   for (const incoming of inp.artifacts) {
     log('artifact_added', `${who} sent ${incoming.filename} (${incoming.kind}${incoming.version_label ? ` ${incoming.version_label}` : ''})`, incoming.id);
+    const original = staleCopies.get(incoming.filename);
+    if (original) {
+      store.updateArtifact(incoming.id, 'superseded', original.superseded_by ?? null);
+      log('artifact_superseded', `${incoming.filename} is a copy of ${original.filename}, which was already replaced`, incoming.id, { by: original.superseded_by ?? null, copy_of: original.id });
+      continue;
+    }
     if (!verified) continue; // an unproven sender cannot retire the current document
     for (const earlier of store.artifactsForTask(task.id)) {
       if (earlier.id === incoming.id) continue;
@@ -222,6 +258,17 @@ export function applyProposal(inp: ApplyInput) {
     log('claim_contested', `Conflicting ${claim.key}: ${theirs} vs ${who} says ${display} — unresolved`, claim.id,
       { claims: [...conflicting.map((d) => d.id), claim.id] });
   };
+  /** A contest ends once nobody in the group says anything different: the other side revised its value to agree,
+   *  or withdrew it. Each contested claim on the key that no live peer contradicts any more is applied again. */
+  const settle = (key: string, how: string) => {
+    const group = groupOf(task, speaker);
+    const onKey = liveClaims().filter((c) => c.key === key && groupOf(task, c.speaker) === group);
+    for (const c of onKey) {
+      if (c.status !== 'contested' || onKey.some((d) => d.id !== c.id && !sameValue(d.value, c.value))) continue;
+      store.updateClaim(c.id, { status: 'active', supersede_reason: null });
+      log('claim_settled', `${nameOf(c.speaker)}'s ${key} (${c.display}) is no longer disputed: ${who} ${how}`, c.id, { key, by: event.id });
+    }
+  };
 
   for (const pc of claimsInOrder) {
     if (!vocabulary.has(pc.key)) continue;
@@ -246,6 +293,7 @@ export function applyProposal(inp: ApplyInput) {
     const artifact = pc.from_attachment ? artifactNamed.get(pc.from_attachment) ?? null : null;
     const artifactId = artifact?.id ?? null;
     const display = pack.displayValue(pc.key, value);
+    const staleCopy = pc.from_attachment ? staleCopies.get(pc.from_attachment) : undefined;
     const base = {
       task_id: task.id, key: pc.key, value, display, kind: pc.kind, speaker, source_event_id: event.id,
       source_artifact_id: artifactId, evidence: pc.evidence, superseded_by: null, supersede_reason: null,
@@ -254,13 +302,22 @@ export function applyProposal(inp: ApplyInput) {
     const attachEvidence = (claimId: string) => store.addClaimEvidence(claimId, event.id, artifactId, pc.evidence);
     const isLifecycle = lifecycleKeys.has(pc.key);
 
+    // 1'. read from a copy of a document that was already replaced: recorded as history, never applied
+    if (staleCopy) {
+      const late = store.insertClaim({ ...base, status: 'superseded', supersede_reason: `from ${pc.from_attachment}, a copy of ${staleCopy.filename}, which was already replaced` });
+      attachEvidence(late.id);
+      log('stale_evidence', `${pc.key} = ${display} from ${who}'s copy of the replaced ${staleCopy.filename}; not applied`, late.id);
+      continue;
+    }
+
     let authoritative = false;
     if (whoParty && verified) {
       // our own decisions count, except on a term someone on our side decides (a ceiling we quote is not finance's
       // approval); a counterparty owning the same term (a price both sides negotiate) does not take it away from us
       if (whoParty.role === 'self') {
-        authoritative = pc.kind === 'decision'
-          && !task.participants.some((p) => p.role === 'internal' && p.authority.some((prefix) => pc.key.startsWith(prefix)));
+        const ourSideDecides = task.participants.some((p) => p.role === 'internal' && p.authority.some((prefix) => pc.key.startsWith(prefix)));
+        const ourOffer = pc.kind === 'offer' && !!pack.ourOfferTerms?.some((prefix) => pc.key.startsWith(prefix));
+        authoritative = (pc.kind === 'decision' || ourOffer) && !ourSideDecides;
       }
       else if (isLifecycle) authoritative = whoParty.role === 'counterparty'; // any counterparty may withdraw its own offer
       else authoritative = whoParty.authority.some((prefix) => pc.key.startsWith(prefix));
@@ -300,11 +357,21 @@ export function applyProposal(inp: ApplyInput) {
       for (const term of ownOffers.filter((x) => withdrawable(x.key) && cameBefore(x.source_event_id))) {
         store.updateClaim(term.id, { status: 'retracted', supersede_reason: `offer withdrawn by ${who} in ${event.id}` });
         retracted.push(`${term.key} (${term.display})`);
+        settle(term.key, 'withdrew its offer');
       }
       const promises = store.obligationsForTask(task.id).filter((x) => isOpen(x) && x.debtor === speaker && x.kind === 'commitment' && cameBefore(x.source_event_id));
       for (const ob of promises) {
         store.updateObligation(ob.id, { status: 'cancelled', resolved_by_event_id: event.id, resolved_at: at, resolution_note: `${who} withdrew its offer` });
         log('obligation_resolved', `${who}'s commitment "${ob.text}" → cancelled (offer withdrawn)`, ob.id, { status: 'cancelled' });
+      }
+      // what we were still asking them (send the contract, confirm a date) is answered by the withdrawal itself:
+      // left open, it had agents chasing a contract for an offer that no longer exists
+      if (!offeredSince) {
+        const asked = store.obligationsForTask(task.id).filter((x) => isOpen(x) && x.debtor === speaker && x.kind !== 'commitment' && cameBefore(x.source_event_id));
+        for (const ob of asked) {
+          store.updateObligation(ob.id, { status: 'answered', resolved_by_event_id: event.id, resolved_at: at, resolution_note: `${who} withdrew its offer` });
+          log('obligation_resolved', `${who}'s ${ob.kind} "${ob.text}" → answered (offer withdrawn)`, ob.id, { status: 'answered' });
+        }
       }
       const lost = retracted.length ? `: ${retracted.join(', ')} no longer available` : '';
       const since = offeredSince ? `; its later offer (${offeredSince.source_event_id}) stays current` : '';
@@ -353,6 +420,7 @@ export function applyProposal(inp: ApplyInput) {
         const note = own.length ? 'older than the current value, which is kept' : 'nothing current to withdraw';
         log('claim_retracted', `${who} withdrew ${pc.key} (${note})`, null, { key: pc.key });
       }
+      if (retractable.length) settle(pc.key, `withdrew its ${pc.key}`);
       const newerOwn = own.find((c) => (occurredAt(c.source_event_id) ?? '') > event.occurred_at);
       if (!forwarded && newerOwn) flagSkew(newerOwn.source_event_id, occurredAt(newerOwn.source_event_id)!);
       answeredKeys.add(pc.key);
@@ -393,6 +461,7 @@ export function applyProposal(inp: ApplyInput) {
       log('claim_superseded', `${who} changed ${pc.key}: ${latest.display} → ${display} (${why})`, revised.id,
         { from: latest.id, to: revised.id, from_display: latest.display, to_display: display, mode: pc.mode });
       if (stillDisputed.length) contest(revised, stillDisputed, display);
+      else settle(pc.key, `now says ${display} too`);
       answeredKeys.add(pc.key);
       continue;
     }
@@ -420,6 +489,31 @@ export function applyProposal(inp: ApplyInput) {
       const agreeing = peers.find((d) => sameValue(d.value, value));
       log('claim_added', `${who}: ${pc.key} = ${display}${artifact ? ` (from ${artifact.filename})` : ''}`, added.id,
         { key: pc.key, corroborates: agreeing?.id ?? null });
+    }
+  }
+
+  // accepting their terms makes them our position: an earlier offer of ours that differs ("we offered
+  // $880,000") is replaced by the value we accepted (their $905,000), recorded from the acceptance itself,
+  // whether or not the acceptance restates it; an offer of ours they matched stays. Only an undisputed
+  // value of theirs is adopted, preferring the party we are writing to.
+  const acceptance = event.direction === 'outbound' && whoParty?.role === 'self' && pack.decisionKey
+    ? liveClaims().find((c) => c.key === pack.decisionKey && c.speaker === speaker && c.source_event_id === event.id && c.value !== 'declined')
+    : undefined;
+  if (acceptance && pack.ourOfferTerms) {
+    const live = liveClaims();
+    for (const ours of live.filter((c) => c.speaker === speaker && c.kind === 'offer' && c.source_event_id !== event.id)) {
+      const candidates = live.filter((c) => c.key === ours.key && c.status === 'active' && partyOf(task, c.speaker)?.role === 'counterparty');
+      const theirs = candidates.find((c) => c.speaker === recipientOf(event)) ?? candidates[0];
+      if (!theirs || sameValue(theirs.value, ours.value)) continue;
+      const adopted = store.insertClaim({
+        task_id: task.id, key: ours.key, value: theirs.value, display: theirs.display, kind: 'decision', speaker, source_event_id: event.id,
+        source_artifact_id: null, evidence: acceptance.evidence, superseded_by: null, supersede_reason: null, learned_at: at,
+        confidence: acceptance.confidence, extractor, status: 'active',
+      });
+      store.addClaimEvidence(adopted.id, event.id, null, acceptance.evidence);
+      store.updateClaim(ours.id, { status: 'superseded', superseded_by: adopted.id, supersede_reason: `replaced by our acceptance of ${nameOf(theirs.speaker)}'s ${ours.key} (${theirs.display}) in ${event.id}` });
+      log('claim_superseded', `${who} accepted ${nameOf(theirs.speaker)}'s ${ours.key}: our ${ours.display} → ${theirs.display}`, adopted.id,
+        { from: ours.id, to: adopted.id, from_display: ours.display, to_display: theirs.display, mode: 'acceptance' });
     }
   }
 
@@ -474,8 +568,9 @@ export function applyProposal(inp: ApplyInput) {
           exclude_sha256: store.artifactsForTask(task.id).filter((a) => a.owner === debtor && a.kind === expects).map((a) => a.sha256),
         };
       }
-      // a promise of N things, or a request for N documents ("return signed pages for all 3 entities")
-      const quantity = (po.kind === 'commitment' || (po.kind === 'request' && expects)) && pack.quantityOf ? pack.quantityOf(po.text) : null;
+      // a promise of N things, or a promise/request of N documents ("return signed pages for all 3 entities"). A
+      // document's count must count documents: "quote 750 units … send a formal quote" asks for one quote, not 750
+      const quantity = expects ? documentCount(po.text, expects) : po.kind === 'commitment' && pack.quantityOf ? pack.quantityOf(po.text) : null;
       // a question's "by Friday" is about its subject matter, not a deadline for replying
       let dueAt: string | null = null;
       if (po.kind !== 'question') {

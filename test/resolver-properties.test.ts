@@ -297,7 +297,7 @@ async function run(steps: Step[], opts: { observe?: boolean } = {}) {
 }
 
 // transition types tallied to show the generators actually reach each resolver rule (not vacuous passes)
-const COVERED = new Set(['claim_added', 'claim_corroborated', 'claim_superseded', 'stale_evidence', 'claim_contested', 'claim_tentative',
+const COVERED = new Set(['claim_added', 'claim_corroborated', 'claim_superseded', 'stale_evidence', 'claim_contested', 'claim_settled', 'claim_tentative',
   'claim_retracted', 'offer_withdrawn', 'offer_reinstated', 'obligation_opened', 'obligation_resolved', 'artifact_superseded']);
 const stats = { sequences: 0, events: 0, redeliveries: 0, perProperty: new Map<string, number>(), coverage: new Map<string, number>() };
 after(() => {
@@ -485,12 +485,19 @@ test('P5 a different speaker never supersedes or retracts another speaker\'s cla
       if (o.duplicate) continue;
       const sender = o.step.input.from.toLowerCase();
       const now = claimMap(o.after);
-      // other speakers' claims only ever move to 'contested'
+      // other speakers' claims only ever move to 'contested', or from 'contested' back to 'active' once no live
+      // same-group peer disagrees with them any more (the sender revised or withdrew the value that disputed them)
       for (const prev of o.before.claims) {
         if (prev.speaker === sender) continue;
         const cur = now.get(prev.id)!;
         if (cur.status === prev.status) continue;
-        assert.equal(cur.status, 'contested', `${sender} (${o.eventId}) moved ${prev.speaker}'s ${prev.id} ${prev.status} → ${cur.status}`);
+        if (prev.status === 'contested' && cur.status === 'active') {
+          const disputed = o.after.claims.some((x) => live(x) && x.id !== cur.id && x.key === cur.key
+            && (party(x.speaker)?.group ?? x.speaker) === (party(cur.speaker)?.group ?? cur.speaker) && JSON.stringify(x.value) !== JSON.stringify(cur.value));
+          assert.ok(!disputed, `${sender} (${o.eventId}) settled ${prev.speaker}'s ${prev.id} while a peer still disagrees`);
+        } else {
+          assert.equal(cur.status, 'contested', `${sender} (${o.eventId}) moved ${prev.speaker}'s ${prev.id} ${prev.status} → ${cur.status}`);
+        }
         assert.equal(cur.superseded_by, prev.superseded_by);
       }
       // a fresh authoritative claim that disagrees with a live peer in the same group is contested, as is the peer
@@ -542,6 +549,25 @@ test('P5b no active claim coexists with a live, disagreeing claim from a same-gr
       }
     }
   }, 100);
+});
+
+// The other half of P5b: a contest is not stickier than the disagreement. Once the other side revises its value to
+// agree (or withdraws it), nobody in the group says anything different and both claims apply again.
+test('P5c a contest settles when the disputing peer revises to agree or withdraws', async () => {
+  const agree = await run(script([
+    [addr.supplier, '2026-10-19T09:10:00Z', [{ key: 'delivery.schedule', value: [{ qty: 500, date: '2026-10-23' }] }]],
+    [FORWARDER, '2026-10-19T09:40:00Z', [{ key: 'delivery.schedule', value: [{ qty: 500, date: '2026-10-26' }] }]],
+    [FORWARDER, '2026-10-19T10:10:00Z', [{ key: 'delivery.schedule', value: [{ qty: 500, date: '2026-10-23' }], mode: 'correction' }]],
+  ]));
+  assert.deepEqual(agree.h.claims('delivery.schedule').map((c) => c.status), ['active', 'superseded', 'active']);
+  assert.ok(agree.h.transitions().some((t) => t.type === 'claim_settled'), 'settling is logged');
+
+  const withdraw = await run(script([
+    [addr.supplier, '2026-10-19T09:10:00Z', [{ key: 'delivery.schedule', value: [{ qty: 500, date: '2026-10-23' }] }]],
+    [FORWARDER, '2026-10-19T09:40:00Z', [{ key: 'delivery.schedule', value: [{ qty: 500, date: '2026-10-26' }] }]],
+    [FORWARDER, '2026-10-19T10:10:00Z', [{ key: 'delivery.schedule', value: [{ qty: 500, date: '2026-10-26' }], mode: 'retraction' }]],
+  ]));
+  assert.deepEqual(withdraw.h.claims('delivery.schedule').map((c) => c.status), ['active', 'retracted']);
 });
 
 // ------------------------------------------------------------------ 6. late evidence

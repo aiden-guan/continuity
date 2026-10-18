@@ -16,8 +16,10 @@ import type { Mailbox } from '../core/mailbox.ts';
 import { emailDetail, emailSummary, taskHeader } from '../core/mailbox.ts';
 import type { CallRecord } from '../core/llm.ts';
 import { bm25 } from '../core/bm25.ts';
+import { liveTool, liveTriggerDetail } from '../live/view.ts';
 
-export const TOOL_BUDGET = 6;
+/** Read-tool calls the agent may make (BENCH_TOOL_BUDGET overrides, for a budget sweep; recorded in meta.json). */
+export const TOOL_BUDGET = Number(process.env.BENCH_TOOL_BUDGET) || 6;
 
 const tool = (name: string, description: string, properties: Record<string, unknown>, required: string[] = []) => ({
   name, description, input_schema: { type: 'object', additionalProperties: false, properties, required },
@@ -84,24 +86,30 @@ export const primitiveNative: Condition = {
   async prepare(mb, ctx) {
     const header = taskHeader(mb);
     const trig = mb.trigger;
-    const start = `${header}\n\nNew message (Primitive EmailDetail):\n${JSON.stringify(emailDetail(mb, trig), null, 1)}\n\nGather what you need, then reply DONE.`;
+    // a live case reads the trigger and every tool result from real Primitive (bench/live/view.ts)
+    const trigDetail = mb.live ? await liveTriggerDetail(mb) : emailDetail(mb, trig);
+    const start = `${header}\n\nNew message (Primitive EmailDetail):\n${JSON.stringify(trigDetail, null, 1)}\n\nGather what you need, then reply DONE.`;
     const messages: { role: 'user' | 'assistant'; content: unknown }[] = [{ role: 'user', content: start }];
     const calls: CallRecord[] = [];
     const reads: string[] = [];
     let used = 0;
+    let toolMs = 0;
     for (let turn = 0; turn < TOOL_BUDGET + 2; turn++) {
-      const res = await ctx.llm.complete({ purpose: 'tool-agent', system: TOOL_SYSTEM, messages, tools: TOOLS, effort: 'medium', trial: ctx.trial, maxTokens: 8000 });
+      const res = await ctx.llm.complete({ purpose: 'tool-agent', system: TOOL_SYSTEM, messages, tools: TOOLS, effort: 'medium', trial: ctx.trial, maxTokens: 8000, promptCache: 'conversation' });
       calls.push(res.record);
       const uses = res.content.filter((b) => b.type === 'tool_use') as { type: string; id: string; name: string; input: Record<string, unknown> }[];
       if (!uses.length) break;
       messages.push({ role: 'assistant', content: res.content });
-      const results = uses.map((u) => {
-        if (used >= TOOL_BUDGET) return { type: 'tool_result', tool_use_id: u.id, is_error: true, content: 'Tool budget exhausted. Reply DONE.' };
+      const results = [];
+      for (const u of uses) {
+        if (used >= TOOL_BUDGET) { results.push({ type: 'tool_result', tool_use_id: u.id, is_error: true, content: 'Tool budget exhausted. Reply DONE.' }); continue; }
         used++;
-        const out = JSON.stringify(runTool(mb, u.name, u.input ?? {}), null, 1);
+        const t0 = Date.now();
+        const out = JSON.stringify(mb.live ? await liveTool(mb, u.name, u.input ?? {}) : runTool(mb, u.name, u.input ?? {}), null, 1);
+        toolMs += Date.now() - t0;
         reads.push(`### ${u.name}(${JSON.stringify(u.input ?? {})})\n${out}`);
-        return { type: 'tool_result', tool_use_id: u.id, content: out };
-      });
+        results.push({ type: 'tool_result', tool_use_id: u.id, content: out });
+      }
       messages.push({ role: 'user', content: results });
     }
     return {
@@ -109,7 +117,7 @@ export const primitiveNative: Condition = {
       memory: reads.length ? reads.join('\n\n') : '(no tool calls made)',
       ingestion: [],
       retrieval: calls,
-      diag: { tool_calls: used, tools: reads.map((r) => r.slice(4, r.indexOf('('))) },
+      diag: { tool_calls: used, tools: reads.map((r) => r.slice(4, r.indexOf('('))), ...(mb.live ? { live: true, primitive_ms: toolMs } : {}) },
     };
   },
 };

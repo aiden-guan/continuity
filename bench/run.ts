@@ -15,7 +15,16 @@
 // Run:     --name <dir>  --concurrency 6 (provider requests)  --cell-concurrency 4  --refresh (ignore cache)
 //          --mock (no provider calls anywhere; Continuity uses the rule extractor)  --allow-unfrozen
 //          Reusing --name resumes: finished cells are skipped, cells that errored are retried.
+//
+// Live Primitive mail (bench/live/README.md): the same cases, sent through real Primitive inboxes on your own domain.
+//   node bench/run.ts live-check                                       # read-only account preflight, nothing sent
+//   node bench/run.ts live-deliver --live <name> [filters]             # shows the plan; add --yes-send to send
+//   node bench/run.ts live-deliver --live <name> --reverify [filters]  # re-run the delivery checks only (read-only)
+//   node bench/run.ts run --live <name> [filters]                      # both conditions read real Primitive (no sends)
+//   --max-sends 300 (hard cap)  --per-hour <n> (default 90% of the account limit)  --live-concurrency 4
+//   --fake (in-memory Primitive: deliver and run in one process, nothing sent)  --allow-processing
 import { parseArgs } from 'node:util';
+import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -30,6 +39,11 @@ import { actorInput, actorSystem } from './core/actor.ts';
 import { CONDITIONS, conditionById } from './conditions/index.ts';
 import { DEFAULT_MODEL, Llm, PRICING, estimateTokens } from './core/llm.ts';
 import { runCell, type Row } from './core/pipeline.ts';
+import { deliverAll, describePreflight, liveMailboxes, liveSkipReason, manifestPath, openClient, reverifyAll } from './live/run-live.ts';
+import { loadManifest, type LiveManifest } from './live/deliver.ts';
+import { TOOL_BUDGET } from './conditions/primitive.ts';
+import { DEFAULT_ROUTE } from '../src/extract/routed.ts';
+import type { LiveClient } from './live/client.ts';
 import { renderReport } from './core/report.ts';
 
 const { values: a, positionals } = parseArgs({
@@ -54,6 +68,14 @@ const { values: a, positionals } = parseArgs({
     refresh: { type: 'boolean', default: false },
     mock: { type: 'boolean', default: false },
     'allow-unfrozen': { type: 'boolean', default: false },
+    live: { type: 'string', default: '' },
+    'yes-send': { type: 'boolean', default: false },
+    'max-sends': { type: 'string', default: '300' },
+    'per-hour': { type: 'string', default: '' },
+    'live-concurrency': { type: 'string', default: '4' },
+    fake: { type: 'boolean', default: false },
+    'allow-processing': { type: 'boolean', default: false },
+    reverify: { type: 'boolean', default: false },
   },
 });
 const list = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean);
@@ -223,9 +245,35 @@ async function main() {
       console.log(`froze ${cases.length} eval cases → ${MANIFEST}`);
       return;
     }
+    case 'live-check': {
+      const client = openClient({ fake: a.fake, maxSends: 0, perHour: 1, since: new Date().toISOString() });
+      console.log(describePreflight(await client.preflight()));
+      client.close();
+      return;
+    }
+    case 'live-deliver': {
+      if (!a.live) throw new Error('live-deliver needs --live <name> (the live run the delivery is recorded under)');
+      const cases = await selected();
+      checkFrozen(cases);
+      if (a.reverify) return reverifyAll(cases.map((x) => x.case), a.live);
+      const out = await deliverAll(cases.map((x) => x.case), liveOpts(true));
+      out?.client.close();
+      return;
+    }
     case 'run': {
       const cases = await selected();
       checkFrozen(cases);
+      // live: cases delivered over real Primitive mail; the run's client is read-only (a send would throw)
+      let live: { manifest: LiveManifest; client: LiveClient } | null = null;
+      if (a.live) {
+        if (a.fake) live = await deliverAll(cases.map((x) => x.case), liveOpts(true), () => {});
+        else {
+          const manifest = loadManifest(manifestPath(a.live));
+          if (!manifest) throw new Error(`no live delivery named ${a.live}: run live-deliver --live ${a.live} first`);
+          live = { manifest, client: openClient({ fake: false, maxSends: 0, perHour: 1, since: manifest.since }) };
+        }
+      }
+      const mailboxOf = live ? liveMailboxes(live.manifest, live.client) : null;
       const conds = (list(a.conditions).length ? list(a.conditions) : CONDITIONS.map((c) => c.id)).map(conditionById);
       const trials = Number(a.trials);
       const name = a.name || `${new Date().toISOString().replace(/[:.]/g, '-')}${a.mock ? '-mock' : ''}`;
@@ -245,19 +293,26 @@ async function main() {
         if (diff.length) throw new Error(`${dir} was run with ${diff.map(([k, x, y]) => `${k} ${x} (now ${y})`).join(', ')}; pick a new --name`);
       }
       const done = new Set(latestRows(readRows(rowsFile)).filter((r) => !r.error).map((r) => r.key));
-      const meta = { name, model: a.model, judge_model: judgeLlm.model, effort, trials, splits: a.split || 'golden,dev,eval', conditions: conds.map((c) => c.id), backlog: a.backlog, mess: a.mess, mock: a.mock, started_at: new Date().toISOString(), cases: cases.length };
+      // the code a run measured: commit, and whether the tree had uncommitted changes
+      const git = (args: string) => { try { return execSync(`git ${args}`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); } catch { return null; } };
+      const code = { commit: git('rev-parse HEAD'), dirty: (git('status --porcelain') ?? '').length > 0, tool_budget: TOOL_BUDGET, extractor: { thinking: process.env.CONTINUITY_EXTRACTOR_THINKING ?? 'off', effort: process.env.CONTINUITY_EXTRACTOR_EFFORT ?? 'medium', route: process.env.CONTINUITY_EXTRACT_ROUTE ?? DEFAULT_ROUTE } };
+      const meta = { name, model: a.model, judge_model: judgeLlm.model, effort, trials, code, splits: a.split || 'golden,dev,eval', conditions: conds.map((c) => c.id), backlog: a.backlog, mess: a.mess, mock: a.mock, started_at: new Date().toISOString(), cases: cases.length, ...(live ? { live: { name: live.manifest.name, run_tag: live.manifest.run_tag, domain: live.manifest.domain, fake: a.fake } } : {}) };
       writeFileSync(metaFile, JSON.stringify(meta, null, 1));
       const cells = cases.flatMap(({ mod, case: c }) => conds.flatMap((condition) => Array.from({ length: trials }, (_, t) => ({ mod, c, condition, trial: t + 1 }))))
         .filter((x) => !done.has(`${x.c.id}|${x.condition.id}|${x.trial}`));
       console.log(`${cases.length} cases × ${conds.length} conditions × ${trials} trial(s) = ${cells.length} cells to run (${done.size} already done; errored cells are retried) → ${dir}${a.mock ? '  [MOCK]' : ''}`);
       let finished = 0;
       await pool(cells, Number(a['cell-concurrency']), async (cell) => {
-        const row = await runCell({ ...cell, llm, judgeLlm, cacheDir, mock: a.mock, refresh: a.refresh, effort });
+        const mb = mailboxOf?.(cell.c);
+        const row = live && !mb
+          ? skippedRow(cell, a.model, liveSkipReason(live.manifest, cell.c))
+          : await runCell({ ...cell, llm, judgeLlm, cacheDir, mock: a.mock, refresh: a.refresh, effort, ...(mb ? { mailbox: () => mb } : {}) });
         appendFileSync(rowsFile, `${JSON.stringify(row)}\n`);
         finished++;
         const mark = row.unsupported ? 'n/a' : row.error ? 'ERR' : row.chs ? 'PASS' : 'fail';
         console.log(`[${finished}/${cells.length}] ${mark.padEnd(4)} ${row.case_id} · ${row.condition}${trials > 1 ? ` · t${row.trial}` : ''}${row.error ? ` — ${row.error.split('\n')[0]}` : ''}`);
       });
+      live?.client.close();
       writeReport(dir);
       return;
     }
@@ -268,6 +323,26 @@ async function main() {
     default:
       console.log(readFileSync(new URL(import.meta.url), 'utf8').split('\n').filter((l) => l.startsWith('//')).map((l) => l.slice(3)).join('\n'));
   }
+}
+
+function liveOpts(yes: boolean) {
+  return {
+    name: a.live, fake: a.fake, maxSends: Number(a['max-sends']), perHour: a['per-hour'] ? Number(a['per-hour']) : undefined,
+    allowProcessing: a['allow-processing'], concurrency: Number(a['live-concurrency']), yes: yes && (a.fake || a['yes-send']),
+  };
+}
+
+/** A cell the live run cannot play (not delivered, replay-only, or delivery faults): reported as n/a with the reason. */
+function skippedRow(cell: { c: BenchCase; condition: { id: string }; trial: number }, model: string, reason: string): Row {
+  const { c } = cell;
+  const zero = { input_tokens: 0, output_tokens: 0, cost_usd: 0, calls: 0 };
+  return {
+    key: `${c.id}|${cell.condition.id}|${cell.trial}`, case_id: c.id, vertical: c.vertical, archetype: c.archetype, variant: c.variant, split: c.split,
+    backlog: c.backlog ?? 0, mess: Number(c.params.mess ?? 0), capabilities: c.capabilities, condition: cell.condition.id, trial: cell.trial, model,
+    unsupported: `live: ${reason}`,
+    usage: { memory_context_tokens_est: 0, actor_prompt_tokens_est: 0, actor_input_tokens: 0, actor_output_tokens: 0, ingestion: zero, retrieval: zero, actor_cost_usd: 0, judge_cost_usd: 0, system_cost_usd: 0, task_events: 0 },
+    ms: 0,
+  };
 }
 
 function writeReport(dir: string) {

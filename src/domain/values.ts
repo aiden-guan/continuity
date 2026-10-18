@@ -35,6 +35,21 @@ export function normalizeDatetime(value: unknown): string | null {
   return m && isCalendarIso(m[1]) ? `${m[1]}T${m[2]}` : null;
 }
 
+const DECLINED = /\b(?:declin|reject|turn(?:s|ed|ing)? down|pass(?:es|ed|ing)? on|walk(?:s|ed|ing)? away)|\b(?:not|no longer|never|won't|can't|cannot|don't|doesn't|didn't)\b[^.]{0,20}\b(?:accept|agree|(?:counter)?sign|proceed|go ahead|confirm|execut)/i;
+// "Order confirmed" and "fully executed" are acceptances too (a supplier confirming, a seller countersigning)
+const ACCEPTED = /\b(?:accept|agree|approv|(?:counter)?sign(?:s|ed|ing)?\b|go(?:es|ing)? ahead|proceed|plac(?:e|es|ed|ing) (?:the |an |our )?(?:order|po)|confirm(?:s|ed|ing)?\b|execut(?:e|es|ed|ing)\b)/i;
+
+/**
+ * A decision to accept or decline, as one word: "Buyer accepts the counter at $605,000" and "accepted" are the
+ * same decision, so a restated acceptance corroborates instead of reading as a new term. Text that states neither
+ * ("Counter #2 at $752,000" is a counter, not an acceptance) is unusable (null).
+ */
+export function canonicalDecision(value: unknown): 'accepted' | 'declined' | null {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  if (DECLINED.test(value)) return 'declined';
+  return ACCEPTED.test(value) ? 'accepted' : null;
+}
+
 /** Validate a proposed value against its term and put it in canonical form; null when unusable. */
 export function normalizeTyped(def: TermDef, value: unknown): unknown | null {
   switch (def.type) {

@@ -1,0 +1,504 @@
+{
+  "id": "R02",
+  "domain": "real_estate",
+  "title": "9 Quarry Rd: closing pushed a week in one clause of a chatty logistics email above a long quote that still says Dec 4",
+  "features": [
+    "buried_correction",
+    "quoted_history",
+    "not_authoritative",
+    "distractor_numbers",
+    "acceptance",
+    "answered_question",
+    "subject_drift"
+  ],
+  "task": {
+    "id": "deal_quarry9",
+    "alias": "QRY-9",
+    "goal": "Buy 9 Quarry Rd for our buyer: price no more than $615,000 and within the appraisal, closing by Tue Dec 15.",
+    "item": "9 Quarry Rd",
+    "self_address": "agent@keystone-buyers.primitive.email",
+    "domain": "real_estate",
+    "participants": [
+      {
+        "address": "agent@keystone-buyers.primitive.email",
+        "name": "Keystone Buyer Agent",
+        "role": "self",
+        "label": "buyer agent (us)",
+        "authority": [
+          "decision.",
+          "deal."
+        ]
+      },
+      {
+        "address": "t.gallo@ridgeway-realty.example",
+        "name": "Tom Gallo (Ridgeway Realty, listing agent)",
+        "role": "counterparty",
+        "label": "listing agent",
+        "authority": [
+          "price.",
+          "closing.",
+          "contingency.",
+          "decision.",
+          "deal."
+        ],
+        "group": "seller"
+      },
+      {
+        "address": "k.oduya@oduya-home.example",
+        "name": "Kemi Oduya (buyer)",
+        "role": "internal",
+        "label": "buyer",
+        "authority": [
+          "budget."
+        ]
+      },
+      {
+        "address": "apps@northgate-lending.example",
+        "name": "Northgate Lending (lender)",
+        "role": "internal",
+        "label": "lender",
+        "authority": [
+          "appraisal."
+        ]
+      },
+      {
+        "address": "sched@plumbline-inspections.example",
+        "name": "Plumbline Inspections",
+        "role": "internal",
+        "label": "inspector",
+        "authority": [
+          "inspection."
+        ]
+      },
+      {
+        "address": "closings@lakeshore-title.example",
+        "name": "Lakeshore Title (escrow)",
+        "role": "internal",
+        "label": "title company",
+        "authority": [
+          "payment."
+        ]
+      }
+    ],
+    "requirements": [
+      {
+        "key": "requirement.max_price",
+        "value": 615000,
+        "display": "$615,000",
+        "hard": true
+      },
+      {
+        "key": "requirement.close_by",
+        "value": "2026-12-15",
+        "display": "Tue Dec 15",
+        "hard": true
+      },
+      {
+        "key": "requirement.opening_offer",
+        "value": 590000,
+        "display": "$590,000",
+        "hard": false
+      }
+    ]
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "outbound",
+      "from": "agent@keystone-buyers.primitive.email",
+      "fromName": "Keystone Buyer Agent",
+      "to": "t.gallo@ridgeway-realty.example",
+      "subject": "9 Quarry Rd - offer",
+      "at": "2026-11-05T15:00:00Z",
+      "in_reply_to": null,
+      "body": "Tom,\n\nOffer from my buyer, Kemi Oduya: $590,000 for 9 Quarry Rd, closing Fri Dec 4, inspection contingency 14 days, $12,000 earnest money.\n\nKeystone Buyer Agent"
+    },
+    {
+      "id": "m2",
+      "direction": "inbound",
+      "from": "t.gallo@ridgeway-realty.example",
+      "fromName": "Tom Gallo",
+      "to": "agent@keystone-buyers.primitive.email",
+      "subject": "RE: 9 Quarry Rd - offer",
+      "at": "2026-11-06T14:30:00Z",
+      "in_reply_to": "m1",
+      "body": "seller will do $605,000, closing Fri Dec 4 works for them. counter attached.\n\nTom Gallo\nRidgeway Realty  c 614-555-0157\n\n -----Original Message-----\nFrom: \tKeystone Buyer Agent\nSent:\tThursday, November 05, 2026 9:00 AM\nTo:\tGallo, Tom\nSubject:\t9 Quarry Rd - offer\n\nTom,\n\nOffer from my buyer, Kemi Oduya: $590,000 for 9 Quarry Rd, closing Fri Dec 4, inspection contingency 14 days, $12,000 earnest money.\n\nKeystone Buyer Agent",
+      "attachments": [
+        {
+          "filename": "Ridgeway-Counter-QRY-9.pdf",
+          "lines": [
+            "RIDGEWAY REALTY - COUNTER OFFER",
+            "Property: 9 Quarry Rd   Ref: QRY-9",
+            "Purchase price: $605,000",
+            "Closing date: Friday, Dec 4, 2026",
+            "Inspection contingency until: Nov 20, 2026",
+            "Earnest money: $12,000"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m3",
+      "direction": "inbound",
+      "from": "k.oduya@oduya-home.example",
+      "fromName": "Kemi Oduya",
+      "to": "agent@keystone-buyers.primitive.email",
+      "subject": "Quarry - go ahead",
+      "at": "2026-11-06T18:00:00Z",
+      "in_reply_to": null,
+      "body": "Saw Tom's counter. I'm OK up to $615,000, so take the $605k.\n\nKemi"
+    },
+    {
+      "id": "m4",
+      "direction": "outbound",
+      "from": "agent@keystone-buyers.primitive.email",
+      "fromName": "Keystone Buyer Agent",
+      "to": "t.gallo@ridgeway-realty.example",
+      "subject": "RE: 9 Quarry Rd - offer",
+      "at": "2026-11-06T19:10:00Z",
+      "in_reply_to": "m2",
+      "body": "Tom - Buyer accepts the counter at $605,000, closing Fri Dec 4. Signed counter going out via DocuSign now.\n\nKeystone Buyer Agent\n\n -----Original Message-----\nFrom: \tGallo, Tom\nSent:\tFriday, November 06, 2026 8:30 AM\nTo:\tKeystone Buyer Agent\nSubject:\tRE: 9 Quarry Rd - offer\n\nseller will do $605,000, closing Fri Dec 4 works for them. counter attached.\n\nTom Gallo\nRidgeway Realty  c 614-555-0157\n\n -----Original Message-----\nFrom: \tKeystone Buyer Agent\nSent:\tThursday, November 05, 2026 9:00 AM\nTo:\tGallo, Tom\nSubject:\t9 Quarry Rd - offer\n\nTom,\n\nOffer from my buyer, Kemi Oduya: $590,000 for 9 Quarry Rd, closing Fri Dec 4, inspection contingency 14 days, $12,000 earnest money.\n\nKeystone Buyer Agent"
+    },
+    {
+      "id": "m5",
+      "direction": "inbound",
+      "from": "closings@lakeshore-title.example",
+      "fromName": "Lakeshore Title",
+      "to": "agent@keystone-buyers.primitive.email",
+      "subject": "File opened - 9 Quarry Rd (LT-26-0918)",
+      "at": "2026-11-09T16:00:00Z",
+      "in_reply_to": null,
+      "body": "We've opened file LT-26-0918 for 9 Quarry Rd. Earnest money of $12,000 received 11/9. Wire instructions for the buyer's funds will be given by phone only - never by email.\n\nLakeshore Title | closings | 614-555-0102"
+    },
+    {
+      "id": "m6",
+      "direction": "inbound",
+      "from": "t.gallo@ridgeway-realty.example",
+      "fromName": "Tom Gallo",
+      "to": "agent@keystone-buyers.primitive.email",
+      "subject": "RE: 9 Quarry Rd - offer",
+      "at": "2026-11-23T15:20:00Z",
+      "in_reply_to": "m4",
+      "body": "Hi -\n\nThanks for sending the HOA resale cert over, seller signed the disclosure addendum this am. Re the walkthrough - the seller's purchase on their next place slipped and movers are now Dec 9-10, so we need to push closing out to Fri Dec 11; walkthrough can be that morning. Home warranty is HomeShield, $540, seller paying. Let me know if you need the utility contacts (gas acct ends 4471).\n\nTom\n\n -----Original Message-----\nFrom: \tKeystone Buyer Agent\nSent:\tFriday, November 06, 2026 1:10 PM\nTo:\tGallo, Tom\nSubject:\tRE: 9 Quarry Rd - offer\n\nTom - Buyer accepts the counter at $605,000, closing Fri Dec 4. Signed counter going out via DocuSign now.\n\nKeystone Buyer Agent\n\n -----Original Message-----\nFrom: \tGallo, Tom\nSent:\tFriday, November 06, 2026 8:30 AM\nTo:\tKeystone Buyer Agent\nSubject:\tRE: 9 Quarry Rd - offer\n\nseller will do $605,000, closing Fri Dec 4 works for them. counter attached.\n\nTom Gallo\nRidgeway Realty  c 614-555-0157\n\n -----Original Message-----\nFrom: \tKeystone Buyer Agent\nSent:\tThursday, November 05, 2026 9:00 AM\nTo:\tGallo, Tom\nSubject:\t9 Quarry Rd - offer\n\nTom,\n\nOffer from my buyer, Kemi Oduya: $590,000 for 9 Quarry Rd, closing Fri Dec 4, inspection contingency 14 days, $12,000 earnest money.\n\nKeystone Buyer Agent"
+    },
+    {
+      "id": "m7",
+      "direction": "outbound",
+      "from": "agent@keystone-buyers.primitive.email",
+      "fromName": "Keystone Buyer Agent",
+      "to": "t.gallo@ridgeway-realty.example",
+      "subject": "RE: 9 Quarry Rd - offer",
+      "at": "2026-11-23T17:45:00Z",
+      "in_reply_to": "m6",
+      "body": "Tom - confirmed, buyer is fine with closing Fri Dec 11. I'll let Lakeshore know.\n\nKeystone Buyer Agent\n\n -----Original Message-----\nFrom: \tGallo, Tom\nSent:\tMonday, November 23, 2026 9:20 AM\nTo:\tKeystone Buyer Agent\nSubject:\tRE: 9 Quarry Rd - offer\n\nHi -\n\nThanks for sending the HOA resale cert over, seller signed the disclosure addendum this am. Re the walkthrough - the seller's purchase on their next place slipped and movers are now Dec 9-10, so we need to push closing out to Fri Dec 11; walkthrough can be that morning. Home warranty is HomeShield, $540, seller paying. Let me know if you need the utility contacts (gas acct ends 4471).\n\nTom\n\n -----Original Message-----\nFrom: \tKeystone Buyer Agent\nSent:\tFriday, November 06, 2026 1:10 PM\nTo:\tGallo, Tom\nSubject:\tRE: 9 Quarry Rd - offer\n\nTom - Buyer accepts the counter at $605,000, closing Fri Dec 4. Signed counter going out via DocuSign now.\n\nKeystone Buyer Agent\n\n -----Original Message-----\nFrom: \tGallo, Tom\nSent:\tFriday, November 06, 2026 8:30 AM\nTo:\tKeystone Buyer Agent\nSubject:\tRE: 9 Quarry Rd - offer\n\nseller will do $605,000, closing Fri Dec 4 works for them. counter attached.\n\nTom Gallo\nRidgeway Realty  c 614-555-0157\n\n -----Original Message-----\nFrom: \tKeystone Buyer Agent\nSent:\tThursday, November 05, 2026 9:00 AM\nTo:\tGallo, Tom\nSubject:\t9 Quarry Rd - offer\n\nTom,\n\nOffer from my buyer, Kemi Oduya: $590,000 for 9 Quarry Rd, closing Fri Dec 4, inspection contingency 14 days, $12,000 earnest money.\n\nKeystone Buyer Agent"
+    },
+    {
+      "id": "m8",
+      "direction": "inbound",
+      "from": "closings@lakeshore-title.example",
+      "fromName": "Lakeshore Title",
+      "to": "agent@keystone-buyers.primitive.email",
+      "subject": "RE: File opened - 9 Quarry Rd (LT-26-0918)",
+      "at": "2026-11-24T14:10:00Z",
+      "in_reply_to": "m5",
+      "body": "noted - we have closing moved to 12/11, 10am, our Dublin office.\n\nLT\n\n -----Original Message-----\nFrom: \tLakeshore Title\nSent:\tMonday, November 09, 2026 10:00 AM\nTo:\tKeystone Buyer Agent\nSubject:\tFile opened - 9 Quarry Rd (LT-26-0918)\n\nWe've opened file LT-26-0918 for 9 Quarry Rd. Earnest money of $12,000 received 11/9. Wire instructions for the buyer's funds will be given by phone only - never by email.\n\nLakeshore Title | closings | 614-555-0102"
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m5",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 605000,
+          "stated_in": "m2",
+          "evidence": "seller will do $605,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-04",
+          "stated_in": "m2",
+          "evidence": "closing Fri Dec 4"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-20",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until: Nov 20, 2026"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 615000,
+          "stated_in": "m3",
+          "evidence": "up to $615,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "decision.accept",
+          "value": "accepted",
+          "stated_in": "m4",
+          "evidence": "Buyer accepts the counter at $605,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 605000,
+          "stated_in": "m4",
+          "evidence": "Buyer accepts the counter at $605,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-04",
+          "stated_in": "m1",
+          "evidence": "closing Fri Dec 4"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Ridgeway-Counter-QRY-9.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "price_approval": "pass"
+      },
+      "next_actor": "them",
+      "superseded": [
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 590000,
+          "stated_in": "m1",
+          "evidence": "$590,000 for 9 Quarry Rd",
+          "replaced_in": "m4"
+        }
+      ]
+    },
+    {
+      "after": "m6",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 605000,
+          "stated_in": "m2",
+          "evidence": "seller will do $605,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-11",
+          "stated_in": "m6",
+          "evidence": "need to push closing out to Fri Dec 11"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-20",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until: Nov 20, 2026"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 615000,
+          "stated_in": "m3",
+          "evidence": "up to $615,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "decision.accept",
+          "value": "accepted",
+          "stated_in": "m4",
+          "evidence": "Buyer accepts the counter at $605,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 605000,
+          "stated_in": "m4",
+          "evidence": "Buyer accepts the counter at $605,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-04",
+          "stated_in": "m1",
+          "evidence": "closing Fri Dec 4"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-04",
+          "stated_in": "m2",
+          "evidence": "closing Fri Dec 4",
+          "replaced_in": "m6"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 590000,
+          "stated_in": "m1",
+          "evidence": "$590,000 for 9 Quarry Rd",
+          "replaced_in": "m4"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "buyer agent (us)",
+          "owed_to": "listing agent",
+          "kind": "question",
+          "about": "is the Dec 11 closing ok",
+          "status": "open",
+          "opened_in": "m6",
+          "resolved_in": null
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Ridgeway-Counter-QRY-9.pdf",
+          "status": "partially_stale"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "price_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "listing agent",
+        "must": [
+          "dec(ember)?\\.? ?11|12/11"
+        ],
+        "must_not": [
+          "clos\\w* (on|is|for|remains) (fri(day)?,? )?(dec(ember)?\\.? ?4|12/4)\\b"
+        ]
+      }
+    },
+    {
+      "after": "m8",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 605000,
+          "stated_in": "m2",
+          "evidence": "seller will do $605,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-11",
+          "stated_in": "m6",
+          "evidence": "need to push closing out to Fri Dec 11"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-20",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until: Nov 20, 2026"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 615000,
+          "stated_in": "m3",
+          "evidence": "up to $615,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "decision.accept",
+          "value": "accepted",
+          "stated_in": "m4",
+          "evidence": "Buyer accepts the counter at $605,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 605000,
+          "stated_in": "m4",
+          "evidence": "Buyer accepts the counter at $605,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-11",
+          "stated_in": "m7",
+          "evidence": "buyer is fine with closing Fri Dec 11"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-04",
+          "stated_in": "m2",
+          "evidence": "closing Fri Dec 4",
+          "replaced_in": "m6"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 590000,
+          "stated_in": "m1",
+          "evidence": "$590,000 for 9 Quarry Rd",
+          "replaced_in": "m4"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-04",
+          "stated_in": "m1",
+          "evidence": "closing Fri Dec 4",
+          "replaced_in": "m7"
+        }
+      ],
+      "tentative": [
+        {
+          "party": "title company",
+          "term": "closing.date",
+          "value": "2026-12-11",
+          "stated_in": "m8",
+          "evidence": "we have closing moved to 12/11",
+          "why": "not_authoritative"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "buyer agent (us)",
+          "owed_to": "listing agent",
+          "kind": "question",
+          "about": "is the Dec 11 closing ok",
+          "status": "answered",
+          "opened_in": "m6",
+          "resolved_in": "m7"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Ridgeway-Counter-QRY-9.pdf",
+          "status": "partially_stale"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "price_approval": "pass"
+      },
+      "next_actor": "them"
+    }
+  ],
+  "notes": "The closing change sits in one clause of m6 ('need to push closing out to Fri Dec 11') among HOA, walkthrough, warranty and utility chatter, above a quote chain that repeats 'closing Fri Dec 4' twice; Dec 11 still meets the Dec 15 deadline, so we just confirm it. The counter PDF becomes partially stale (its closing date was replaced). m5 has no wire instructions (only 'by phone only'), so no payment term is recorded. The title company restating 12/11 in m8 has no closing authority: tentative, not_authoritative. Distractors: $12,000 EMD, file LT-26-0918, HomeShield $540, movers Dec 9-10, gas acct 4471, phones."
+}

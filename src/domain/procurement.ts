@@ -3,7 +3,7 @@
 import type { CheckResult, Claim, Participant, TaskSpec } from '../types.ts';
 import { findDates, prettyDate } from '../extract/dates.ts';
 import { registerDomain, sameValue, termOf, type DomainPack, type HeuristicSentence, type TermDef } from './pack.ts';
-import { displayTyped as displayShared, mergePartialLots, normalizeTyped, type Lot } from './values.ts';
+import { canonicalDecision, displayTyped as displayShared, mergePartialLots, normalizeTyped, type Lot } from './values.ts';
 
 export type { Lot };
 
@@ -15,7 +15,7 @@ export const TERMS: TermDef[] = [
   { key: 'quote.valid_until', type: 'date', description: 'Date the quote expires', topics: ['valid', 'expire', 'expiry'], events: { default: 'quote_expiry_set' }, deadline: true },
   { key: 'offer.status', type: 'enum', values: ['withdrawn'], lifecycle: true, description: 'The counterparty withdrew/cancelled its offer or cannot supply (value "withdrawn"). History is kept; the offer is no longer available.', topics: ['withdraw', 'cancel', 'disregard', 'rescind'], events: { default: 'offer_withdrawn' } },
   { key: 'budget.max_unit_price', type: 'money', description: 'Internally approved maximum unit price (a decision by finance/approver)', topics: ['budget', 'approve', 'approval', 'authoriz', 'sign off', 'sign-off'], events: { default: 'budget_approved' } },
-  { key: 'decision.order', type: 'text', description: 'A party accepting/declining/placing the order', topics: ['accept', 'confirm the order', 'place the order', 'go ahead', 'po '], events: { self: 'order_accepted', default: 'order_confirmed' } },
+  { key: 'decision.order', type: 'text', description: 'A party accepting/declining/placing the order: value "accepted" or "declined"', topics: ['accept', 'confirm the order', 'place the order', 'go ahead', 'po '], events: { self: 'order_accepted', default: 'order_confirmed' } },
 ];
 
 export const TERM_KEYS = new Set(TERMS.map((t) => t.key));
@@ -26,6 +26,7 @@ export function termDef(key: string): TermDef | undefined {
 
 /** Validate a proposed value against its term and put it in canonical form; null when unusable. */
 export function normalizeValue(key: string, value: unknown): unknown | null {
+  if (key === 'decision.order') return canonicalDecision(value);
   const def = termDef(key);
   if (!def) return typeof value === 'string' || typeof value === 'number' ? value : null;
   return normalizeTyped(def, value);
@@ -91,25 +92,35 @@ export function runChecks(task: TaskSpec, active: Claim[]): CheckResult[] {
     const schedule = term('delivery.schedule', who);
     const price = term('price.unit', who);
     const qtyClaim = term('order.quantity', who);
+    // a party is only checked on what it may set: a freight forwarder (delivery only) owes no price or quantity
+    const mays = (prefix: string) => party.authority.some((a) => a.startsWith(prefix) || prefix.startsWith(a));
 
-    if (deadline) {
+    if (deadline && mays('delivery.')) {
       const label = `All units by ${deadline.display}`;
       const id = `delivery_deadline:${who}`;
       if (!schedule) {
         results.push({ id, label, status: 'unknown', detail: `No delivery schedule from ${party.label} yet`, party: who, evidence: [], requirement_key: deadline.key });
       } else {
-        const late = (schedule.value as Lot[]).filter((l) => l.date > String(deadline.value));
+        const lots = schedule.value as Lot[];
+        const late = lots.filter((l) => l.date > String(deadline.value));
+        // "all units" means all of them: a schedule that dates fewer units than we need cannot pass, even when
+        // every lot it does date is on time (the rest have no date yet; the quantity check reports the shortfall)
+        const scheduled = lots.reduce((sum, l) => sum + l.qty, 0);
+        const needed = Number(quantity?.value ?? qtyClaim?.value ?? 0);
+        const undated = !late.length && needed > scheduled ? needed - scheduled : 0;
         results.push({
           id, label, party: who, evidence: [schedule.id], requirement_key: deadline.key,
-          status: late.length ? 'fail' : 'pass',
+          status: late.length ? 'fail' : undated ? 'unknown' : 'pass',
           detail: late.length
             ? `${late.map((l) => `${l.qty} units arrive ${prettyDate(l.date)}`).join(', ')} — after the ${deadline.display} deadline (${party.label}'s current schedule: ${schedule.display})`
-            : `${party.label}'s schedule (${schedule.display}) meets the deadline`,
+            : undated
+              ? `${party.label}'s schedule (${schedule.display}) dates ${scheduled} of ${needed} units; no date yet for the other ${undated}`
+              : `${party.label}'s schedule (${schedule.display}) meets the deadline`,
         });
       }
     }
 
-    if (quantity) {
+    if (quantity && (mays('order.') || mays('delivery.'))) {
       const label = `Quantity ${quantity.display}`;
       const id = `quantity:${who}`;
       const source = schedule ?? qtyClaim;
@@ -126,7 +137,7 @@ export function runChecks(task: TaskSpec, active: Claim[]): CheckResult[] {
       }
     }
 
-    if (maxPrice || budget) {
+    if ((maxPrice || budget) && mays('price.')) {
       const label = 'Unit price within budget';
       const id = `price_budget:${who}`;
       const requirementKey = maxPrice?.key ?? 'budget.max_unit_price';
@@ -302,7 +313,7 @@ export const procurement: DomainPack = {
   terms: TERMS,
   llmGuidance: [
     '- delivery.schedule must be the sender\'s full resulting schedule as lots of {qty, date}. Resolve relative dates against the message date and referents like "the other 200" against the current terms provided. If the message only changes some lots, still output the full resulting schedule and set partial=false; set partial=true only if you cannot determine the full schedule.',
-    '- Units already delivered/received ("300 have been delivered") are a fulfillment (fulfillments[]), not a future delivery lot.',
+    '- Units already delivered/received ("300 have been delivered") are reported in fulfillments[] AND stay in delivery.schedule as a lot (on the day they arrived, or their scheduled day if none is given): the schedule always accounts for every unit. "First 300 delivered, the remaining 200 are delayed until Monday" on a schedule of 500 Friday is [{"qty":300,"date":<Friday>},{"qty":200,"date":<Monday>}].',
     '- offer.status="withdrawn" when the sender withdraws/cancels its offer or says it cannot supply the order. Do not restate the withdrawn terms as claims.',
   ].join('\n'),
   normalizeValue,
@@ -321,7 +332,7 @@ export const procurement: DomainPack = {
       const party = task.participants.find((p) => p.address === c.party);
       actions.push({
         priority: 1, kind: 'offer_withdrawn', to: null, to_address: null, check_id: c.id,
-        action: `${party?.label ?? c.party} withdrew its offer — do not accept or rely on its earlier terms; find another source or escalate to the requester`,
+        action: `${party?.label ?? c.party} withdrew its offer — acknowledge the withdrawal to them, do not accept or rely on its earlier terms, and find another source or escalate to the requester`,
         why: c.detail,
         evidence: c.evidence.map((id) => live.find((l) => l.id === id)?.source_event_id).filter((x): x is string => !!x),
       });
@@ -339,7 +350,7 @@ export const procurement: DomainPack = {
       }
     }
 
-    const accepted = live.some((c) => c.key === 'decision.order' && c.speaker === self);
+    const accepted = live.some((c) => c.key === 'decision.order' && c.speaker === self && c.value === 'accepted');
     const allPass = checks.length > 0 && checks.every((c) => c.status === 'pass') && !contested.length;
     if (allPass && !accepted) {
       const supplier = task.participants.find((p) => p.role === 'counterparty');

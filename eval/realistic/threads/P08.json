@@ -1,0 +1,322 @@
+{
+  "id": "P08",
+  "domain": "procurement",
+  "title": "Task chair order: three questions, two answered across two emails, the warranty question never; with an out-of-office and a thanks email",
+  "features": [
+    "answered_question",
+    "unanswered_question",
+    "noise_mail",
+    "quoted_history",
+    "distractor_numbers"
+  ],
+  "task": {
+    "id": "task_p08",
+    "alias": "PO-4417",
+    "goal": "Buy 85 WB-Ergo 300 task chairs for PO-4417. All 85 must be delivered and installed by Fri Dec 4; unit price must not exceed $345.00.",
+    "item": "WB-Ergo 300 task chairs, graphite mesh, adjustable arms",
+    "self_address": "facilities-buying@calder-reese.primitive.email",
+    "domain": "procurement",
+    "participants": [
+      {
+        "address": "facilities-buying@calder-reese.primitive.email",
+        "name": "Calder & Reese Facilities Buying Agent",
+        "role": "self",
+        "label": "Calder & Reese (us)",
+        "authority": [
+          "decision."
+        ]
+      },
+      {
+        "address": "n.haddad@westbrook-cf.example",
+        "name": "Nora Haddad (Westbrook Contract Furniture)",
+        "role": "counterparty",
+        "label": "supplier",
+        "authority": [
+          "price.",
+          "delivery.",
+          "order.",
+          "payment.",
+          "quote.",
+          "offer."
+        ],
+        "group": "westbrook"
+      },
+      {
+        "address": "o.pratt@calder-reese.example",
+        "name": "Owen Pratt (Calder & Reese Finance)",
+        "role": "internal",
+        "label": "finance",
+        "authority": [
+          "budget."
+        ]
+      }
+    ],
+    "requirements": [
+      {
+        "key": "requirement.quantity",
+        "value": 85,
+        "display": "85 chairs",
+        "hard": true
+      },
+      {
+        "key": "requirement.deliver_all_by",
+        "value": "2026-12-04",
+        "display": "Fri Dec 4",
+        "hard": true
+      },
+      {
+        "key": "requirement.max_unit_price",
+        "value": 345,
+        "display": "$345.00",
+        "hard": true
+      }
+    ]
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "outbound",
+      "from": "facilities-buying@calder-reese.primitive.email",
+      "fromName": "Calder & Reese Facilities Buying Agent",
+      "to": "n.haddad@westbrook-cf.example",
+      "subject": "PO-4417 - 85 WB-Ergo 300 task chairs",
+      "at": "2026-11-02T15:30:00Z",
+      "in_reply_to": null,
+      "body": "Nora,\n\nWe're refreshing the 6th floor and need 85 WB-Ergo 300 task chairs, graphite mesh, adjustable arms (spec sheet rev C). Three questions before I can cut PO-4417:\n\n1. Unit price for 85?\n2. Can you deliver and install by Fri Dec 4?\n3. Is the 12-year warranty transferable if we relocate offices next year?\n\nThanks,\nCalder & Reese Facilities"
+    },
+    {
+      "id": "m2",
+      "direction": "inbound",
+      "from": "n.haddad@westbrook-cf.example",
+      "fromName": "Nora Haddad",
+      "to": "facilities-buying@calder-reese.primitive.email",
+      "subject": "Automatic reply: PO-4417 - 85 WB-Ergo 300 task chairs",
+      "at": "2026-11-02T15:31:00Z",
+      "in_reply_to": "m1",
+      "body": "I am out of the office through Friday, November 6 with limited access to email. I will respond when I return on Monday, November 9. For urgent orders please call our showroom at 617-555-0193 or email orders@westbrook-cf.example.\n\nNora Haddad\nWestbrook Contract Furniture"
+    },
+    {
+      "id": "m3",
+      "direction": "outbound",
+      "from": "facilities-buying@calder-reese.primitive.email",
+      "fromName": "Calder & Reese Facilities Buying Agent",
+      "to": "o.pratt@calder-reese.example",
+      "subject": "PO-4417 chairs - approval",
+      "at": "2026-11-02T15:40:00Z",
+      "in_reply_to": null,
+      "body": "Owen - need approval to $345/chair for PO-4417 (85 task chairs, 6th fl refresh). thanks"
+    },
+    {
+      "id": "m4",
+      "direction": "inbound",
+      "from": "o.pratt@calder-reese.example",
+      "fromName": "Owen Pratt",
+      "to": "facilities-buying@calder-reese.primitive.email",
+      "subject": "RE: PO-4417 chairs - approval",
+      "at": "2026-11-03T14:00:00Z",
+      "in_reply_to": "m3",
+      "body": "approved up to $345.00 per chair. charge to 6F-REFRESH / cost ctr 220.\n\nOwen\n\n -----Original Message-----\nFrom: \tCalder & Reese Facilities\nSent:\tMonday, November 02, 2026 10:40 AM\nTo:\tPratt, Owen\nSubject:\tPO-4417 chairs - approval\n\nOwen - need approval to $345/chair for PO-4417 (85 task chairs, 6th fl refresh). thanks"
+    },
+    {
+      "id": "m5",
+      "direction": "inbound",
+      "from": "n.haddad@westbrook-cf.example",
+      "fromName": "Nora Haddad",
+      "to": "facilities-buying@calder-reese.primitive.email",
+      "subject": "RE: PO-4417 - 85 WB-Ergo 300 task chairs",
+      "at": "2026-11-09T16:10:00Z",
+      "in_reply_to": "m1",
+      "body": "Hi - back today, sorry for the delay.\n\nPrice is $329.00 per chair for the 85 (list $412.00). Freight and install is a flat $640.00 line on the invoice. Net 30.\n\nLet me check with the warehouse on dates and get back to you.\n\nNora\n\n\n\nCalder Facilities/CRLLP@CRLLP\n11/02/2026 10:30 AM\nTo:\tNora Haddad/BOS/Westbrook@Westbrook\ncc:\t\nSubject:\tPO-4417 - 85 WB-Ergo 300 task chairs\n\nNora,\n\nWe're refreshing the 6th floor and need 85 WB-Ergo 300 task chairs, graphite mesh, adjustable arms (spec sheet rev C). Three questions before I can cut PO-4417:\n\n1. Unit price for 85?\n2. Can you deliver and install by Fri Dec 4?\n3. Is the 12-year warranty transferable if we relocate offices next year?\n\nThanks,\nCalder & Reese Facilities"
+    },
+    {
+      "id": "m6",
+      "direction": "inbound",
+      "from": "n.haddad@westbrook-cf.example",
+      "fromName": "Nora Haddad",
+      "to": "facilities-buying@calder-reese.primitive.email",
+      "subject": "RE: PO-4417 - 85 WB-Ergo 300 task chairs",
+      "at": "2026-11-10T19:05:00Z",
+      "in_reply_to": "m5",
+      "body": "Warehouse confirmed - all 85 delivered and installed Thu Dec 3, crew of 4 arriving 7:30 AM. You'll need a freight elevator reservation 7-11 AM that day.\n\nNora\n\n\n\nNora Haddad/BOS/Westbrook@Westbrook\n11/09/2026 11:10 AM\nTo:\tCalder Facilities/CRLLP@CRLLP\ncc:\t\nSubject:\tRE: PO-4417 - 85 WB-Ergo 300 task chairs\n\nHi - back today, sorry for the delay.\n\nPrice is $329.00 per chair for the 85 (list $412.00). Freight and install is a flat $640.00 line on the invoice. Net 30.\n\nLet me check with the warehouse on dates and get back to you.\n\nNora\n\n\n\nCalder Facilities/CRLLP@CRLLP\n11/02/2026 10:30 AM\nTo:\tNora Haddad/BOS/Westbrook@Westbrook\ncc:\t\nSubject:\tPO-4417 - 85 WB-Ergo 300 task chairs\n\nNora,\n\nWe're refreshing the 6th floor and need 85 WB-Ergo 300 task chairs, graphite mesh, adjustable arms (spec sheet rev C). Three questions before I can cut PO-4417:\n\n1. Unit price for 85?\n2. Can you deliver and install by Fri Dec 4?\n3. Is the 12-year warranty transferable if we relocate offices next year?\n\nThanks,\nCalder & Reese Facilities"
+    },
+    {
+      "id": "m7",
+      "direction": "outbound",
+      "from": "facilities-buying@calder-reese.primitive.email",
+      "fromName": "Calder & Reese Facilities Buying Agent",
+      "to": "n.haddad@westbrook-cf.example",
+      "subject": "RE: PO-4417 - 85 WB-Ergo 300 task chairs",
+      "at": "2026-11-10T19:30:00Z",
+      "in_reply_to": "m6",
+      "body": "Great, thanks Nora!\n\n -----Original Message-----\nFrom: \tHaddad, Nora\nSent:\tTuesday, November 10, 2026 2:05 PM\nTo:\tCalder & Reese Facilities\nSubject:\tRE: PO-4417 - 85 WB-Ergo 300 task chairs\n\nWarehouse confirmed - all 85 delivered and installed Thu Dec 3, crew of 4 arriving 7:30 AM. You'll need a freight elevator reservation 7-11 AM that day.\n\nNora\n\n\n\nNora Haddad/BOS/Westbrook@Westbrook\n11/09/2026 11:10 AM\nTo:\tCalder Facilities/CRLLP@CRLLP\ncc:\t\nSubject:\tRE: PO-4417 - 85 WB-Ergo 300 task chairs\n\nHi - back today, sorry for the delay.\n\nPrice is $329.00 per chair for the 85 (list $412.00). Freight and install is a flat $640.00 line on the invoice. Net 30.\n\nLet me check with the warehouse on dates and get back to you.\n\nNora\n\n\n\nCalder Facilities/CRLLP@CRLLP\n11/02/2026 10:30 AM\nTo:\tNora Haddad/BOS/Westbrook@Westbrook\ncc:\t\nSubject:\tPO-4417 - 85 WB-Ergo 300 task chairs\n\nNora,\n\nWe're refreshing the 6th floor and need 85 WB-Ergo 300 task chairs, graphite mesh, adjustable arms (spec sheet rev C). Three questions before I can cut PO-4417:\n\n1. Unit price for 85?\n2. Can you deliver and install by Fri Dec 4?\n3. Is the 12-year warranty transferable if we relocate offices next year?\n\nThanks,\nCalder & Reese Facilities"
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m5",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 329,
+          "stated_in": "m5",
+          "evidence": "Price is $329.00 per chair for the 85"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 85,
+          "stated_in": "m5",
+          "evidence": "Price is $329.00 per chair for the 85"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m5",
+          "evidence": "Net 30"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 345,
+          "stated_in": "m4",
+          "evidence": "approved up to $345.00 per chair"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Calder & Reese (us)",
+          "kind": "question",
+          "about": "unit price for 85",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m5"
+        },
+        {
+          "owed_by": "supplier",
+          "owed_to": "Calder & Reese (us)",
+          "kind": "question",
+          "about": "deliver and install by Fri Dec 4",
+          "status": "open",
+          "opened_in": "m1"
+        },
+        {
+          "owed_by": "supplier",
+          "owed_to": "Calder & Reese (us)",
+          "kind": "question",
+          "about": "is the 12-year warranty transferable",
+          "status": "open",
+          "opened_in": "m1"
+        },
+        {
+          "owed_by": "finance",
+          "owed_to": "Calder & Reese (us)",
+          "kind": "question",
+          "about": "approve $345/chair",
+          "status": "answered",
+          "opened_in": "m3",
+          "resolved_in": "m4"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "unknown",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "them"
+    },
+    {
+      "after": "m7",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 329,
+          "stated_in": "m5",
+          "evidence": "Price is $329.00 per chair for the 85"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 85,
+          "stated_in": "m5",
+          "evidence": "Price is $329.00 per chair for the 85"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m5",
+          "evidence": "Net 30"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 345,
+          "stated_in": "m4",
+          "evidence": "approved up to $345.00 per chair"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 85,
+              "date": "2026-12-03"
+            }
+          ],
+          "stated_in": "m6",
+          "evidence": "all 85 delivered and installed Thu Dec 3"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Calder & Reese (us)",
+          "kind": "question",
+          "about": "unit price for 85",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m5"
+        },
+        {
+          "owed_by": "supplier",
+          "owed_to": "Calder & Reese (us)",
+          "kind": "question",
+          "about": "deliver and install by Fri Dec 4",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m6"
+        },
+        {
+          "owed_by": "supplier",
+          "owed_to": "Calder & Reese (us)",
+          "kind": "question",
+          "about": "is the 12-year warranty transferable",
+          "status": "open",
+          "opened_in": "m1"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "supplier",
+        "must": [
+          "warrant"
+        ],
+        "must_not": [
+          "\\$345"
+        ]
+      }
+    }
+  ],
+  "notes": "m1 asks three numbered questions. m2 is an out-of-office auto-reply (in reply to m1) that answers nothing and contains only noise numbers (dates of absence, showroom phone). m5 answers the price only (list $412.00 and the flat $640.00 freight/install are not unit prices) and m6 answers the delivery; the warranty question (3) is never addressed, so it must stay open. m7 is our own \"thanks\" email that neither asks nor answers anything, and does not close the warranty question. Replies quote history in Lotus Notes style (Name/ORG@ORG line + date line). At the end the agent should chase the warranty answer (and may accept), without leaking the $345 ceiling."
+}

@@ -10,3 +10,6 @@ out
 # produced by `npm run record` and `npm run narrate`: large, and reproducible
 public/recording/
 public/voice/
+
+# produced by `npm run launch:score`: large, and reproducible
+public/launch/*.wav

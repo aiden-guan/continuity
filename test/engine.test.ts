@@ -7,6 +7,7 @@ import type { Extractor, Proposal } from '../src/extract/types.ts';
 import { heuristicExtractor } from '../src/extract/heuristic.ts';
 import { fromPrimitiveWebhook } from '../src/ingest/normalize.ts';
 import { resolveTask } from '../src/ingest/link.ts';
+import { policyDecide } from '../src/agent/policy.ts';
 import type { EventInput } from '../src/types.ts';
 
 const addr = defaultAddresses();
@@ -125,6 +126,22 @@ test('an alias named with its own prefix beats a bare number on an earlier task 
   assert.equal(await link('Re: delivery'), null);
 });
 
+test('a new thread from a known party links to the one task that names them, and only then', async () => {
+  const tasks = [
+    { id: 'task_a', alias: 'PO-1001', participants: ['buyer@home.example', 'rep@supplier.example'] },
+    { id: 'task_b', alias: 'PO-1002', participants: ['rep@supplier.example'] },
+  ];
+  const store = { taskForThread: async () => null, eventByPrimitiveEmailId: async () => null, eventByMessageId: async () => null, tasks: async () => tasks };
+  const link = (from: string, direction = 'inbound') =>
+    resolveTask(store, { from, direction, subject: 'Wren Hollow', body_text: 'Take the 805.', references: [] } as unknown as EventInput);
+  const buyer = await link('Buyer@Home.example');
+  assert.equal(buyer?.task_id, 'task_a');
+  assert.match(buyer!.reason, /participant only on this task/);
+  assert.equal(await link('rep@supplier.example'), null, 'a sender on two tasks stays unlinked');
+  assert.equal(await link('deals@bulk-electronics.example'), null, 'a stranger stays unlinked');
+  assert.equal(await link('buyer@home.example', 'outbound'), null, 'only inbound mail is routed by sender');
+});
+
 test('newer is not truer: a third party contradicting the supplier is contested, not superseding', async () => {
   const forwarder = 'ops@fastfreight.example';
   const task = procurementTask(addr);
@@ -183,6 +200,11 @@ test('a promise to send a document is not fulfilled by words alone', async () =>
   const afterWords = theCommitment(h);
   assert.equal(afterWords.status, 'open');
   assert.ok(afterWords.notes.some((n) => /no quote attached/.test(n)));
+  // "attached" with nothing attached is ours to answer: tell them it did not come through
+  const tell = h.context(undefined, { now: '2026-10-20T16:00:00Z' }).suggested_actions.find((a) => /MISSING ATTACHMENT/.test(a.action));
+  assert.equal(tell?.priority, 1);
+  assert.equal(tell?.to_address, addr.supplier);
+  assert.match(policyDecide(h.context(undefined, { now: '2026-10-20T16:00:00Z' })).messages.find((m) => m.to === addr.supplier)?.body ?? '', /no attachment came through/);
 
   // 2. A document named like the revision, but its contents are the quote we already had.
   await supplierReply('Oops, attached now.', '2026-10-20T15:05:00Z', [{ filename: 'Q-2291-rev2.pdf', content_type: 'application/pdf', bytes: quoteV1() }]);
@@ -214,6 +236,29 @@ test('a ceiling we quote in our own RFQ is not a budget approval', async () => {
   assert.equal(live[0].source_event_id, story.approval.event.id);
   const ours = h.claims('budget.max_unit_price').filter((c) => c.speaker === addr.self);
   assert.ok(ours.length >= 1 && ours.every((c) => c.status === 'proposed' && /not authoritative/.test(c.supersede_reason!)));
+});
+
+test('a promise of ours makes it our move only once it is overdue', async () => {
+  const promising: Extractor = {
+    name: 'fake-llm',
+    async extract(inp) {
+      const proposal: Proposal = await heuristicExtractor.extract(inp);
+      if (inp.event.direction === 'outbound') {
+        proposal.obligations.push({ kind: 'commitment', debtor: 'sender', text: 'Send the signed PO by Oct 30', topic_keys: [], expects_artifact: 'po', due: '2026-10-30', evidence: 'Signed PO to follow by Oct 30.', confidence: 0.9 });
+      }
+      return proposal;
+    },
+  };
+  const h = new Harness(procurementTask(addr), promising);
+  await h.out(addr.supplier, 'PO-4817', 'Thanks Dana. Signed PO to follow by Oct 30.', '2026-10-21T09:00:00Z');
+
+  const early = h.context(undefined, { now: '2026-10-22T09:00:00Z' });
+  assert.notEqual(early.next_actor, 'us', 'a promise not yet due leaves the ball with them');
+  assert.ok(early.suggested_actions.some((a) => a.kind === 'fulfil_our_commitment' && a.priority === 2));
+
+  const late = h.context(undefined, { now: '2026-11-02T09:00:00Z' });
+  assert.equal(late.next_actor, 'us');
+  assert.match(late.suggested_actions[0].action, /OVERDUE \(due 2026-10-30\)/);
 });
 
 test('unknown senders on a linked thread are recorded but cannot set terms', async () => {
@@ -283,4 +328,98 @@ test('our conditional promises ("pay on invoice") are tracked but not urgent', a
   const reminder = ctx.suggested_actions.find((x) => x.obligation_id === promise.id)!;
   assert.equal(reminder.priority, 3);
   assert.notEqual(ctx.next_actor, 'us');
+});
+
+test('a colleague re-sending the replaced quote "for your files" changes nothing', async () => {
+  const cs = 'cs@northwind.example';
+  const task = procurementTask(addr);
+  const group = task.participants.find((p) => p.address === addr.supplier)!.group;
+  task.participants.push({ address: cs, name: 'Northwind CS', role: 'counterparty', label: 'supplier CS', authority: ['price.', 'delivery.', 'order.', 'payment.', 'quote.'], group });
+  const h = new Harness(task);
+  const rfq = await h.out(addr.supplier, 'RFQ — PO-4817', 'Hi Dana, please quote 500 units.', '2026-10-19T09:00:00Z');
+  const pdf = (bytes: Buffer, filename: string) => [{ filename, content_type: 'application/pdf', bytes }];
+  await h.in({ from: addr.supplier, fromName: 'Dana', to: addr.self, subject: 'Re: RFQ — PO-4817', body: 'Quote attached.', at: '2026-10-19T10:00:00Z', threadKey: 's', inReplyTo: rfq.messageId, attachments: pdf(quoteV1(), 'Q-2291.pdf') });
+  await h.in({ from: addr.supplier, fromName: 'Dana', to: addr.self, subject: 'Re: RFQ — PO-4817', body: 'Revised quote attached.', at: '2026-10-20T10:00:00Z', threadKey: 's', inReplyTo: rfq.messageId, attachments: pdf(quoteV2(), 'Q-2291-rev2.pdf') });
+  const before = h.claims().filter((c) => c.status === 'active').map((c) => [c.speaker, c.key, JSON.stringify(c.value)].join(' ')).sort();
+
+  await h.in({ from: cs, fromName: 'Northwind CS', to: addr.self, subject: 'FW: RE: RFQ — PO-4817', body: 'Dana asked me to send the quote paperwork for your files.\n\n -----Original Message-----\nFrom: \tRuiz, Dana\nSent:\tMonday, October 19, 2026 10:00 AM\n\nQuote attached.', at: '2026-10-21T10:00:00Z', threadKey: 'cs', attachments: pdf(quoteV1(), 'Q-2291.pdf') });
+
+  const copy = h.artifacts().filter((x) => x.filename === 'Q-2291.pdf').at(-1)!;
+  assert.equal(copy.status, 'superseded');
+  const fromCs = h.claims().filter((c) => c.speaker === cs);
+  assert.ok(fromCs.length > 0 && fromCs.every((c) => c.status === 'superseded' && /copy of Q-2291\.pdf, which was already replaced/.test(c.supersede_reason!)));
+  assert.equal(h.claims().filter((c) => c.status === 'contested').length, 0, 'the old terms do not contest the current ones');
+  const after = h.claims().filter((c) => c.status === 'active').map((c) => [c.speaker, c.key, JSON.stringify(c.value)].join(' ')).sort();
+  assert.deepEqual(after, before);
+});
+
+test('a dispute we have raised waits for their answer', async () => {
+  const forwarder = 'ops@fastfreight.example';
+  const task = procurementTask(addr);
+  task.participants.push({ address: forwarder, name: 'FastFreight Ops', role: 'counterparty', label: 'freight forwarder', authority: ['delivery.'], group: 'northwind' });
+  const { h, story } = await afterCanonical(task);
+  await h.in({ from: forwarder, fromName: 'FastFreight', to: addr.self, subject: 'PO-4817 shipment', body: 'Our system shows 500 units arriving Thursday, Oct 22.', at: '2026-10-20T12:00:00Z', threadKey: 'ff' });
+  assert.ok(h.context().suggested_actions.some((a) => a.kind === 'resolve_contested' && a.priority === 1));
+
+  await h.out(addr.supplier, `Re: ${story.rfq.subject}`, 'Dana, your freight forwarder says all 500 arrive Oct 22, you said a split. Which is right?', '2026-10-20T13:00:00Z', { messageId: story.correction.messageId });
+  const ctx = h.context();
+  assert.ok(!ctx.suggested_actions.some((a) => a.kind === 'resolve_contested'));
+  assert.ok(ctx.suggested_actions.some((a) => a.kind === 'awaiting_response' && /settle delivery\.schedule/.test(a.action)));
+});
+
+test('a schedule that dates fewer units than required cannot pass the all-units deadline', async () => {
+  const h = new Harness(procurementTask(addr));
+  const rfq = await h.out(addr.supplier, 'RFQ — PO-4817', 'Hi Dana, can you deliver all 500 units by Friday, Oct 23, and what is your unit price?', '2026-10-19T09:00:00Z');
+  await h.in({ from: addr.supplier, fromName: 'Dana', to: addr.self, subject: 'Re: RFQ — PO-4817', body: 'We can deliver 400 units Friday (Oct 23) at $11.40 each.', at: '2026-10-19T10:00:00Z', threadKey: 's', inReplyTo: rfq.messageId });
+
+  assert.deepEqual(h.active('delivery.schedule')[0].value, [{ qty: 400, date: '2026-10-23' }]);
+  const check = (kind: string) => h.checks().find((c) => c.id.startsWith(`${kind}:`))!;
+  assert.equal(check('quantity').status, 'fail');
+  // every dated lot is on time, but 100 units have no date: not a pass (the briefing used to say "PASS All units")
+  assert.equal(check('delivery_deadline').status, 'unknown');
+  assert.match(check('delivery_deadline').detail, /400 of 500 units; no date yet for the other 100/);
+});
+
+test('a known party writing about another deal of the same kind, or a stranger naming our part number, stays unlinked', async () => {
+  const tasks = [{ id: 'task_po', alias: 'PO-8228', goal: 'Buy 300 R-12 relay assemblies (part AX-200) for PO-8228.', participants: ['rosa@brightline.example', 'owen@acme-buyer.example'] }];
+  const store = { taskForThread: async () => null, eventByPrimitiveEmailId: async () => null, eventByMessageId: async () => null, tasks: async () => tasks };
+  const link = (from: string, subject: string, body = '') => resolveTask(store, { from, direction: 'inbound', subject, body_text: body, references: [] } as unknown as EventInput).then((r) => r?.task_id ?? null);
+  assert.equal(await link('rosa@brightline.example', 'Quote for PO-8539', 'Pricing for your other order.'), null, 'another PO from the same supplier');
+  assert.equal(await link('owen@acme-buyer.example', 'Budget for PO-8539'), null);
+  assert.equal(await link('rosa@brightline.example', 'Quick question', 'Can we ship from the Reno warehouse?'), 'task_po', 'no other deal named: still routed by sender');
+  assert.equal(await link('rosa@brightline.example', 'PO-8539 and PO-8228', 'Both orders ship Friday.'), 'task_po', 'names ours too');
+  assert.equal(await link('deals@bulk-electronics.example', 'Flash sale: AX-200 boards from $24.56!'), null, 'a stranger naming our part number');
+  assert.equal(await link('billing@brightline.example', 'Statement', 'Covers AX-200 for your order.'), 'task_po', 'same supplier domain naming a reference the task names');
+});
+
+test('a request for a document counts documents, not the goods it is about', async () => {
+  const { documentCount } = await import('../src/engine/resolver.ts');
+  assert.equal(documentCount('Please quote 750 units by Fri Nov 20 and send a formal quote.', 'quote'), null, 'one quote, not 750');
+  assert.equal(documentCount("I'll send the revised quote for 500 units tomorrow", 'quote'), null);
+  assert.equal(documentCount('Please return signed pages for all 3 entities', 'document'), 3);
+  assert.equal(documentCount('send all 3 Acme Holdings signature pages', 'document'), 3);
+  assert.equal(documentCount('We will send both BEOs today', 'beo'), 2);
+
+  // end to end: the RFQ's request for a formal quote is fulfilled by the one quote that arrives
+  const h = new Harness(procurementTask(addr));
+  const rfq = await h.out(addr.supplier, 'RFQ — PO-4817', 'Hi Dana, please quote 750 units by Fri Oct 23 and send a formal quote.', '2026-10-19T09:00:00Z');
+  await h.in({ from: addr.supplier, fromName: 'Dana', to: addr.self, subject: 'Re: RFQ — PO-4817', body: 'Quote attached.', at: '2026-10-19T10:00:00Z', threadKey: 's', inReplyTo: rfq.messageId, attachments: [{ filename: 'Q-2291.pdf', content_type: 'application/pdf', bytes: quoteV1() }] });
+  const quoteRequest = h.obligations().find((o) => o.expects_artifact === 'quote');
+  assert.ok(quoteRequest, 'the request for a quote is tracked');
+  assert.equal(quoteRequest!.quantity, null);
+  assert.notEqual(quoteRequest!.status, 'partially_fulfilled');
+});
+
+test('a document is stale only while its value differs, and the stale line names today\'s value', async () => {
+  const h = new Harness(procurementTask(addr));
+  const rfq = await h.out(addr.supplier, 'RFQ — PO-4817', 'Hi Dana, please quote 500 units by Fri Oct 23.', '2026-10-19T09:00:00Z');
+  const say = (body: string, at: string) => h.in({ from: addr.supplier, fromName: 'Dana', to: addr.self, subject: 'Re: RFQ — PO-4817', body, at, threadKey: 's', inReplyTo: rfq.messageId });
+  await h.in({ from: addr.supplier, fromName: 'Dana', to: addr.self, subject: 'Re: RFQ — PO-4817', body: 'Quote attached.', at: '2026-10-19T10:00:00Z', threadKey: 's', inReplyTo: rfq.messageId, attachments: [{ filename: 'Q-2291.pdf', content_type: 'application/pdf', bytes: quoteV1() }] });
+  await say('Correction: the unit price is $11.48.', '2026-10-19T11:00:00Z');
+  await say('Correction: the unit price is $11.52.', '2026-10-19T12:00:00Z');
+  const stalePrice = () => h.context().documents[0].stale_terms.find((t: { term: string }) => t.term === 'price.unit');
+  assert.equal(stalePrice()?.now, '$11.52', 'today\'s value, not the first replacement');
+  await say('Correction: back to the quoted $11.40 per unit.', '2026-10-19T13:00:00Z');
+  assert.equal(h.active('price.unit')[0].value, 11.4);
+  assert.equal(stalePrice(), undefined, 'the quote says $11.40 again: not stale on price');
 });

@@ -1,0 +1,458 @@
+{
+  "id": "P10",
+  "domain": "procurement",
+  "title": "Seal kit order: shorthand pricing buried among deal/ticket/meter numbers, totals and a $2,450 credit",
+  "features": [
+    "distractor_numbers",
+    "terse_shorthand",
+    "quoted_history",
+    "answered_question",
+    "partial_update",
+    "acceptance"
+  ],
+  "task": {
+    "id": "task_p10",
+    "alias": "PO-6140",
+    "goal": "Buy 1,600 SK-112 pump shaft seal kits for PO-6140. All 1,600 must arrive by Fri Dec 4; unit price must not exceed $11.75.",
+    "item": "SK-112 mechanical shaft seal kits (1-1/8 in., carbon/SiC)",
+    "self_address": "mro-buying@anvil-water.primitive.email",
+    "domain": "procurement",
+    "participants": [
+      {
+        "address": "mro-buying@anvil-water.primitive.email",
+        "name": "Anvil MRO Buying Agent",
+        "role": "self",
+        "label": "Anvil (us)",
+        "authority": [
+          "decision."
+        ]
+      },
+      {
+        "address": "r.dorsey@brennan-pump.example",
+        "name": "Rick Dorsey (Brennan Pump Supply)",
+        "role": "counterparty",
+        "label": "supplier",
+        "authority": [
+          "price.",
+          "delivery.",
+          "order.",
+          "payment.",
+          "quote.",
+          "offer."
+        ],
+        "group": "brennan"
+      },
+      {
+        "address": "a.ruiz@anvil-water.example",
+        "name": "Alma Ruiz (Anvil Finance)",
+        "role": "internal",
+        "label": "finance",
+        "authority": [
+          "budget."
+        ]
+      }
+    ],
+    "requirements": [
+      {
+        "key": "requirement.quantity",
+        "value": 1600,
+        "display": "1,600 kits",
+        "hard": true
+      },
+      {
+        "key": "requirement.deliver_all_by",
+        "value": "2026-12-04",
+        "display": "Fri Dec 4",
+        "hard": true
+      },
+      {
+        "key": "requirement.max_unit_price",
+        "value": 11.75,
+        "display": "$11.75",
+        "hard": true
+      }
+    ]
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "outbound",
+      "from": "mro-buying@anvil-water.primitive.email",
+      "fromName": "Anvil MRO Buying Agent",
+      "to": "r.dorsey@brennan-pump.example",
+      "subject": "PO-6140 sk-112 seal kits x1600",
+      "at": "2026-11-09T13:45:00Z",
+      "in_reply_to": null,
+      "body": "Rick -\n\nneed 1,600 SK-112 seal kits on PO-6140 for the winter rebuild program (pump stations 4, 7, 12). all by fri 12/4. last buy PO-6012 was $12.05/ea. pls quote.\n\nAnvil MRO Buying\n(ref work order WO-88214)"
+    },
+    {
+      "id": "m2",
+      "direction": "inbound",
+      "from": "r.dorsey@brennan-pump.example",
+      "fromName": "Rick Dorsey",
+      "to": "mro-buying@anvil-water.primitive.email",
+      "subject": "RE: PO-6140 sk-112 seal kits x1600",
+      "at": "2026-11-10T15:20:00Z",
+      "in_reply_to": "m1",
+      "body": "1600 sk-112 @ 11.40/ea, total $18,240.00. 500 pcs fri 11/13, bal 1100 tue 11/24. net 30. deal #D-55190. any q's call 412-555-0168.\n\nrd\n\n -----Original Message-----\nFrom: \tAnvil MRO Buying\nSent:\tMonday, November 09, 2026 8:45 AM\nTo:\tDorsey, Rick\nSubject:\tPO-6140 sk-112 seal kits x1600\n\nRick -\n\nneed 1,600 SK-112 seal kits on PO-6140 for the winter rebuild program (pump stations 4, 7, 12). all by fri 12/4. last buy PO-6012 was $12.05/ea. pls quote.\n\nAnvil MRO Buying\n(ref work order WO-88214)"
+    },
+    {
+      "id": "m3",
+      "direction": "outbound",
+      "from": "mro-buying@anvil-water.primitive.email",
+      "fromName": "Anvil MRO Buying Agent",
+      "to": "a.ruiz@anvil-water.example",
+      "subject": "PO-6140 approval",
+      "at": "2026-11-10T15:40:00Z",
+      "in_reply_to": null,
+      "body": "Alma - ok to approve up to 11.75/ea on PO-6140? 1,600 SK-112 kits, quote total $18,240.00 (deal D-55190). thx"
+    },
+    {
+      "id": "m4",
+      "direction": "inbound",
+      "from": "r.dorsey@brennan-pump.example",
+      "fromName": "Rick Dorsey",
+      "to": "mro-buying@anvil-water.primitive.email",
+      "subject": "RE: PO-6140 sk-112 seal kits x1600",
+      "at": "2026-11-11T14:05:00Z",
+      "in_reply_to": "m2",
+      "body": "fyi - applying the $2,450 credit from RMA 7731 (bad impellers, stn 7 meter vault M-20417) against this inv, so inv will show $15,790.00 net. tix #CS-90412 if your AP asks.\n\nrd\n\n -----Original Message-----\nFrom: \tDorsey, Rick\nSent:\tTuesday, November 10, 2026 10:20 AM\nTo:\tAnvil MRO Buying\nSubject:\tRE: PO-6140 sk-112 seal kits x1600\n\n1600 sk-112 @ 11.40/ea, total $18,240.00. 500 pcs fri 11/13, bal 1100 tue 11/24. net 30. deal #D-55190. any q's call 412-555-0168.\n\nrd\n\n -----Original Message-----\nFrom: \tAnvil MRO Buying\nSent:\tMonday, November 09, 2026 8:45 AM\nTo:\tDorsey, Rick\nSubject:\tPO-6140 sk-112 seal kits x1600\n\nRick -\n\nneed 1,600 SK-112 seal kits on PO-6140 for the winter rebuild program (pump stations 4, 7, 12). all by fri 12/4. last buy PO-6012 was $12.05/ea. pls quote.\n\nAnvil MRO Buying\n(ref work order WO-88214)"
+    },
+    {
+      "id": "m5",
+      "direction": "inbound",
+      "from": "a.ruiz@anvil-water.example",
+      "fromName": "Alma Ruiz",
+      "to": "mro-buying@anvil-water.primitive.email",
+      "subject": "RE: PO-6140 approval",
+      "at": "2026-11-11T16:30:00Z",
+      "in_reply_to": "m3",
+      "body": "ok - approved to $11.75 per kit. wo 88214, cc 3301. the 2,450 credit is fine to net.\nAR\n\n -----Original Message-----\nFrom: \tAnvil MRO Buying\nSent:\tTuesday, November 10, 2026 10:40 AM\nTo:\tRuiz, Alma\nSubject:\tPO-6140 approval\n\nAlma - ok to approve up to 11.75/ea on PO-6140? 1,600 SK-112 kits, quote total $18,240.00 (deal D-55190). thx"
+    },
+    {
+      "id": "m6",
+      "direction": "outbound",
+      "from": "mro-buying@anvil-water.primitive.email",
+      "fromName": "Anvil MRO Buying Agent",
+      "to": "r.dorsey@brennan-pump.example",
+      "subject": "RE: PO-6140 sk-112 seal kits x1600",
+      "at": "2026-11-12T13:00:00Z",
+      "in_reply_to": "m4",
+      "body": "rick - can you do 11.25 if we take all 1600 in one drop tue 11/24? saves us a receiving day at stn 4.\n\n -----Original Message-----\nFrom: \tDorsey, Rick\nSent:\tWednesday, November 11, 2026 9:05 AM\nTo:\tAnvil MRO Buying\nSubject:\tRE: PO-6140 sk-112 seal kits x1600\n\nfyi - applying the $2,450 credit from RMA 7731 (bad impellers, stn 7 meter vault M-20417) against this inv, so inv will show $15,790.00 net. tix #CS-90412 if your AP asks.\n\nrd\n\n -----Original Message-----\nFrom: \tDorsey, Rick\nSent:\tTuesday, November 10, 2026 10:20 AM\nTo:\tAnvil MRO Buying\nSubject:\tRE: PO-6140 sk-112 seal kits x1600\n\n1600 sk-112 @ 11.40/ea, total $18,240.00. 500 pcs fri 11/13, bal 1100 tue 11/24. net 30. deal #D-55190. any q's call 412-555-0168.\n\nrd\n\n -----Original Message-----\nFrom: \tAnvil MRO Buying\nSent:\tMonday, November 09, 2026 8:45 AM\nTo:\tDorsey, Rick\nSubject:\tPO-6140 sk-112 seal kits x1600\n\nRick -\n\nneed 1,600 SK-112 seal kits on PO-6140 for the winter rebuild program (pump stations 4, 7, 12). all by fri 12/4. last buy PO-6012 was $12.05/ea. pls quote.\n\nAnvil MRO Buying\n(ref work order WO-88214)"
+    },
+    {
+      "id": "m7",
+      "direction": "inbound",
+      "from": "r.dorsey@brennan-pump.example",
+      "fromName": "Rick Dorsey",
+      "to": "mro-buying@anvil-water.primitive.email",
+      "subject": "RE: PO-6140 sk-112 seal kits x1600",
+      "at": "2026-11-12T18:45:00Z",
+      "in_reply_to": "m6",
+      "body": "11.25 no. can do 11.32/ea, all 1600 ship one drop tue 11/24 - that's how we'll run it. new total $18,112.00 before the 2,450 cr. lmk.\n\nrd\n\n -----Original Message-----\nFrom: \tAnvil MRO Buying\nSent:\tThursday, November 12, 2026 8:00 AM\nTo:\tDorsey, Rick\nSubject:\tRE: PO-6140 sk-112 seal kits x1600\n\nrick - can you do 11.25 if we take all 1600 in one drop tue 11/24? saves us a receiving day at stn 4.\n\n -----Original Message-----\nFrom: \tDorsey, Rick\nSent:\tWednesday, November 11, 2026 9:05 AM\nTo:\tAnvil MRO Buying\nSubject:\tRE: PO-6140 sk-112 seal kits x1600\n\nfyi - applying the $2,450 credit from RMA 7731 (bad impellers, stn 7 meter vault M-20417) against this inv, so inv will show $15,790.00 net. tix #CS-90412 if your AP asks.\n\nrd\n\n -----Original Message-----\nFrom: \tDorsey, Rick\nSent:\tTuesday, November 10, 2026 10:20 AM\nTo:\tAnvil MRO Buying\nSubject:\tRE: PO-6140 sk-112 seal kits x1600\n\n1600 sk-112 @ 11.40/ea, total $18,240.00. 500 pcs fri 11/13, bal 1100 tue 11/24. net 30. deal #D-55190. any q's call 412-555-0168.\n\nrd\n\n -----Original Message-----\nFrom: \tAnvil MRO Buying\nSent:\tMonday, November 09, 2026 8:45 AM\nTo:\tDorsey, Rick\nSubject:\tPO-6140 sk-112 seal kits x1600\n\nRick -\n\nneed 1,600 SK-112 seal kits on PO-6140 for the winter rebuild program (pump stations 4, 7, 12). all by fri 12/4. last buy PO-6012 was $12.05/ea. pls quote.\n\nAnvil MRO Buying\n(ref work order WO-88214)"
+    },
+    {
+      "id": "m8",
+      "direction": "outbound",
+      "from": "mro-buying@anvil-water.primitive.email",
+      "fromName": "Anvil MRO Buying Agent",
+      "to": "r.dorsey@brennan-pump.example",
+      "subject": "RE: PO-6140 sk-112 seal kits x1600",
+      "at": "2026-11-13T13:00:00Z",
+      "in_reply_to": "m7",
+      "body": "ok - go. 11.32/ea, 1600 tue 11/24. PO-6140 rev 1 is in our supplier portal.\n\n -----Original Message-----\nFrom: \tDorsey, Rick\nSent:\tThursday, November 12, 2026 1:45 PM\nTo:\tAnvil MRO Buying\nSubject:\tRE: PO-6140 sk-112 seal kits x1600\n\n11.25 no. can do 11.32/ea, all 1600 ship one drop tue 11/24 - that's how we'll run it. new total $18,112.00 before the 2,450 cr. lmk.\n\nrd\n\n -----Original Message-----\nFrom: \tAnvil MRO Buying\nSent:\tThursday, November 12, 2026 8:00 AM\nTo:\tDorsey, Rick\nSubject:\tRE: PO-6140 sk-112 seal kits x1600\n\nrick - can you do 11.25 if we take all 1600 in one drop tue 11/24? saves us a receiving day at stn 4.\n\n -----Original Message-----\nFrom: \tDorsey, Rick\nSent:\tWednesday, November 11, 2026 9:05 AM\nTo:\tAnvil MRO Buying\nSubject:\tRE: PO-6140 sk-112 seal kits x1600\n\nfyi - applying the $2,450 credit from RMA 7731 (bad impellers, stn 7 meter vault M-20417) against this inv, so inv will show $15,790.00 net. tix #CS-90412 if your AP asks.\n\nrd\n\n -----Original Message-----\nFrom: \tDorsey, Rick\nSent:\tTuesday, November 10, 2026 10:20 AM\nTo:\tAnvil MRO Buying\nSubject:\tRE: PO-6140 sk-112 seal kits x1600\n\n1600 sk-112 @ 11.40/ea, total $18,240.00. 500 pcs fri 11/13, bal 1100 tue 11/24. net 30. deal #D-55190. any q's call 412-555-0168.\n\nrd\n\n -----Original Message-----\nFrom: \tAnvil MRO Buying\nSent:\tMonday, November 09, 2026 8:45 AM\nTo:\tDorsey, Rick\nSubject:\tPO-6140 sk-112 seal kits x1600\n\nRick -\n\nneed 1,600 SK-112 seal kits on PO-6140 for the winter rebuild program (pump stations 4, 7, 12). all by fri 12/4. last buy PO-6012 was $12.05/ea. pls quote.\n\nAnvil MRO Buying\n(ref work order WO-88214)"
+    },
+    {
+      "id": "m9",
+      "direction": "inbound",
+      "from": "r.dorsey@brennan-pump.example",
+      "fromName": "Rick Dorsey",
+      "to": "mro-buying@anvil-water.primitive.email",
+      "subject": "RE: PO-6140 sk-112 seal kits x1600",
+      "at": "2026-11-13T15:10:00Z",
+      "in_reply_to": "m8",
+      "body": "booked. so# 30-44871, BOL to follow. rd"
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m5",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 11.4,
+          "stated_in": "m2",
+          "evidence": "1600 sk-112 @ 11.40/ea"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 1600,
+          "stated_in": "m2",
+          "evidence": "1600 sk-112 @ 11.40/ea"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 500,
+              "date": "2026-11-13"
+            },
+            {
+              "qty": 1100,
+              "date": "2026-11-24"
+            }
+          ],
+          "stated_in": "m2",
+          "evidence": "500 pcs fri 11/13, bal 1100 tue 11/24"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m2",
+          "evidence": "net 30"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 11.75,
+          "stated_in": "m5",
+          "evidence": "approved to $11.75 per kit"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Anvil (us)",
+          "kind": "request",
+          "about": "quote 1,600 SK-112",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "finance",
+          "owed_to": "Anvil (us)",
+          "kind": "question",
+          "about": "approve up to 11.75/ea",
+          "status": "answered",
+          "opened_in": "m3",
+          "resolved_in": "m5"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "supplier",
+        "must": [
+          "11\\.40",
+          "accept|confirm|go ahead|ok"
+        ],
+        "must_not": [
+          "\\$?2,?450(\\.00)?\\s*(/|per)\\s*(ea|unit|kit)",
+          "\\$?1[58],?[27][49]0(\\.00)?\\s*(/|per)\\s*(ea|unit|kit)",
+          "\\$?11\\.75"
+        ]
+      }
+    },
+    {
+      "after": "m7",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 11.32,
+          "stated_in": "m7",
+          "evidence": "can do 11.32/ea"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 1600,
+          "stated_in": "m7",
+          "evidence": "all 1600 ship one drop tue 11/24"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 1600,
+              "date": "2026-11-24"
+            }
+          ],
+          "stated_in": "m7",
+          "evidence": "all 1600 ship one drop tue 11/24"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m2",
+          "evidence": "net 30"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 11.75,
+          "stated_in": "m5",
+          "evidence": "approved to $11.75 per kit"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 11.4,
+          "stated_in": "m2",
+          "evidence": "1600 sk-112 @ 11.40/ea",
+          "replaced_in": "m7"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 500,
+              "date": "2026-11-13"
+            },
+            {
+              "qty": 1100,
+              "date": "2026-11-24"
+            }
+          ],
+          "stated_in": "m2",
+          "evidence": "500 pcs fri 11/13, bal 1100 tue 11/24",
+          "replaced_in": "m7"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Anvil (us)",
+          "kind": "question",
+          "about": "11.25 for one drop 11/24",
+          "status": "answered",
+          "opened_in": "m6",
+          "resolved_in": "m7"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "supplier",
+        "must": [
+          "11\\.32",
+          "accept|confirm|go ahead|ok"
+        ],
+        "must_not": [
+          "\\$?11\\.40",
+          "18,?112(\\.00)?\\s*(/|per)",
+          "\\$?11\\.75"
+        ]
+      }
+    },
+    {
+      "after": "m9",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 11.32,
+          "stated_in": "m7",
+          "evidence": "can do 11.32/ea"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 1600,
+          "stated_in": "m7",
+          "evidence": "all 1600 ship one drop tue 11/24"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 1600,
+              "date": "2026-11-24"
+            }
+          ],
+          "stated_in": "m7",
+          "evidence": "all 1600 ship one drop tue 11/24"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m2",
+          "evidence": "net 30"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 11.75,
+          "stated_in": "m5",
+          "evidence": "approved to $11.75 per kit"
+        },
+        {
+          "party": "Anvil (us)",
+          "term": "decision.order",
+          "value": "accepted",
+          "stated_in": "m8",
+          "evidence": "ok - go. 11.32/ea, 1600 tue 11/24"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 11.4,
+          "stated_in": "m2",
+          "evidence": "1600 sk-112 @ 11.40/ea",
+          "replaced_in": "m7"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 500,
+              "date": "2026-11-13"
+            },
+            {
+              "qty": 1100,
+              "date": "2026-11-24"
+            }
+          ],
+          "stated_in": "m2",
+          "evidence": "500 pcs fri 11/13, bal 1100 tue 11/24",
+          "replaced_in": "m7"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "none"
+    }
+  ],
+  "notes": "Every message is dense with numbers that are not terms: deal #D-55190, phone 412-555-0168, WO-88214, PO-6012 old price $12.05, RMA 7731, meter vault M-20417, ticket #CS-90412, cc 3301, so# 30-44871, totals $18,240.00 / $18,112.00, the $2,450 credit and $15,790.00 net invoice. None may become price.unit (which is 11.40/ea, then 11.32/ea). Shorthand: \"1600 sk-112 @ 11.40/ea\", \"500 pcs fri 11/13, bal 1100 tue 11/24\". m7 replaces the two-lot schedule with a single drop of all 1,600 on 11/24 (full resulting schedule). Our \"can you do 11.25\" is a question, not a term. m8 \"ok - go\" is our acceptance."
+}

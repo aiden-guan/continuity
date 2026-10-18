@@ -1,4 +1,6 @@
-import { Composition, staticFile, type CalculateMetadataFunction } from 'remotion';
+import { Composition, Folder, staticFile, type CalculateMetadataFunction } from 'remotion';
+import { Launch, SCENE_COMPONENTS } from './launch/Launch';
+import { FPS as LAUNCH_FPS, SCENES, TOTAL } from './launch/timing';
 import { Demo, type DemoProps } from './Demo';
 import { FPS, plan, type Timeline, type Voice } from './plan';
 
@@ -20,6 +22,21 @@ const calculateMetadata: CalculateMetadataFunction<DemoProps> = async ({ abortSi
 
 export const RemotionRoot: React.FC = () => {
   return (
+    <>
+    <Composition
+      id="Launch"
+      component={Launch}
+      width={1920}
+      height={1080}
+      fps={LAUNCH_FPS}
+      durationInFrames={TOTAL}
+      defaultProps={{ withAudio: false }}
+    />
+    <Folder name="Launch-Scenes">
+      {SCENES.filter((s) => SCENE_COMPONENTS[s.id]).map((s) => (
+        <Composition key={s.id} id={s.id} component={SCENE_COMPONENTS[s.id]} width={1920} height={1080} fps={LAUNCH_FPS} durationInFrames={s.dur} />
+      ))}
+    </Folder>
     <Composition
       id="Demo"
       component={Demo}
@@ -30,5 +47,6 @@ export const RemotionRoot: React.FC = () => {
       defaultProps={{ segments: [] }}
       calculateMetadata={calculateMetadata}
     />
+    </>
   );
 };
