@@ -2,7 +2,9 @@
 
 [← Project overview](../README.md) · [Architecture](../ARCHITECTURE.md) · [Benchmark methodology](../bench/README.md)
 
-Full demo, storage, configuration and API instructions. Live verification statements below describe the recorded 2026-10-17 runs; this presentation pass reran the offline eval and context-scaling experiment only.
+Full demo, storage, configuration and API instructions. Live provider verification statements below describe recorded
+runs. The 2026-10-18 presentation refresh checked the local simulated stage, offline tests and scenario evaluation;
+it did not rerun live mail, Claude benchmarks or hosted persistence.
 
 ## Live demo over real Primitive mail (one command)
 
@@ -19,18 +21,23 @@ card as "Sam (ops lead)" and waits for the closing email to arrive.
 ## Demo-day website (one command)
 
 ```bash
-npm run stage                  # http://localhost:4000 (story) · http://localhost:4000/live (engine console)
+npm run stage -- --sim --offline # local mail + policy agents, even with provider keys in .env
+# http://localhost:4000 (landing) · http://localhost:4000/live (interactive demo)
 ```
 
 `site/` needs no build. It holds two pages:
 
 - `index.html`, a scroll story that plays back real engine output for PO-4817 from `site/assets/snapshot.json`
   (regenerate it with `npm run site:snapshot`);
-- `live.html`, a live console that steps the local-simulation story one beat at a time (→ / Space) using real agent
-  processes. It streams their output and shows each email, transition, handoff briefing and state change as it happens.
+- `live.html`, a five-beat demo with the inbox beside a memory graph, using real agent processes. Press **→** to
+  advance, **A** to approve the final held order or **R** to reject it, **D** for the full engine console and **C**
+  to toggle captions. Agent emails appear in a compose window; graph nodes show terms, evidence and open obligations.
 
-`--offline` forces the rule-based extractor and the policy agents. If the console is served without the stage (from any
-static host), it plays back the recording instead.
+With `npm run stage` and no flags, real Primitive transport is selected when `PRIMITIVE_API_KEY` and all three
+`CONTINUITY_{SELF,SUPPLIER,FINANCE}_ADDRESS` values are present. Otherwise the stage uses simulated mail. Claude is used
+when configured; `--offline` forces the rule-based extractor and policy agents, and `--sim` forces simulated mail.
+The stage resets `data/stage.db` on startup or **Shift+R**; use `--db <file>` for a separate demo database.
+When served without the stage from a static host, the page replays the checked-in recording instead.
 
 ## Demo video (automated)
 
@@ -290,10 +297,13 @@ Instead of long-polling you can aim a Primitive webhook endpoint (or a Function)
 - Mail transport when there is no `PRIMITIVE_API_KEY`. The local mailbox hands out Message-IDs and thread ids and quotes
   earlier messages in replies the way a mail client would. The UI badge and every API response report `local-sim`.
 - The counterparties (supplier, finance). They are scripted fixtures that respond to whatever the agent actually sent.
-  **Our agent's emails are never scripted.**
+  Agents construct their replies from compiled state. The offline policy agent uses templates; its facts and actions
+  depend on the current state.
 
 **Claude path (verified 2026-10-17)**
-- When `ANTHROPIC_API_KEY` is set, Claude (`claude-haiku-5-5`) performs extraction and makes every agent decision. The original demo notes recorded an end-to-end check: the demo runs on Claude agents, and a fresh Claude Agent C kept a promise that Agent A had made
+- In the terminal demo, when `ANTHROPIC_API_KEY` is set, Claude (`claude-haiku-5-5`) performs extraction and agent decisions.
+  The browser stage always uses the policy agent for Agent A’s opening emails; B and C use Claude when configured.
+  The original demo notes recorded an end-to-end check: a fresh Claude Agent C kept a promise that Agent A had made
   to finance. The archived Claude API run used `claude-opus-5-5` and passed 41/41 state assertions at that revision; see the [recorded run](../eval/results/llm-api-2026-10-17/README.md). The current offline suite passes 42/42.
 - **Refusals.** Claude Haiku 5.5, the default model, has no server-side refusal fallback (another model re-running a
   declined request), so a refusal is handled here: extraction falls back to the rule extractor (the event is flagged

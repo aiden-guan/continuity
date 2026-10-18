@@ -68,14 +68,47 @@ Results are broken down by hard case and written to `results/latest-<extractor>.
 On the clean scripted scenarios in `eval/scenarios.ts` the same extractor passes every assertion; on
 realistic text it gets most checkpoints at least partly wrong. That gap is what this set exists to show.
 
-**Bug it found:** the rule-based extractor's quote detection (`QUOTE_HEADER` in `src/extract/heuristic.ts`)
-only recognises `-----Original Message-----` at the very start of a line. Real Outlook mail (and the Enron
+**Bug the original run found:** the rule-based extractor's quote detection (`QUOTE_HEADER` in `src/extract/heuristic.ts`)
+only recognised `-----Original Message-----` at the very start of a line. Real Outlook mail (and the Enron
 threads this set is modelled on) writes it with a leading space, and Lotus Notes headers
-(`Name/ORG@ORG` + date) and `From:` lines without an address are missed too — so the whole quoted history
-is read as new statements and old values come back. A one-line fix to those patterns (measured, not
-committed) raises current terms found to 64%, terms correct to 88% and replaced values no longer current to
-80%. The remaining misses are extraction patterns (units like "/roll", shorthand such as "bal 1100 tue
-11/24"), contested detection, and obligation tracking. The Claude extractor run needs an API key.
+(`Name/ORG@ORG` + date) and `From:` lines without an address were missed too — so the whole quoted history
+was read as new statements and old values came back. The original notes recorded a local fix raising current terms
+found to 64%, terms correct to 88% and replaced values no longer current to 80%. Quote-header recognition has since
+been updated and has regression coverage in `test/extract.test.ts`. The remaining misses in the original run were
+extraction patterns (units like "/roll", shorthand such as "bal 1100 tue
+11/24"), contested detection, and obligation tracking. The saved run predates subsequent quote-header fixes;
+it is not a measurement of the current rule extractor.
+
+## Recorded Claude extractor results
+
+[latest-llm.json](results/latest-llm.json) records `llm:claude-haiku-5-5` on the same 30 threads and 87 checkpoints.
+The file’s timestamp is `2026-10-18T02:18:11.379Z`. This is a saved extraction run, not a new provider evaluation
+performed during the repository presentation refresh. The handoff drafts below come from the **offline policy
+agent**, not a Claude agent.
+
+| Metric | Saved rule extractor | Saved Claude extractor |
+| :--- | ---: | ---: |
+| Checkpoint fully right | 7/87 · 8.0% | 23/87 · 26.4% |
+| Current terms found | 243/473 · 51.4% | 381/473 · 80.5% |
+| Current terms correct (precision) | 243/356 · 68.3% | 381/429 · 88.8% |
+| Replaced values no longer current | 56/90 · 62.2% | 88/90 · 97.8% |
+| Statements that must not apply, not applied | 17/24 · 70.8% | 15/24 · 62.5% |
+| Disputes flagged as contested | 0/8 · 0.0% | 0/8 · 0.0% |
+| Obligations found | 90/165 · 54.5% | 113/165 · 68.5% |
+| Status right, among found obligations | 53/90 · 58.9% | 96/113 · 85.0% |
+| Document status right | 64/80 · 80.0% | 77/80 · 96.3% |
+| Requirement checks right | 187/326 · 57.4% | 281/326 · 86.2% |
+| Who acts next right | 49/87 · 56.3% | 45/87 · 51.7% |
+| Policy-agent email passes rubric | 12/45 · 26.7% | 19/45 · 42.2% |
+
+Claude recovers more current terms and corrections. It still misses every contested-value label, applies some
+statements the gold says to withhold, and often picks the wrong next actor. Higher term recall alone does not make a
+checkpoint fully right. Sources: [rule-extractor run](results/latest-heuristic.json) and
+[Claude-extractor run](results/latest-llm.json), including per-thread misses and feature breakdowns.
+
+To measure the current revision, rerun the commands above. Offline runs overwrite `results/latest-heuristic.json`;
+LLM runs require a provider key, cache proposals by model and input, and overwrite `results/latest-llm.json`.
+Use `--refresh` to request new model extractions instead of reusing cached proposals.
 
 ## Honest limits
 
@@ -88,4 +121,5 @@ committed) raises current terms found to 64%, terms correct to 88% and replaced 
   not applied; only authorized speakers set terms; money details wait for a human). It tests that the
   engine applies its own rules to messy text, not whether those rules are right.
 - **The offline extractor is pattern-based** and tuned on clean scenario text; expect it to struggle here.
-  That gap is the point of the set. The Claude extractor run needs an API key.
+  The recorded Claude results also leave most full checkpoints incorrect. Neither saved run establishes
+  accuracy on human-written mail, and neither was refreshed for this documentation update.

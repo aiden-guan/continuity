@@ -2,9 +2,9 @@
 
 # Continuity
 
-**A communication-state engine that lets fresh AI agents pick up unfinished conversations.**
+**Turn long email threads into cited task state that any fresh agent can act on.**
 
-[Quick start](#quick-start) · [Results](#measured-results) · [Architecture](#how-it-works) · [Operations guide](docs/guide.md)
+[See the workflow](#see-it-work) · [Quick start](#quick-start) · [Results](#measured-results) · [Architecture](#how-it-works) · [Operations guide](docs/guide.md)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-161513?style=flat-square)](LICENSE)
 [![Node.js ≥22.18](https://img.shields.io/badge/Node.js-%E2%89%A522.18-161513?style=flat-square)](package.json)
@@ -17,8 +17,9 @@
 current terms, replaced terms, conflicting claims, outstanding commitments, answered questions and document revisions,
 with citations to the email or attachment behind each item.
 
-An agent can stop, lose its context or be replaced. The next agent makes one HTTP or MCP call to learn **where the task
-stands, who owes what, and who needs to act next**. Task state lives outside the agent process.
+As a thread grows, agents keep paying to read the same history and reconstruct which facts still hold. Continuity
+interprets mail as it arrives and maintains a shared, evidence-backed projection. The next agent makes one HTTP or MCP
+call to learn **where the task stands, who owes what, and who needs to act next**. State survives restarts and handoffs.
 
 **Open source under the [MIT license](LICENSE).** Run it locally, inspect the resolver, or build it into your own agent workflow.
 
@@ -29,6 +30,21 @@ stands, who owes what, and who needs to act next**. Task state lives outside the
 | Corrections replace the appropriate term. Conflicting speakers stay contested. Every claim keeps its sources. | Track what both sides owe, preserve already-answered questions, and surface overdue commitments. |
 | **Document currency** | **Decisions and approvals** |
 | Mark exactly which terms in a quote became stale; a revised attachment can fulfil an outstanding promise. | Compile the next agent’s briefing, block sends that violate hard requirements, and hold commitments for a human by default. |
+| **History and replay** | **A portfolio of conversations** |
+| Explain how a term changed, follow its evidence, or reconstruct state as of an earlier event. | Query deals with scoped, read-only SQL; find similar past deals; surface deadlines and stalled commitments with Signal. Claude-powered Ask adds a question-and-tool loop. |
+
+## See it work
+
+The browser demo puts the inbox beside Continuity’s memory graph. A correction changes the delivery schedule,
+marks the old quote stale and opens a revised-quote obligation, even after the agent process has been killed.
+
+| Mail arrives after Agent A dies | A commitment waits for a person |
+| :---: | :---: |
+| [![Actual local demo: the supplier corrects delivery while the graph keeps the price, budget, stale quote and revised-quote obligation.](assets/readme/inbox-state.jpg)](assets/readme/inbox-state.jpg) | [![Actual local demo: Agent C’s order confirmation is held for a human to approve or reject.](assets/readme/human-approval.jpg)](assets/readme/human-approval.jpg) |
+| The thread keeps changing with **zero agents running**. | A fresh agent can draft the order; the **human decides**. |
+
+Captured from the running engine with **simulated mail, rule extraction and policy agents**. These are product
+screenshots; the hero above is a conceptual diagram. Click either capture for full size.
 
 ## Quick start
 
@@ -38,12 +54,13 @@ Requires **Node.js 22.18 or newer**. There is no build step. A fresh clone needs
 git clone https://github.com/aiden-guan/continuity.git
 cd continuity
 npm ci
-npm run demo
+npm run stage -- --sim --offline
 ```
 
-Open [localhost:4100](http://localhost:4100). The demo uses SQLite and simulated mail; without an Anthropic key,
-extraction and agent decisions use offline rules. Existing `.env` settings can enable Claude. The console identifies
-the active transport.
+Open [localhost:4000/live](http://localhost:4000/live). Press **→** through the five beats, then **A** to approve or
+**R** to reject the held order. **D** opens the full engine console; **C** toggles presentation captions.
+The explicit flags select simulated mail and offline agents even when `.env` contains provider keys.
+The stage resets its demo database (`data/stage.db`) on startup and **Shift+R**.
 
 The story is an actual process handoff through the engine:
 
@@ -53,17 +70,49 @@ The story is an actual process handoff through the engine:
 4. **Fresh Agent B reads the briefing** and raises the delivery conflict and missing quote.
 5. **The supplier expedites and revises the quote.** Fresh Agent C drafts acceptance; the send waits for a human approver.
 
-For the browser presentation, run `npm run stage` and open [localhost:4000](http://localhost:4000).
-For real mail, Claude, Supabase, tokens and the full API, use the [operations guide](docs/guide.md).
+| Mode | Command | What runs |
+| :--- | :--- | :--- |
+| Browser demo, offline | `npm run stage -- --sim --offline` | Five interactive beats, SQLite, local mail simulation and fresh policy-agent processes. |
+| Terminal demo | `npm run demo` | The complete story and observability UI on port 4100. Simulated mail; Claude is enabled if configured. The script supplies the demo’s human approval. |
+| Browser demo, live mail | `npm run stage` | Uses real Primitive mail when its key and all three inbox addresses are configured; otherwise simulated mail. Claude is optional. |
+| Static website | Serve `site/` with any static HTTP server | Recorded snapshot replay; no running engine or provider calls. |
+
+For live inboxes, Claude, Supabase, scoped tokens and the full API, use the [operations guide](docs/guide.md).
 
 ## Measured results
 
-Two different kinds of evidence are shown here: a **recorded model benchmark** and a **locally rerun deterministic
-scaling experiment**. Both use synthetic scenarios. These are development measurements, not production accuracy.
+The repository now includes correctness, dependency-depth, history-growth and messy-email evaluations.
+All use **synthetic conversations**. Recorded model runs are distinct from local deterministic checks;
+none establishes production accuracy.
+
+| Question | Recorded result | Evidence |
+| :--- | :--- | :--- |
+| Can a fresh agent recover the right action and all critical facts? | **68.8% vs 49.2%** for Primitive alone, across 650 cases in five domains. | [Correctness findings](bench/FINDINGS.md) |
+| Does shared state help with interdependent changes and multiple threads? | **74.2% vs 41.7%** for Primitive alone and **42.9%** for full history, over 84 cases. Continuity was rerun on the final engine; baselines were reused. | [Value benchmark](bench/value/RESULTS.md) |
+| How well does the engine handle messy business email? | Claude extraction: **23/87 checkpoints fully right**, **381/473 current terms found**. Both extractors missed all eight contested-value labels. | [Saved realistic-email run](eval/realistic/results/latest-llm.json) |
+
+### Dependency depth and repeated wakes
+
+The [value benchmark](bench/value/README.md) varies dependency depth and thread fan-out while holding the actor model,
+prompt and scoring rules fixed. Its final report records **74.2% handoff success [67.5–80.6%]**, with ingestion included
+in the cost calculation. At one wake, compilation costs more; reuse is the intended benefit. Its cold-cache cost model
+breaks even at **2.7 wakes vs Primitive alone** and **7.5 vs full history** per correct decision. These estimates assume
+repeated wakes on unchanged state and the benchmark’s dated price table. Raw per-case value runs are not checked in;
+see the [report](bench/value/RESULTS.md) for engine revisions, baseline reuse and first-run results.
+
+### Messy email exposes the remaining gap
+
+The [realistic-email suite](eval/realistic/README.md) contains 30 procurement and real-estate threads with nested
+quotes, terse shorthand, corrections, stale forwards and disputed terms. Its saved Claude run finds **80.5%** of
+current terms with **88.8% precision**, but only **26.4%** of complete checkpoints are right. The policy agent’s draft
+passes **19/45** handoff rubrics; this is not a Claude-agent handoff test. The saved rule-extractor run gets **7/87**
+complete checkpoints right. These results make extraction, contested values and next-actor selection concrete areas
+for improvement. The threads imitate real email style; they are invented and written with the same model family as
+the LLM extractor. [Results, definitions and limitations](eval/realistic/README.md#recorded-claude-extractor-results).
 
 ### Cold-handoff success
 
-The recorded comparison asks whether the fresh agent takes the **correct next action and reports every critical
+The five-domain comparison asks whether the fresh agent takes the **correct next action and reports every critical
 fact correctly**. Both conditions use `claude-haiku-5-5`, the same instructions and the same 650 cases across five domains.
 Primitive alone reads the mailbox through up to six lookup calls; Continuity supplies the compiled briefing.
 
@@ -169,19 +218,23 @@ Read [ARCHITECTURE.md](ARCHITECTURE.md) for replay, idempotency, worker recovery
 
 ## Use it from an agent
 
-With a running server, retrieve a text briefing over HTTP:
+With the browser stage above running, retrieve a text briefing through its API proxy on port 4000.
+The standalone `npm run demo` and `npm start` server use port 4100 by default.
 
 ```bash
 curl -H "Authorization: Bearer $CONTINUITY_TOKEN" \
-  'http://localhost:4100/tasks/PO-4817/context?agent=agent-b&format=text'
+  'http://localhost:4000/tasks/PO-4817/context?agent=agent-b&format=text'
 ```
 
 The task alias works wherever a task ID is accepted. Hosted operation requires a scoped token.
 The stdio MCP server exposes context, open loops, term explanations, provenance, changes, guarded sending and cursors:
 
 ```bash
-node src/mcp.ts
+CONTINUITY_URL=http://localhost:4000 node --env-file-if-exists=.env src/mcp.ts
 ```
+
+Point `CONTINUITY_URL` at your server; without it, MCP defaults to port 4100. The optional env file supplies the
+scoped token for authenticated operation.
 
 See the [API and MCP reference](docs/guide.md#agent-facing-interface) and [configuration table](docs/guide.md#environment).
 
@@ -191,8 +244,10 @@ See the [API and MCP reference](docs/guide.md#agent-facing-interface) and [confi
 npm test                         # unit and integration tests; Supabase cases require configuration
 npm run typecheck                # TypeScript, no build output
 npm run eval                     # offline: 10 scenarios, 42 state assertions, 6 policy-agent handoffs
+node eval/realistic/validate.ts   # validate the 30 messy-email fixtures; no model calls
 node bench/run.ts validate       # validate 1,365 generated benchmark cases
 node bench/run.ts selftest       # calibrate the scorer without model calls
+node bench/value/run.ts validate # validate the dependency-depth benchmark
 npm run readme:assets -- --check # check generated graphics against their source data
 ```
 
@@ -212,17 +267,24 @@ src/server.ts      HTTP API, ingestion endpoints and observability console
 src/mcp.ts         Stdio MCP interface
 supabase/          Private database schema and local stack configuration
 test/, eval/       Tests, scenario evaluations and scaling measurements
-bench/             Five-domain comparison harness, findings and methodology
+bench/             Five-domain correctness benchmark and live-mail runner
+bench/value/       Dependency depth, repeated wakes, history and cost experiments
+eval/realistic/    Messy synthetic business email, gold checkpoints and saved results
 site/, video/      Browser presentation and automated demo-video tooling
 ```
 
-**Runtime:** TypeScript runs directly on Node. Primitive supplies mail; Claude is the optional language interpreter.
-Supabase Postgres is the authoritative hosted store; SQLite and memory are explicit offline modes.
+| Responsibility | Implementation |
+| :--- | :--- |
+| Runtime and interfaces | TypeScript directly on Node; HTTP API and stdio MCP. |
+| Mail and interpretation | Primitive SDK; optional Anthropic SDK for extraction, agent decisions, Ask and send checks. |
+| Persistence | Supabase Postgres for hosted operation; explicit SQLite and memory modes for local work. Optional private attachment storage. |
+| Presentation | HTML, CSS and browser modules in `site/`; the engine console in `ui/`; Remotion tooling in `video/`. |
 
 ## Status and limits
 
 Continuity is an experimental engine with a runnable local demo, API, MCP interface and benchmark harness.
-The rule extractor is an offline fallback tuned to scenario patterns. Real anonymized, independently labelled mail
+The rule extractor is an offline fallback tuned to scenario patterns. The realistic-email results above show that
+passing clean fixtures does not establish accuracy on messy mail. Real anonymized, independently labelled mail
 and human agreement in shadow mode are still needed before claiming production readiness. Guards, sender checks and
 approval scopes reduce risk; they do not establish a general guarantee against prompt injection.
 
