@@ -11,6 +11,7 @@
     "start": "node --env-file-if-exists=.env src/server.ts",
     "worker": "node --env-file-if-exists=.env src/worker.ts",
     "test": "node --test test/*.test.ts",
+    "test:report": "mkdir -p test-results && node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=spec --test-reporter-destination=test-results/spec.txt test/*.test.ts",
     "test:supabase": "node scripts/test-supabase.ts",
     "typecheck": "tsc --noEmit",
     "demo": "node --env-file-if-exists=.env scripts/demo.ts",

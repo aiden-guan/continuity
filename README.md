@@ -98,6 +98,7 @@ build step.
 ```bash
 npm install
 npm test                 # every test on the in-memory backend (Supabase cases are skipped unless configured)
+npm run test:report      # the same, also writing the spec report to test-results/spec.txt (read a flaky run afterwards)
 npm run eval             # 10 scenarios, 41 state assertions, plus offline handoff grading
 node eval/scale.ts       # briefing size against history length
 npm run demo             # full cold handoff, OFFLINE (SQLite file + simulated mail), UI on :4100
