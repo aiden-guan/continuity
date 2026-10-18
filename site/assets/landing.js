@@ -1,7 +1,8 @@
 // The story page. Its pieces:
 //   1. nav that turns solid after the fold, a scroll thread, active section links, reveal-on-scroll
 //      (headings rise word by word, section labels decode)
-//   2. hero: "Agents forget." as particles (particles.js) over a looping canvas of agents on one thread
+//   2. hero: "Agents forget." as particles (particles.js) over a looping canvas of agents on one thread,
+//      with a faint field of agents talking behind the copy (network.js)
 //   3. Fig. 2, the email → state sequence (mechanism.js)
 //   4. the replay: a pinned scene of thread → Continuity → agent, from real engine output (relay.js)
 //   5. results: a benchmark leaderboard; bars rise and values count up
@@ -10,7 +11,7 @@ import { dither } from './dither.js';
 import { setupTheme, token } from './theme.js';
 import { splitWords, scramble, countUp, setupNavThread, stillMotion } from './motion.js';
 import { setupHeroParticles } from './particles.js';
-import { setupSwarm } from './swarm.js';
+import { setupHeroNetwork } from './network.js';
 import { setupMechanism } from './mechanism.js';
 import { setupRelay } from './relay.js';
 
@@ -388,7 +389,7 @@ function setupWordmark() {
 
 setupTheme();
 setupChrome();
-setupSwarm(one('.ann'));
+setupHeroNetwork(one('.hero'));
 const heroThread = setupHeroThread(one('#hero-thread'));
 if (document.documentElement.classList.contains('px')) {
   setupHeroParticles({ hero: one('.hero'), line: one('.h-forget'), thread: one('#hero-thread'), nodes: HERO_EVENTS.map((e) => e.at), head: heroThread.head });
