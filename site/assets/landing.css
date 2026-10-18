@@ -456,7 +456,7 @@
 /* top: the deal, a thread of beats with the agents' shifts above it, the counter */
 .rl-top {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
   gap: 28px;
   font: 500 11px/1 var(--mono);
