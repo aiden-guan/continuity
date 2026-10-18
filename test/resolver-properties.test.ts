@@ -5,8 +5,12 @@
 // (src/engine/resolver.ts) behind the real engine/backend pipeline. Sequences come from a tiny seeded
 // PRNG (mulberry32), so every failure names a seed that reproduces it exactly.
 //
+// Every inbound event carries a passing sender-auth verdict (authority needs an authenticated sender; that gate
+// has its own tests). Late evidence arrives as a forward, the one kind of message the resolver places by its
+// Date header; a few back-dated non-forwards check that those apply in arrival order instead.
+//
 // Parties (the procurement task plus a forwarder in the supplier's group):
-//   self       procurement agent          authority: decision.            (resolver: kind === 'decision')
+//   self       procurement agent          authority: decision.            (resolver: decisions, except terms an internal party holds)
 //   supplier   counterparty, group nw     authority: price. delivery. order. payment. quote.
 //   finance    internal                   authority: budget.
 //   forwarder  counterparty, group nw     authority: delivery.
@@ -132,14 +136,17 @@ interface Step { input: EventInput; script: ScriptedProposal; redelivery: boolea
 const BASE = Date.parse('2026-10-19T09:00:00Z');
 const isoAt = (ms: number) => new Date(ms).toISOString();
 
-function eventInput(i: number, from: string, receivedMs: number, occurredMs: number, attachments: EventInput['attachments'] = []): EventInput {
+function eventInput(i: number, from: string, receivedMs: number, occurredMs: number, attachments: EventInput['attachments'] = [], forward = false): EventInput {
   const to = from === addr.self ? [addr.supplier] : [addr.self];
+  const outbound = from === addr.self;
   return {
     source: 'local-sim', dedupe_key: `fuzz:${i}`, thread_id: null, message_id: `<fuzz-${i}@sim>`, in_reply_to: null, references: [],
-    direction: from === addr.self ? 'outbound' : 'inbound', from, to, cc: [], subject: `PO-4817 message ${i}`,
+    direction: outbound ? 'outbound' : 'inbound', from, to, cc: [], subject: `${forward ? 'Fwd: ' : ''}PO-4817 message ${i}`,
     body_text: `message ${i} from ${from}`, occurred_at: isoAt(occurredMs), received_at: isoAt(receivedMs), attachments, task_id: TASK.id,
+    auth_verdict: outbound ? null : 'pass',
   };
 }
+const isForward = (input: EventInput) => input.subject.startsWith('Fwd: ');
 
 function genClaim(rng: Rng, from: string, attachment: string | null, opts: { selfBudget: boolean }): ProposedClaim {
   let key: string;
@@ -192,8 +199,10 @@ function genSequence(seed: number, opts: { selfBudget?: boolean } = {}): Step[] 
       continue;
     }
     const from = rng.pick(SENDERS);
-    // 30% late evidence: written hours before messages that were already processed
-    const lagMs = rng.chance(0.3) ? (1 + rng.int(48)) * 3_600_000 : rng.int(10) * 60_000;
+    // 30% late evidence: written hours before messages that were already processed, mostly as forwards
+    const late = rng.chance(0.3);
+    const lagMs = late ? (1 + rng.int(48)) * 3_600_000 : rng.int(10) * 60_000;
+    const forward = late && rng.chance(0.8);
     let attachments: EventInput['attachments'] = [];
     const artifacts: ProposedArtifact[] = [];
     let attachment: string | null = null;
@@ -204,7 +213,7 @@ function genSequence(seed: number, opts: { selfBudget?: boolean } = {}): Step[] 
       attachments = [{ filename: attachment, content_type: 'application/pdf', size_bytes: 1000 + i, sha256: sha, part_index: 0, text: `Quote Q-2291${revised ? ' revised' : ''}` }];
       artifacts.push({ filename: attachment, kind: 'quote', version_label: revised ? `rev ${i}` : null });
     }
-    const input = eventInput(i, from, receivedMs, receivedMs - lagMs, attachments);
+    const input = eventInput(i, from, receivedMs, receivedMs - lagMs, attachments, forward);
     const claims = Array.from({ length: rng.int(4) }, () => genClaim(rng, from, attachment, { selfBudget: !!opts.selfBudget }));
     const obligations = rng.chance(0.3) ? [genObligation(rng)] : [];
     const resolve = rng.chance(0.2)
@@ -315,12 +324,12 @@ const live = (c: Pick<Claim, 'status'>) => c.status === 'active' || c.status ===
 const uncertain = (pc: ProposedClaim) => pc.hedged || pc.confidence < MIN_CONFIDENCE;
 const claimMap = (s: Snap) => new Map(s.claims.map((c) => [c.id, c]));
 
-/** A hand-written sequence: [from, occurred_at, claims] per event, received in the order given. */
-function script(events: [string, string, Partial<ProposedClaim>[]][]): Step[] {
-  return events.map(([from, occurred, claims], i) => {
+/** A hand-written sequence: [from, occurred_at, claims, forward?] per event, received in the order given. */
+function script(events: [string, string, Partial<ProposedClaim>[], 'fwd'?][]): Step[] {
+  return events.map(([from, occurred, claims, fwd], i) => {
     const receivedMs = BASE + (i + 1) * 30 * 60_000;
     return {
-      input: eventInput(i + 1, from, receivedMs, Date.parse(occurred)),
+      input: eventInput(i + 1, from, receivedMs, Date.parse(occurred), [], fwd === 'fwd'),
       redelivery: false,
       script: {
         claims: claims.map((c) => ({ kind: 'offer', mode: 'assert', evidence: `${c.key}`, confidence: 1, hedged: false, from_attachment: null, ...c }) as ProposedClaim),
@@ -345,12 +354,10 @@ test('P1 replay: rebuilding from events + saved proposals reproduces the live pr
   }, 150);
 });
 
-// FINDING: the resolver mutates the Proposal it is handed (resolver.ts §2: `pc.confidence = Math.min(pc.confidence, 0.4)`
-// for an unreconciled partial schedule update). MemoryStore.saveExtraction keeps that same object, so the
-// append-only `extractions` row no longer records what the extractor said (0.4 instead of e.g. 0.95). Replay
-// still matches (it re-reads the mutated value), but the stored interpretation is not the extractor's output.
+// The append-only `extractions` row is the extractor's output. The resolver lowers the confidence of an unreconciled
+// partial schedule update on its own copy, never on the saved proposal (once it did, and the row recorded 0.4, not 0.95).
 // Minimal repro: supplier sends delivery.schedule partial=true, confidence 0.95, with no prior schedule.
-test('P1b saved extractions are exactly what the extractor returned', { todo: 'FINDING: resolver mutates the saved proposal (partial-update confidence clamp)' }, async () => {
+test('P1b saved extractions are exactly what the extractor returned', async () => {
   const minimal = script([[addr.supplier, '2026-10-19T09:10:00Z', [{ key: 'delivery.schedule', value: [{ qty: 200, date: '2026-10-30' }], partial: true, confidence: 0.95 }]]]);
   const repro = await run(minimal);
   assert.deepEqual(repro.h.store.extractionsFor('ev_1').at(-1)!.proposal, repro.extractor.returned.get('fuzz:1'), 'minimal repro: saved confidence altered');
@@ -375,8 +382,9 @@ test('P2 uncertain (hedged or confidence < 0.6) claims are never active and neve
       // a claim born uncertain is proposed (tentative) and stays so forever
       for (const c of created) if (c.confidence < MIN_CONFIDENCE) assert.equal(c.status, 'proposed', `${c.id} low confidence but ${c.status}`);
       for (const pc of o.step.script.claims.filter(uncertain)) {
-        const made = created.find((c) => c.key === pc.key && c.evidence === pc.evidence && c.confidence === pc.confidence);
-        if (made) assert.equal(made.status, 'proposed', `uncertain ${pc.key} landed as ${made.status}`);
+        // a certain twin in the same message (same key, value, confidence) matches too, so look for the proposed row among them
+        const made = created.filter((c) => c.key === pc.key && c.evidence === pc.evidence && c.confidence === pc.confidence);
+        if (made.length) assert.ok(made.some((c) => c.status === 'proposed'), `uncertain ${pc.key} landed as ${made.map((c) => c.status)}`);
       }
       // a message whose every claim is uncertain changes no existing claim
       if (o.step.script.claims.every(uncertain)) {
@@ -429,13 +437,12 @@ test('P3 claims from senders without authority for the term (or unknown senders)
   });
 });
 
-// FINDING: the self party's authority is `['decision.']`, but the resolver grants self authority by claim *kind*
-// (`whoParty.role === 'self' → authoritative = pc.kind === 'decision'`), for any key. So our own outbound mail
-// can set `budget.max_unit_price` as an active claim, and `budget_approval` then passes with no finance approval.
+// Self binds by decision, but never on a term another participant decides: our own outbound mail cannot approve
+// its own budget (once a self 'decision' on budget.max_unit_price went active and budget_approval passed).
 // Minimal repro: one outbound event from self with claim
 //   { key: 'budget.max_unit_price', value: 12, kind: 'decision', mode: 'assert', confidence: 1, hedged: false }
-// → claim status 'active', check budget_approval = 'pass'.
-test('P3b self cannot set terms outside its decision. prefix (e.g. approve its own budget)', { todo: 'FINDING: self authority is by kind, not prefix — self-approved budget passes budget_approval' }, async () => {
+// → claim stays 'proposed', budget_approval stays 'unknown'.
+test('P3b self cannot set terms outside its decision. prefix (e.g. approve its own budget)', async () => {
   const repro = await run(script([[addr.self, '2026-10-19T09:10:00Z', [{ key: 'budget.max_unit_price', value: 12, kind: 'decision' }]]]));
   assert.equal(repro.h.checks().find((c) => c.id === 'budget_approval')?.status, 'unknown', 'minimal repro: self approved its own budget');
   assert.equal(repro.h.claims('budget.max_unit_price')[0].status, 'proposed', 'minimal repro: self budget claim applied');
@@ -513,12 +520,11 @@ test('P5 a different speaker never supersedes or retracts another speaker\'s cla
   });
 });
 
-// FINDING: a contest is not sticky. Supplier says schedule A, the forwarder (same group) says B → both contested.
-// If the supplier then revises to C, its contested A is superseded and C becomes *active* even though the
-// forwarder's B (≠ C) is still contested. The checks then run on C as if no disagreement existed. Minimal repro:
+// A contest is sticky: revising one side does not settle it while a peer in the same group still says something
+// else (once the revision went active and the checks ran on it as if no disagreement existed). Minimal repro:
 //   ev1 supplier delivery.schedule = 500@10-23 · ev2 forwarder delivery.schedule = 500@10-26 · ev3 supplier = 300@10-23+200@10-28
-//   → ev3's claim 'active', forwarder's claim 'contested'.
-test('P5b no active claim coexists with a live, disagreeing claim from a same-group peer', { todo: 'FINDING: a speaker revising a contested term re-activates it while the peer still disagrees' }, async () => {
+//   → ev3's claim 'contested', as is the forwarder's.
+test('P5b no active claim coexists with a live, disagreeing claim from a same-group peer', async () => {
   const repro = await run(script([
     [addr.supplier, '2026-10-19T09:10:00Z', [{ key: 'delivery.schedule', value: [{ qty: 500, date: '2026-10-23' }] }]],
     [FORWARDER, '2026-10-19T09:40:00Z', [{ key: 'delivery.schedule', value: [{ qty: 500, date: '2026-10-26' }] }]],
@@ -540,11 +546,17 @@ test('P5b no active claim coexists with a live, disagreeing claim from a same-gr
 
 // ------------------------------------------------------------------ 6. late evidence
 
-test('P6 evidence older than the current claim never supersedes it', async () => {
+test('P6 a forward older than the current claim never supersedes it; a back-dated non-forward applies in arrival order', async () => {
   await forAll('P6 late evidence', 6, async (seed) => {
     const { observed } = await run(genSequence(seed), { observe: true });
     for (const o of observed) {
       if (o.duplicate) continue;
+      if (!isForward(o.step.input)) {
+        // the Date header of a non-forward is the sender's claim: nothing it says is set aside as stale
+        const stale = o.after.transitions.filter((t) => t.event_id === o.eventId && t.type === 'stale_evidence');
+        assert.equal(stale.length, 0, `non-forward ${o.eventId} treated as late evidence`);
+        continue;
+      }
       const sender = o.step.input.from.toLowerCase();
       const at = o.step.input.occurred_at;
       const occurred = new Map(o.after.events.map((e) => [e[0] as string, e[3] as string]));
@@ -556,7 +568,7 @@ test('P6 evidence older than the current claim never supersedes it', async () =>
         const prevAt = occurred.get(prev.source_event_id)!;
         assert.ok(prevAt <= at, `${o.eventId} (${at}) superseded newer ${prev.id} (${prevAt})`);
       }
-      // a late claim is stored already superseded, pointing at the claim that stays current
+      // a late forward's claim is stored already superseded, pointing at the claim that stays current
       for (const c of o.after.claims.filter((x) => x.source_event_id === o.eventId && x.status !== 'proposed')) {
         const newerOwn = o.before.claims.find((x) => live(x) && x.speaker === sender && x.key === c.key && occurred.get(x.source_event_id)! > at);
         if (!newerOwn || JSON.stringify(newerOwn.value) === JSON.stringify(c.value) || c.supersede_reason?.startsWith('retracted')) continue;
@@ -569,18 +581,29 @@ test('P6 evidence older than the current claim never supersedes it', async () =>
   });
 });
 
-// FINDING: the late-evidence rule compares only against the speaker's *live* claim. Once the speaker retracts a
-// term (or withdraws its offer), there is no live claim to compare with, so an older message that arrives late
-// re-activates the retracted term; a late offer even reinstates a withdrawn offer (offer_reinstated). Minimal repro:
+// A late forward is compared with the speaker's retractions and withdrawals too, not only its live claim: older
+// evidence forwarded after a retraction stays history (once it re-activated the retracted term). The reverse
+// holds as well: a forwarded retraction or withdrawal does not reach over a value given after it. Minimal repro:
 //   ev1 supplier price.unit=11.4 (occurred 10:00) · ev2 supplier retracts price.unit (occurred 11:00)
-//   · ev3 supplier price.unit=11.2 (occurred 09:00, received last) → ev3's claim is 'active'.
-test('P6b late evidence cannot undo a newer retraction or withdrawal', { todo: 'FINDING: late evidence resurrects a retracted term / withdrawn offer' }, async () => {
+//   · ev3 forward of supplier price.unit=11.2 (occurred 09:00, received last) → nothing active on price.unit.
+test('P6b late evidence cannot undo a newer retraction or withdrawal', async () => {
   const repro = await run(script([
     [addr.supplier, '2026-10-19T10:00:00Z', [{ key: 'price.unit', value: 11.4 }]],
     [addr.supplier, '2026-10-19T11:00:00Z', [{ key: 'price.unit', value: 11.4, mode: 'retraction' }]],
-    [addr.supplier, '2026-10-19T09:00:00Z', [{ key: 'price.unit', value: 11.2 }]],
+    [addr.supplier, '2026-10-19T09:00:00Z', [{ key: 'price.unit', value: 11.2 }], 'fwd'],
   ]));
   assert.equal(repro.h.active('price.unit').length, 0, 'minimal repro: late price revived a retracted term');
+  const lateRetraction = await run(script([
+    [addr.supplier, '2026-10-19T11:00:00Z', [{ key: 'price.unit', value: 11.4 }]],
+    [addr.supplier, '2026-10-19T10:00:00Z', [{ key: 'price.unit', value: 11.2, mode: 'retraction' }, { key: 'price.unit', value: 11.2 }], 'fwd'],
+  ]));
+  assert.deepEqual(lateRetraction.h.active('price.unit').map((c) => c.value), [11.4], 'late retraction reached over a newer price');
+  const lateWithdrawal = await run(script([
+    [addr.supplier, '2026-10-19T11:00:00Z', [{ key: 'price.unit', value: 11.4 }]],
+    [addr.supplier, '2026-10-19T10:00:00Z', [{ key: 'offer.status', value: 'withdrawn' }], 'fwd'],
+  ]));
+  assert.deepEqual(lateWithdrawal.h.active('price.unit').map((c) => c.value), [11.4], 'late withdrawal retracted a newer offer');
+  assert.equal(lateWithdrawal.h.active('offer.status').length, 0, 'late withdrawal undid a newer offer');
   await forAll('P6b late vs retraction', 66, async (seed) => {
     const { observed } = await run(genSequence(seed), { observe: true });
     const endedAt = new Map<string, string>(); // speaker+key → occurred_at of its newest retraction/withdrawal
@@ -589,12 +612,13 @@ test('P6b late evidence cannot undo a newer retraction or withdrawal', { todo: '
       const sender = o.step.input.from.toLowerCase();
       const at = o.step.input.occurred_at;
       for (const c of o.after.claims.filter((x) => x.source_event_id === o.eventId)) {
-        if (!live(c) || LIFECYCLE.has(c.key)) continue;
+        if (!live(c) || LIFECYCLE.has(c.key) || !isForward(o.step.input)) continue; // a non-forward applies in arrival order
         const ended = endedAt.get(`${sender}|${c.key}`) ?? endedAt.get(`${sender}|*`);
         if (ended) assert.ok(at >= ended, `late ${c.id} (${at}) revived ${c.key} retracted at ${ended}`);
       }
       for (const pc of o.step.script.claims) {
-        if (uncertain(pc) || !hasPrefixAuthority(sender, pc.key) || party(sender)?.role === 'self') continue;
+        // a partial update with nothing to merge into is held as tentative, so it ends nothing
+        if (uncertain(pc) || pc.partial || !hasPrefixAuthority(sender, pc.key) || party(sender)?.role === 'self') continue;
         const k = LIFECYCLE.has(pc.key) ? `${sender}|*` : pc.mode === 'retraction' ? `${sender}|${pc.key}` : null;
         if (k && at > (endedAt.get(k) ?? '')) endedAt.set(k, at);
       }
@@ -602,17 +626,25 @@ test('P6b late evidence cannot undo a newer retraction or withdrawal', { todo: '
   }, 100);
 });
 
-// FINDING (same root cause as P6b, stronger effect): a late-arriving older offer from a supplier that has since
-// withdrawn reinstates the offer — the withdrawal is marked superseded (with superseded_by = null) and the stale
-// price becomes active, so price_budget passes again on terms the supplier withdrew.
-test('P6c a late older offer does not reinstate a newer withdrawal', { todo: 'FINDING: late offer reinstates a withdrawn offer' }, async () => {
+// A forwarded older offer from a supplier that has since withdrawn does not reinstate the offer (once the
+// withdrawal was marked superseded and the stale price went active, so price_budget passed on withdrawn terms).
+test('P6c a late older offer does not reinstate a newer withdrawal', async () => {
   const repro = await run(script([
+    [addr.supplier, '2026-10-19T10:00:00Z', [{ key: 'price.unit', value: 11.4 }]],
+    [addr.supplier, '2026-10-19T11:00:00Z', [{ key: 'offer.status', value: 'withdrawn' }]],
+    [addr.supplier, '2026-10-19T09:00:00Z', [{ key: 'price.unit', value: 11.2 }], 'fwd'],
+  ]));
+  assert.equal(repro.h.active('offer.status').length, 1, 'minimal repro: withdrawal undone by late evidence');
+  assert.equal(repro.h.active('price.unit').length, 0, 'minimal repro: withdrawn price revived');
+  // the same offer sent directly (not forwarded) with a skewed Date header is a new offer, applied in arrival order
+  const skewed = await run(script([
     [addr.supplier, '2026-10-19T10:00:00Z', [{ key: 'price.unit', value: 11.4 }]],
     [addr.supplier, '2026-10-19T11:00:00Z', [{ key: 'offer.status', value: 'withdrawn' }]],
     [addr.supplier, '2026-10-19T09:00:00Z', [{ key: 'price.unit', value: 11.2 }]],
   ]));
-  assert.equal(repro.h.active('offer.status').length, 1, 'minimal repro: withdrawal undone by late evidence');
-  assert.equal(repro.h.active('price.unit').length, 0, 'minimal repro: withdrawn price revived');
+  assert.equal(skewed.h.active('offer.status').length, 0, 'a direct new offer reinstates');
+  assert.deepEqual(skewed.h.active('price.unit').map((c) => c.value), [11.2]);
+  assert.ok(skewed.h.store.flagsForTask(skewed.h.task.id).some((f) => f.event_id === 'ev_3' && f.kind === 'date_skew'), 'skewed Date header flagged');
 });
 
 // ------------------------------------------------------------------ 7. structural invariants of claims
