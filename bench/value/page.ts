@@ -287,8 +287,8 @@ function lineChart(svg, o) {
   }
   // end labels: keep at least 15px apart, with a leader line when nudged
   ends.sort((a, b) => a.y - b.y);
-  for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].ly < 15) ends[i].ly = ends[i - 1].ly + 15; else ends[i].ly = ends[i].y;
-  if (ends[0]) ends[0].ly = ends[0].ly ?? ends[0].y;
+  if (ends[0]) ends[0].ly = ends[0].y;
+  for (let i = 1; i < ends.length; i++) ends[i].ly = Math.max(ends[i].y, ends[i - 1].ly + 15);
   for (const e of ends) {
     if (Math.abs(e.ly - e.y) > 2) el('line', { x1: e.x + 6, x2: e.x + 14, y1: e.y, y2: e.ly, stroke: 'var(--faint)', 'stroke-width': 1 }, svg);
     el('text', { x: e.x + 16, y: e.ly + 4, class: 'lab' + (SER[e.key].sig ? ' sig' : '') }, svg).textContent = e.text;
@@ -305,10 +305,10 @@ function table(id, head, rows, sigRow) {
 document.getElementById('tiles').innerHTML = (N.tiles || []).map((t) => '<div class="tile"><div class="v' + (t.sig ? ' sig' : '') + '">' + t.value + '</div><div class="l">' + t.label + '</div><div class="s">' + (t.sub || '') + '</div></div>').join('');
 
 // ---------------- Figure 1 / 1b
-function famChart(fam, svgId, legId, tblId, xlabel) {
+function famChart(fam, svgId, legId, tblId, xlabel, exclude = []) {
   const F = D.analysis.families[fam]; if (!F) return;
   const levels = F.levels;
-  const conds = Object.keys(levels[0].by_condition).filter((c) => SER[c]);
+  const conds = Object.keys(levels[0].by_condition).filter((c) => SER[c] && !exclude.includes(c));
   legend(legId, conds);
   lineChart(document.getElementById(svgId), {
     xs: levels.map((l) => l.level), xlabel, ymax: 1, yticks: [0, 0.25, 0.5, 0.75, 1], yfmt: pct, ci: true,
@@ -325,7 +325,7 @@ function famChart(fam, svgId, legId, tblId, xlabel) {
 famChart('depth', 'fig1', 'leg1', 'tbl1', 'Interdependent changes in the history (total email count held at 16)');
 famChart('threads', 'fig1b', 'leg1b', 'tbl1b', 'Threads the same six changes are spread over');
 if (D.analysis.families.length) {
-  famChart('length', 'fig2d', 'leg2d', 'tbl2c', 'Extra state-neutral emails in the thread (16 task emails before)');
+  famChart('length', 'fig2d', 'leg2d', 'tbl2c', 'Extra state-neutral emails in the thread (16 task emails before)', ['oracle']);
   const L = D.analysis.families.length.levels;
   const conds = Object.keys(L[0].by_condition).filter((c) => SER[c] && c !== 'oracle');
   legend('leg2c', conds);

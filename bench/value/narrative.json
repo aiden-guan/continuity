@@ -64,7 +64,7 @@
    "concept": "Persistent state reuse",
    "mechanism": "The state is computed once as mail arrives and reused at every wake",
    "case": "An agent woken on every inbound email, a daily check-in, or several agents sharing one deal",
-   "result": "<span class=\"pill win\">win</span> after ~3 wakes vs Primitive-only and ~10 vs full history; <span class=\"pill loss\">loss</span> on a single wake"
+   "result": "<span class=\"pill win\">win</span> flat 1.6–1.9K-token context at every thread length; cheaper per correct decision after ~3 wakes vs Primitive-only, ~10 vs full history; <span class=\"pill loss\">loss</span> on a single wake, and the break-even rises on long threads"
   }
  ],
  "fig1_title": "The more the deal has changed, the more Continuity matters",
@@ -87,10 +87,14 @@
  ],
  "fig2_caption": "Cost per correct decision = (one-time cost + wakes × per-wake cost) / (wakes × success rate), from the measured costs and success rates of all 84 held-out cases. Cold-cache prices: every input token at the full $0.10/MTok input price (claude-haiku-5-5, price table dated 2026-10-06), because wakes hours apart share no prompt cache. The curve assumes the state does not change between wakes.",
  "fig2b_title": "With new mail arriving: a fresh agent on every inbound email",
- "fig2b_caption": "Measured, not modelled: on depth-6 held-out threads, a fresh agent woke on every inbound task email and each condition paid for what it read at that moment (Continuity: extraction of the mail since the last wake plus the briefing; rolling summary: one rewrite per email plus the summary; Primitive-only: its tool loop; full history: every email so far). Cold-cache prices. Only threads every condition finished are included; the remaining threads are still running and will be added.",
- "fig2c_title": "",
- "fig2c_text": "",
- "fig2c_caption": "",
+ "fig2b_caption": "Measured, not modelled: on depth-6 held-out threads, a fresh agent woke on every inbound task email and each condition paid for what it read at that moment (Continuity: extraction of the mail since the last wake plus the briefing; rolling summary: one rewrite per email plus the summary; Primitive-only: its tool loop; full history: every email so far). Cold-cache prices. Only threads every condition finished are included; one remaining thread is still running.",
+ "fig2c_title": "Longer threads: the briefing stays flat, the reading does not",
+ "fig2c_text": [
+  "The same 12 depth-4 held-out deals were run again with 40 and 120 extra state-neutral emails appended (routine chatter and unrelated mail, so the correct answer does not change). The context an agent reads at decision time stays flat with Continuity, about 1,600–1,900 tokens, while the full history grows from 2,400 to 7,100 tokens and Primitive-only's reads from 2,600 to 6,800. At +120 emails Continuity's agent reads 4.2–4.4× less than either.",
+  "That flat context is paid for at ingestion: every extra email costs an extraction call, about $0.00024 each at cold-cache prices, unrelated mail included. Continuity's per-wake cost stays at $0.0025 at every length, against $0.0048 → $0.0070 for Primitive-only and $0.0032 → $0.0045 for full history, but its one-time cost grows from $0.0078 to $0.0362. On raw cost, ignoring accuracy, it breaks even with Primitive-only after 3, 6 and 8 wakes at +0, +40 and +120 emails, and with full history after 12, 18 and 18.",
+  "Accuracy held its lead over Primitive-only (+25 to +33 points at every length) but not over full history at +120, where both scored 58%. These longer runs have one trial per case, so the per-length differences are not significant on their own (pooled over all three lengths: +28.7 pp vs Primitive-only, p = 0.002; +18.5 pp vs full history, p = 0.028)."
+ ],
+ "fig2c_caption": "Depth-4 held-out cases: 12 × 3 trials at +0 (from Figure 1) and 12 × 1 trial at +40 and +120. Memory tokens are estimated as characters / 4 of exactly what the agent was handed (Continuity's briefing; the full email history; everything Primitive-only's tool calls returned).",
  "fig3_title": "History questions",
  "fig3_text": "The held-out run for this figure is in progress and will be added to this page when it finishes. On 6 development cases, the agent with Continuity's as-of replay answered \"what blocked the order right after message X?\" correctly in 5 of 6, against 3 of 6 with the full history; that is too few cases to cite.",
  "fig3_caption": "",
@@ -98,7 +102,8 @@
  "losses": [
   "<b>Short histories.</b> With one or two changes, the full history in context does as well (72% vs 64% at two changes; not significant either way).",
   "<b>A single decision.</b> One decision costs about 1.6× full history and uses about 3× the tokens of Primitive-only, because every email is extracted, unrelated mail included. It pays back only when the same state is used again (Figure 2).",
-  "<b>Short threads, wake on every email.</b> On 16-email threads, re-reading the full history at every wake stays cheaper per thread than Continuity (about 10–15% less). Context savings need longer threads; that run is in progress.",
+  "<b>Short threads, wake on every email.</b> On 16-email threads, re-reading the full history at every wake stays cheaper per thread than Continuity (about 9% less). The context savings show up on longer threads (Figure 2c), where the ingestion cost also grows.",
+  "<b>Long threads, few wakes.</b> Every email costs Continuity an extraction call, unrelated and state-free mail included. At +120 emails it needs about 8 wakes to break even with Primitive-only on raw cost and about 18 with full history. Skipping state-free mail cheaply before extraction would cut this directly.",
   "<b>Committing while blocked.</b> Continuity's agent accepted the order while something blocked it in 3 of 252 runs (1.2%), all in the fan-out family. Full history did so once; Primitive-only never did.",
   "<b>Two threads.</b> With everything in two threads, Continuity's agent used a dead fact more often than Primitive-only (17% vs 6% of runs) and caught slightly fewer blockers (88% vs 94%).",
   "<b>Lost between engine and agent.</b> The engine's state is right more often than the agent's report of it (for example 89% vs 75% at five threads). Most of the gap is the agent dropping finance's cap: in 16 of 19 such runs the engine had it right. The briefing also shows our own budget request as a \"tentative\" budget line, which likely misleads the agent.",
@@ -125,13 +130,14 @@
   "Optionally run the same fair Primitive-only agent beside it. Its failure here is measured (0 of 3 held-out trials), not staged. Show the aggregate chart next to it so one case is not mistaken for the whole result."
  ],
  "defects": [
-  "<b>Briefing: our own budget request shown as a tentative budget</b> (open). The agent dropped finance's cap from its report in 16 runs where the engine had it right. Rendering our request as \"Acme (us) budget = $X: not authoritative\" is the likely cause.",
+  "<b>Briefing: our own budget request shown as a tentative budget</b> (fixed on the optimization track after these runs, not yet committed). The agent dropped finance's cap from its report in 16 runs where the engine had it right. Rendering our request as \"Acme (us) budget = $X: not authoritative\" is the likely cause.",
   "<b>Document staleness after a revert</b> (fixed on the optimization track after this snapshot). When a price went up and back, the briefing still marked the original quote PDF stale on price, naming the first replacement rather than today's value.",
   "<b>Document requests counted as goods</b> (fixed on the optimization track). \"Send a formal quote for 750 units\" became 750 owed quotes, a zombie open loop.",
   "<b>Price and quantity checks run against the freight forwarder</b> (fixed on the optimization track). Per-party checks now run only on terms the party may set.",
   "<b>Price corrections create a low-confidence delivery claim</b> (minor, open). \"No other changes\" after a price correction became a tentative delivery restatement.",
   "<b>Design question: supplier self-correction after a forwarder confirmation.</b> If the supplier changes its own schedule after its forwarder confirmed the old one, the engine treats it as a dispute between two parties on the supplier's side, while a reasonable reader could let the supplier's newer statement win. The value cases avoid this pattern until it is decided.",
-  "<b>Next measurements.</b> Re-run Figure 1 on the optimization track's current engine (three of the defects above are fixed there); add longer threads (running now); and add a second vertical, since every case here is procurement."
+  "<b>Next measurements.</b> Re-run Figure 1 on the optimization track's current engine (four of the defects above are fixed there); run the long-thread cases with 3 trials; and add a second vertical, since every case here is procurement.",
+  "<b>Ingestion cost on state-free mail</b> (product suggestion). Each routine or unrelated email costs a full extraction call (about $0.00024 at cold-cache prices). A cheap pre-filter for mail that cannot change state would bring Continuity's break-even down on long threads."
  ],
  "reproduce_text": "Code and cases: branch <code>value/bench</code> in this repository, folder <code>bench/value/</code> (commits <code>c59515f</code> freeze → <code>da21ea7</code> re-freeze; held-out manifest <code>bench/value/manifest.json</code>). Raw rows, with every agent output, score and token count: <code>bench/results/value-fig1/rows.jsonl</code> (756 rows), <code>value-fig1-oracle</code>, <code>value-wakes/wakes.jsonl</code>. Commands: <code>node bench/value/run.ts validate</code>; <code>node bench/value/run.ts run --name fig1 --variants 11,…,22 --conditions continuity,primitive-native,full-history --trials 3</code>; <code>node bench/value/analyze.ts bench/results/value-fig1</code>; <code>node bench/value/wakes.ts --name wakes</code>; <code>node bench/value/economics.ts bench/results/value-fig1 bench/results/value-wakes</code>. The design and fairness rules are in <code>bench/value/README.md</code>."
 }
