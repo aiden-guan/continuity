@@ -227,6 +227,11 @@ test('an acceptance is stored as one word, so a restated acceptance is the same 
   assert.equal(re.normalizeValue('decision.accept', 'Counter #2 at $752,000'), null);
   assert.equal(canonicalDecision('We will not accept anything over $900k'), 'declined');
   assert.equal(canonicalDecision('accepted and placing PO-3392'), 'accepted');
+  // a supplier confirming the order and a seller countersigning are acceptances, not unusable text
+  assert.equal(canonicalDecision('Order confirmed'), 'accepted');
+  assert.equal(canonicalDecision('Contract countersigned, fully executed'), 'accepted');
+  assert.equal(canonicalDecision('We cannot confirm the order'), 'declined');
+  assert.equal(canonicalDecision("Seller won't countersign"), 'declined');
 });
 
 // A scripted reading per message body, so the claims under test are exact.
