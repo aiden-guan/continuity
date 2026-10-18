@@ -73,6 +73,7 @@ function groupOf(task: TaskSpec, address: string): string {
 
 export const isOpen = (o: Obligation) => isOpenStatus(o.status);
 
+
 /** Overlap of significant words (longer than two chars), relative to the smaller text. */
 function wordOverlap(a: string, b: string): number {
   const words = (s: string) => new Set(
@@ -158,6 +159,8 @@ export function applyProposal(inp: ApplyInput) {
       if (earlier.status === 'superseded') continue;
       if (earlier.sha256 === incoming.sha256) continue;
       if (incoming.kind === 'document') continue; // generic documents never supersede; only versioned business docs do
+      if (earlier.event_id === incoming.event_id) continue; // documents sent together are a set, not versions
+      if (pack.documentKinds?.find((d) => d.kind === incoming.kind)?.multipart) continue;
       store.updateArtifact(earlier.id, 'superseded', incoming.id);
       log('artifact_superseded', `${earlier.filename} superseded by ${incoming.filename}`, earlier.id, { by: incoming.id });
     }
@@ -239,7 +242,8 @@ export function applyProposal(inp: ApplyInput) {
       const withdrawal = store.insertClaim({ ...base, status: 'active' });
       attachEvidence(withdrawal.id);
       const retracted: string[] = [];
-      const offerTerms = liveClaims().filter((x) => x.speaker === speaker && x.kind === 'offer' && !lifecycleKeys.has(x.key));
+      const withdrawable = (key: string) => !pack.withdrawable || pack.withdrawable.some((prefix) => key.startsWith(prefix));
+      const offerTerms = liveClaims().filter((x) => x.speaker === speaker && x.kind === 'offer' && !lifecycleKeys.has(x.key) && withdrawable(x.key));
       for (const term of offerTerms) {
         store.updateClaim(term.id, { status: 'retracted', supersede_reason: `offer withdrawn by ${who} in ${event.id}` });
         retracted.push(`${term.key} (${term.display})`);
@@ -308,7 +312,9 @@ export function applyProposal(inp: ApplyInput) {
         skewFlagged = true;
         store.addFlag(task.id, event.id, 'date_skew', `${who}'s Date header (${event.occurred_at}) precedes ${latestEvent.id} (${latestEvent.occurred_at}), but it arrived later and is not a forward; applied in arrival order`, at);
       }
-      const revised = store.insertClaim({ ...base, status: 'active' });
+      // a live dispute inside the group is not settled by one side restating a new value
+      const disputing = peers.filter((c) => c.status === 'contested' && !sameValue(c.value, value));
+      const revised = store.insertClaim({ ...base, status: disputing.length ? 'contested' : 'active' });
       attachEvidence(revised.id);
       const why = pc.mode === 'correction' ? `explicit correction by ${who}` : `revised by ${who}`;
       for (const old of own) {
@@ -359,6 +365,8 @@ export function applyProposal(inp: ApplyInput) {
     const debtor = senderOwes ? speaker : recipient;
     const creditor = senderOwes ? recipient : speaker;
     if (!debtor) continue;
+    // someone outside the task cannot put us on the hook (a spoofer's "reply to confirm" is not owed)
+    if (!senderOwes && !whoParty) continue;
     const topics = po.topic_keys.filter((k) => vocabulary.has(k));
     // a compound question becomes one obligation per issue, each closable independently
     const issues = po.kind !== 'commitment' && !po.expects_artifact ? issuesFor(pack, task, debtor, topics) : [];
@@ -386,7 +394,8 @@ export function applyProposal(inp: ApplyInput) {
           exclude_sha256: store.artifactsForTask(task.id).filter((a) => a.owner === debtor && a.kind === expects).map((a) => a.sha256),
         };
       }
-      const quantity = po.kind === 'commitment' && pack.quantityOf ? pack.quantityOf(po.text) : null;
+      // a promise of N things, or a request for N documents ("return signed pages for all 3 entities")
+      const quantity = (po.kind === 'commitment' || (po.kind === 'request' && expects)) && pack.quantityOf ? pack.quantityOf(po.text) : null;
       // a question's "by Friday" is about its subject matter, not a deadline for replying
       let dueAt: string | null = null;
       if (po.kind !== 'question') {
@@ -482,6 +491,24 @@ export function applyProposal(inp: ApplyInput) {
   for (const o of closable()) {
     if (openedHere.has(o.id)) continue;
     if (o.debtor !== speaker) continue;
+    if (o.expects_artifact && o.quantity != null) {
+      // "I'll send all 3 BEOs": each matching document counts toward the promise
+      const matching = inp.artifacts.filter((a) => artifactMatches(o, a).ok).length;
+      if (!matching) continue;
+      const delivered = Math.min(o.quantity, (o.fulfilled_quantity ?? 0) + matching);
+      if (delivered >= o.quantity) {
+        store.updateObligation(o.id, { fulfilled_quantity: delivered });
+        close({ ...o, fulfilled_quantity: delivered }, doneStatus(o), `${delivered} of ${o.quantity} ${o.expects_artifact} documents received`);
+      } else {
+        store.updateObligation(o.id, {
+          status: 'partially_fulfilled', fulfilled_quantity: delivered,
+          notes: [...o.notes, `${event.id}: ${matching} ${o.expects_artifact} received (${delivered}/${o.quantity}); ${o.quantity - delivered} outstanding`],
+        });
+        log('obligation_partially_fulfilled', `${who} sent ${delivered} of ${o.quantity} ${o.expects_artifact} documents ("${o.text}"); ${o.quantity - delivered} still outstanding`, o.id,
+          { fulfilled: delivered, outstanding: o.quantity - delivered });
+      }
+      continue;
+    }
     if (o.expects_artifact) {
       const found = findMatchingArtifact(o);
       if (found.artifact) {
@@ -525,6 +552,27 @@ export function applyProposal(inp: ApplyInput) {
 
   // ---- 5. derived state: artifact currency and constraint checks
   refreshDerived(store, task, event.id, at);
+
+  // ---- 6. a colleague passing round an out-of-date document is acting on dead values: we owe them the correction
+  if (whoParty?.role === 'internal') {
+    for (const incoming of inp.artifacts) {
+      const original = store.artifactsForTask(task.id).find((a) => a.id !== incoming.id && a.sha256 === incoming.sha256 && a.owner !== incoming.owner);
+      if (!original || (original.status !== 'partially_stale' && original.status !== 'superseded')) continue;
+      const stale = [...new Set(store.claimsSupportedByArtifact(original.id).filter((c) => c.status === 'superseded').map((c) => c.key))];
+      if (!stale.length) continue;
+      const text = `${who} is working from ${original.filename}, which is out of date on ${stale.join(', ')}: tell them the current value`;
+      if (openNow().some((o) => o.creditor === speaker && o.debtor === task.self_address.toLowerCase() && o.text === text)) continue;
+      const ob = store.insertObligation({
+        task_id: task.id, kind: 'request', debtor: task.self_address.toLowerCase(), creditor: speaker, text, topic_keys: stale,
+        expects_artifact: null, status: 'open', source_event_id: event.id, evidence: incoming.filename, resolved_by_event_id: null,
+        resolution_note: null, created_at: at, resolved_at: null, confidence: 0.8, notes: [], due_at: null,
+        issue_key: stale.length === 1 ? stale[0] : null, group_id: null, quantity: null, fulfilled_quantity: null,
+        artifact_match: null, condition: null, condition_met_at: null,
+      });
+      log('obligation_opened', `${who} forwarded a stale copy of ${original.filename} (${stale.join(', ')} superseded) — we owe them the current value`, ob.id,
+        { kind: 'request', debtor: task.self_address.toLowerCase(), creditor: speaker });
+    }
+  }
 }
 
 export function refreshDerived(store: StateStore, task: TaskSpec, eventId: string | null, at: string) {
@@ -538,10 +586,15 @@ export function refreshDerived(store: StateStore, task: TaskSpec, eventId: strin
 
   for (const a of store.artifactsForTask(task.id)) {
     const backing = store.claimsSupportedByArtifact(a.id);
-    const outdated = backing.filter((c) => c.status === 'superseded' || c.status === 'retracted');
+    // a term is stale on the document only while its current value differs (a value that came back is current again)
+    const currentAgain = (c: Claim) => claims.some((x) => x.status === 'active' && x.key === c.key && x.speaker === c.speaker && sameValue(x.value, c.value));
+    // one part of a set (a credit memo, a signature page) is not made stale by the next part's own figures
+    const multipart = !!pack.documentKinds?.find((d) => d.kind === a.kind)?.multipart;
+    const outdated = backing.filter((c) => (c.status === 'superseded' && !currentAgain(c) && !multipart) || c.status === 'retracted');
     let status: Artifact['status'];
     if (a.superseded_by) status = 'superseded';
-    else if (withdrawn.has(a.owner.toLowerCase())) status = 'withdrawn';
+    // withdrawn: its owner withdrew and nothing it states is still live (an invoice outlives a withdrawn discount offer)
+    else if (withdrawn.has(a.owner.toLowerCase()) && !backing.some((c) => c.kind === 'offer' && (c.status === 'active' || c.status === 'contested'))) status = 'withdrawn';
     else if (outdated.length) status = 'partially_stale';
     else status = 'current';
     if (status === a.status) continue;

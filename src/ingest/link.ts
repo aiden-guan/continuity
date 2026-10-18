@@ -32,11 +32,42 @@ export async function resolveTask(store: LinkLookup, e: EventInput): Promise<Lin
     if (earlier?.task_id) return { task_id: earlier.task_id, reason: `In-Reply-To/References ${id}` };
   }
 
-  // 5. the task alias written out in the subject or body
+  // 5. the task alias written out in the subject or body, as people actually write it
   const haystack = `${e.subject}\n${e.body_text}`;
-  for (const task of await store.tasks()) {
-    const mention = new RegExp(`(^|[^A-Za-z0-9])${literal(task.alias)}([^A-Za-z0-9]|$)`, 'i');
-    if (mention.test(haystack)) return { task_id: task.id, reason: `explicit task reference "${task.alias}"` };
+  const tasks = await store.tasks();
+  for (const task of tasks) {
+    if (aliasPattern(task.alias).test(haystack)) return { task_id: task.id, reason: `explicit task reference "${task.alias}"` };
+  }
+  // 6. another reference the task itself names (the PO an invoice is on), when exactly one task names it
+  for (const task of tasks) {
+    for (const ref of referencesIn(task.goal ?? '', task.alias)) {
+      if (!aliasPattern(ref).test(haystack)) continue;
+      if (tasks.filter((t) => t !== task && referencesIn(t.goal ?? '', t.alias).includes(ref)).length) continue;
+      return { task_id: task.id, reason: `reference "${ref}" named in the task` };
+    }
   }
   return null;
+}
+
+/** Reference codes ("PO-4817", "LGL-4417") a task's goal names besides its alias. */
+function referencesIn(goal: string, alias: string): string[] {
+  return [...new Set(goal.match(/\b[A-Z]{2,6}-\d{3,}\b/g) ?? [])].filter((r) => r.toLowerCase() !== alias.toLowerCase());
+}
+
+/** NOUNS people put before a bare reference number ("load 40209", "invoice #20417", "matter 4417"). */
+const REFERENCE_NOUN = String.raw`(?:load|invoice|inv|matter|order|po|ref(?:erence)?|file|case|booking|group code|contract|agreement)`;
+
+/**
+ * An alias like "INV-20417" also matches "INV 20417", "INV20417", "invoice #20417" and "load 20417": the
+ * digits must be exact (a look-alike with two digits swapped is another task), and a bare number counts
+ * only right after a reference noun.
+ */
+export function aliasPattern(alias: string): RegExp {
+  const exact = `(?:^|[^A-Za-z0-9])${literal(alias)}(?:[^A-Za-z0-9]|$)`;
+  const parts = alias.match(/^([A-Za-z]{2,6})-(\d{4,})$/);
+  if (!parts) return new RegExp(exact, 'i');
+  const [, prefix, digits] = parts;
+  const spaced = `(?:^|[^A-Za-z0-9])${literal(prefix)}[\\s#-]*${digits}(?![0-9])`;
+  const noun = `\\b${REFERENCE_NOUN}\\s*(?:#|no\\.?|number)?\\s*${digits}(?![0-9])`;
+  return new RegExp(`${exact}|${spaced}|${noun}`, 'i');
 }

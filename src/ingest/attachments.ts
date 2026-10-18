@@ -31,11 +31,20 @@ export function pdfText(buf: Buffer): string {
     } else if (/Filter/.test(dict)) {
       continue; // some other filter we cannot decode
     }
-    lines.push(...contentStreamText(data.toString('latin1')));
+    lines.push(...contentStreamText(data.toString('latin1')).map(fromWinAnsi));
     streamHeader.lastIndex = finish;
   }
   return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
+
+/** WinAnsiEncoding bytes 0x80–0x9F (where it differs from Latin-1): dashes, curly quotes, ellipsis, euro. */
+export const WIN_ANSI: Record<number, string> = {
+  0x80: '€', 0x82: '‚', 0x83: 'ƒ', 0x84: '„', 0x85: '…', 0x86: '†', 0x87: '‡', 0x88: 'ˆ', 0x89: '‰', 0x8a: 'Š', 0x8b: '‹', 0x8c: 'Œ', 0x8e: 'Ž',
+  0x91: '‘', 0x92: '’', 0x93: '“', 0x94: '”', 0x95: '•', 0x96: '–', 0x97: '—', 0x98: '˜', 0x99: '™', 0x9a: 'š', 0x9b: '›', 0x9c: 'œ', 0x9e: 'ž', 0x9f: 'Ÿ',
+};
+
+/** Simple-font text bytes are WinAnsi (the standard Type 1 encoding for Latin text). */
+const fromWinAnsi = (s: string) => s.replace(/[\x80-\x9f]/g, (c) => WIN_ANSI[c.charCodeAt(0)] ?? c);
 
 const ESCAPES: Record<string, string> = { n: '\n', r: '\r', t: '\t', b: '\b', f: '\f', '(': '(', ')': ')', '\\': '\\' };
 

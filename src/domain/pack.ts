@@ -5,11 +5,13 @@
 //  - action prerequisites: which outbound phrases are binding, and what state must hold before them
 //  - optionally, sentence patterns for the offline extractor (the LLM extractor reads the vocabulary),
 //    document kinds, typed-timeline event names, and the offline policy agent's wording
-import type { CheckResult, Claim, Participant, TaskSpec } from '../types.ts';
-import type { ProposedClaim, ProposedFulfillment } from '../extract/types.ts';
+import type { CheckResult, Claim, Obligation, Participant, TaskSpec } from '../types.ts';
+import type { ProposedClaim, ProposedFulfillment, ProposedObligation } from '../extract/types.ts';
 import type { CompiledContext } from '../compiler/compile.ts';
 
-export type TermType = 'money' | 'number' | 'schedule' | 'date' | 'text' | 'enum';
+/** Value types; canonical forms and display live in values.ts. `schedule` is a list of {qty, date} lots
+ *  (delivery lots, nightly room blocks, installment plans). */
+export type TermType = 'money' | 'number' | 'percent' | 'schedule' | 'date' | 'datetime' | 'window' | 'text' | 'enum';
 
 export interface TermDef {
   key: string;
@@ -21,6 +23,10 @@ export interface TermDef {
   values?: string[];
   /** The value means "the counterparty's offer is withdrawn / unavailable" (offer lifecycle). */
   lifecycle?: boolean;
+  /** Numeric terms: which values are valid (default: positive; percent: zero or more). */
+  range?: 'positive' | 'nonnegative' | 'any';
+  /** Schedule terms: what a lot's qty counts ("units", "rooms", "loads", "$" for amounts). */
+  unit?: string;
   /**
    * Money or identity details where fraud happens (wire / bank details, payment terms). A new value from
    * email is never applied on its own: it is held until a human verifies it ("always": even the first
@@ -36,8 +42,18 @@ export interface TermDef {
   deadline?: boolean;
 }
 
-/** A document kind of the domain: `match` classifies an attachment (filename + text), `promise` spots a promise to send one. */
-export interface DocumentKind { kind: string; match: RegExp; promise: RegExp }
+/**
+ * A document kind of the domain: `match` classifies an attachment (filename + text), `promise` spots a
+ * promise or request to send one.
+ */
+export interface DocumentKind {
+  kind: string;
+  match: RegExp;
+  promise: RegExp;
+  /** Separate parts of one set (a BEO per day, a POD per load, a signature page per entity): a newer one
+   *  does not supersede an older one, and a promise of N of them is fulfilled one document at a time. */
+  multipart?: boolean;
+}
 
 type PolicyParty = CompiledContext['task']['parties'][number];
 
@@ -59,11 +75,17 @@ export interface HeuristicSentence {
   isQuestion: boolean;
   hedged: boolean;
   senderRole: 'self' | 'counterparty' | 'internal' | 'unknown';
+  /** Term-key prefixes the sender may set (empty for unknown senders). */
+  senderAuthority: string[];
+  /** Live claims on record, with their evidence (to resolve references like "§12.1" to the clause they name). */
+  known: { key: string; evidence: string }[];
   fromAttachment: string | null;
   /** The message date; relative dates resolve against it. */
   ref: string;
   claim(c: Omit<ProposedClaim, 'mode' | 'from_attachment' | 'confidence'> & { confidence?: number; mode?: ProposedClaim['mode'] }): void;
   fulfillment(f: Omit<ProposedFulfillment, 'confidence'> & { confidence?: number }): void;
+  /** A domain speech act the generic patterns miss ("Can do all 3 loads" commits to 3 loads). */
+  obligation(o: Omit<ProposedObligation, 'confidence' | 'evidence' | 'expects_artifact'> & { confidence?: number; expects_artifact?: string | null }): void;
 }
 
 export interface SuggestedAction {
@@ -83,8 +105,10 @@ export interface ActionContext {
   checks: CheckResult[];
   /** Active and contested claims. */
   live: Claim[];
+  /** Claims recorded but not applied (unauthorised or unauthenticated speakers, hedges). */
+  tentative?: Claim[];
   contested: Claim[];
-  openDebtors: { debtor: string; creditor: string; topic_keys: string[] }[];
+  openDebtors: { debtor: string; creditor: string; topic_keys: string[]; kind?: string; expects_artifact?: string | null }[];
   label: (address: string) => string;
 }
 
@@ -105,6 +129,11 @@ export interface DomainPack {
   expectedTerms?(task: TaskSpec): { party: Participant; keys: string[] }[];
   /** The term that records a decision of ours (acceptance, approval). */
   decisionKey: string | null;
+  /** Term-key prefixes a withdrawal retracts (default: every offer term of the speaker). Withdrawing an
+   *  early-payment offer does not withdraw the invoice it was made on. */
+  withdrawable?: string[];
+  /** What an open loop is about, in the domain's own loop vocabulary (null: its term or document). */
+  loopSubject?(o: Obligation): string | null;
   /** Outbound phrases that commit us toward a counterparty; the guard holds them back until checks pass. */
   bindingPatterns: RegExp[];
   /** Domain-specific next actions (accept, request approval, replace a withdrawn offer, ...). */
@@ -121,6 +150,8 @@ export interface DomainPack {
   dueOf?(text: string, refIso: string): string | null;
   /** Domain document kinds, checked before the generic ones (quote, invoice, po, ...). */
   documentKinds?: DocumentKind[];
+  /** A request for one of documentKinds opens a loop even when it names no term ("Please send the contract."). */
+  trackDocumentRequests?: boolean;
   /** The offline policy agent's wording for this domain; without it the procurement wording is used. */
   writer?: PolicyWriter;
 }

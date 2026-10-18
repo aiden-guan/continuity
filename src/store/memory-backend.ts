@@ -77,7 +77,7 @@ export class MemoryBackend implements Backend {
       taskForThread: async (t) => s.taskForThread(t),
       eventByPrimitiveEmailId: async (id) => s.eventByPrimitiveEmailId(id),
       eventByMessageId: async (id) => s.eventByMessageId(id),
-      tasks: async () => s.listTasks().map((t) => ({ id: t.id, alias: t.alias })),
+      tasks: async () => s.listTasks().map((t) => ({ id: t.id, alias: t.alias, goal: t.goal })),
     });
     if (s.findEventByDedupe(input.dedupe_key)) return this.receive(org, input, link, blobs); // raced with another delivery
 

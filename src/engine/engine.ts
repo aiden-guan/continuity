@@ -19,6 +19,7 @@ import { heuristicExtractor, classifyArtifact } from '../extract/heuristic.ts';
 import { attachmentText } from '../ingest/attachments.ts';
 import { resolveTask } from '../ingest/link.ts';
 import { applyProposal, isOpen, labelOf, partyOf, refreshDerived } from './resolver.ts';
+import { domainFor } from '../domain/pack.ts';
 import { canonicalIso, nowIso } from '../clock.ts';
 import { parseSenderAuth, senderAuthMode } from '../ingest/sender-auth.ts';
 import { Breaker, isTransient, limiter, withDeadline } from './limit.ts';
@@ -294,6 +295,8 @@ export class Engine {
         senderRole: sender?.role ?? 'unknown',
         openObligations: snap.store.obligationsForTask(task.id).filter(isOpen),
         activeClaims: snap.store.claimsForTask(task.id).filter((c) => c.status === 'active' || c.status === 'contested'),
+        claimQuotes: Object.fromEntries(snap.store.claimsForTask(task.id).filter((c) => c.status === 'active' || c.status === 'contested')
+          .map((c) => [c.id, snap.store.claimEvidence(c.id).map((r) => r.quote)])),
       } as const;
 
       const { proposal, extractorName, fallback } = await this.#extract(input);
@@ -431,7 +434,7 @@ export function applyInterpretation(s: MemoryStore, task: TaskSpec, event: Store
   flagEvidence(s, task, event, party?.role ?? null);
 
   const artifacts: Artifact[] = texts.map((t) => {
-    const classified = proposal.artifacts.find((a) => a.filename === t.filename) ?? { ...classifyArtifact(t.filename, t.text) };
+    const classified = proposal.artifacts.find((a) => a.filename === t.filename) ?? { ...classifyArtifact(t.filename, t.text, domainFor(task)) };
     if (!t.text) s.addFlag(task.id, event.id, 'attachment_unreadable', `${t.filename}: no extractable text`, event.received_at);
     return s.insertArtifact({
       task_id: task.id, event_id: event.id, filename: t.filename, content_type: t.content_type, sha256: t.sha256,

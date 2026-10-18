@@ -245,7 +245,8 @@ export function compileContext(store: StateStore, taskId: string, opts: CompileO
   }));
 
   // ---- who moves next and what they might do (derived from state; the agent decides)
-  const suggested = suggestActions(store, task, { failing, contested, openObs, events, checks, allTransitions: transitions, live, today });
+  const tentativeClaims = claims.filter((c) => c.status === 'proposed');
+  const suggested = suggestActions(store, task, { failing, contested, openObs, events, checks, allTransitions: transitions, live, tentative: tentativeClaims, today });
   const commitPending = pending_approvals.some((p) => p.kind === 'send' && p.asked_because.some((r) => r.startsWith('commitment')));
   const actions = commitPending ? suggested.actions.filter((x) => x.kind !== 'accept_offer') : suggested.actions;
   let next_actor: NextActor = suggested.next_actor;
@@ -409,6 +410,8 @@ interface SuggestInput {
   checks: CheckResult[];
   allTransitions: Transition[];
   live: Claim[];
+  /** Claims recorded but not applied (unauthorised, unauthenticated, hedged). */
+  tentative: Claim[];
   today: string;
 }
 
@@ -538,8 +541,9 @@ function suggestActions(store: StateStore, task: TaskSpec, s: SuggestInput) {
     task,
     checks: s.checks,
     live: s.live,
+    tentative: s.tentative,
     contested: s.contested,
-    openDebtors: s.openObs.map((o) => ({ debtor: o.debtor, creditor: o.creditor, topic_keys: o.topic_keys })),
+    openDebtors: s.openObs.map((o) => ({ debtor: o.debtor, creditor: o.creditor, topic_keys: o.topic_keys, kind: o.kind, expects_artifact: o.expects_artifact })),
     label,
   });
   actions.push(...(domainActions ?? []));

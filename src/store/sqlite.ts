@@ -241,7 +241,8 @@ export class SqliteBackend implements Backend {
       taskForThread: async (t) => (this.#q('SELECT task_id FROM task_threads WHERE thread_id = ?').get(t) as { task_id: string } | undefined)?.task_id ?? null,
       eventByPrimitiveEmailId: async (id) => this.#event('primitive_email_id = ? ORDER BY seq LIMIT 1', id),
       eventByMessageId: async (id) => this.#event('message_id = ? ORDER BY seq LIMIT 1', id),
-      tasks: async () => this.#q('SELECT id, alias FROM tasks ORDER BY created_at').all() as { id: string; alias: string }[],
+      tasks: async () => (this.#q('SELECT id, alias, spec_json FROM tasks ORDER BY created_at').all() as { id: string; alias: string; spec_json: string }[])
+        .map((r) => ({ id: r.id, alias: r.alias, goal: (JSON.parse(r.spec_json) as { goal?: string }).goal })),
     });
 
     const id = this.#tx(() => {

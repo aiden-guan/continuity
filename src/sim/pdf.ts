@@ -1,10 +1,15 @@
 // Tiny single-page PDF writer: Helvetica text in a Flate-compressed content stream.
 // Enough to produce believable quote attachments for the local scenario and the tests.
 import { deflateSync } from 'node:zlib';
+import { WIN_ANSI } from '../ingest/attachments.ts';
 
-/** Escape the characters that are special inside a PDF literal string. */
+const TO_WIN_ANSI = new Map(Object.entries(WIN_ANSI).map(([byte, ch]) => [ch, String.fromCharCode(Number(byte))]));
+
+/** Escape the characters that are special inside a PDF literal string, and encode the text as WinAnsi
+ *  (dashes and curly quotes keep their meaning; anything outside the encoding becomes "?"). */
 function pdfString(text: string): string {
-  return text.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+  const encoded = [...text].map((ch) => TO_WIN_ANSI.get(ch) ?? (ch.charCodeAt(0) <= 0xff ? ch : '?')).join('');
+  return encoded.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
 }
 
 export function makePdf(lines: string[]): Buffer {
@@ -23,7 +28,7 @@ export function makePdf(lines: string[]): Buffer {
       compressed,
       Buffer.from('\nendstream'),
     ]),
-    Buffer.from('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'),
+    Buffer.from('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>'),
   ];
 
   const header = Buffer.from('%PDF-1.4\n');

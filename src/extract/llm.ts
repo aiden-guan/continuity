@@ -9,6 +9,19 @@ import { classifyArtifact, stripQuoted } from './heuristic.ts';
 import type { ExtractInput, Extractor, Proposal } from './types.ts';
 import { labelOf } from '../engine/resolver.ts';
 
+/** How each value type is written in value_json. */
+const VALUE_FORMAT: Record<TermDef['type'], string> = {
+  money: 'a number in USD, e.g. 11.4',
+  number: 'a number, e.g. 500',
+  percent: 'a number of percent, e.g. 80 for 80%',
+  date: 'a JSON string "YYYY-MM-DD"',
+  datetime: 'a JSON string "YYYY-MM-DDTHH:MM" in the deal\'s local time',
+  window: 'a JSON object {"start":"YYYY-MM-DDTHH:MM","end":"YYYY-MM-DDTHH:MM"} in local time',
+  schedule: 'a JSON array of every lot, e.g. [{"qty":300,"date":"2026-10-23"},{"qty":200,"date":"2026-10-28"}]',
+  text: 'a JSON string',
+  enum: 'a JSON string, one of the listed values',
+};
+
 /** JSON schema for the model's output, with term keys constrained to the domain's vocabulary. */
 function schemaFor(TERMS: TermDef[], documentKinds: string[] = []) {
   const termKey = { type: 'string', enum: TERMS.map((t) => t.key) };
@@ -17,14 +30,14 @@ function schemaFor(TERMS: TermDef[], documentKinds: string[] = []) {
     required: ['key', 'value_json', 'kind', 'mode', 'evidence', 'confidence', 'hedged', 'from_attachment', 'partial'],
     properties: {
       key: termKey,
-      value_json: { type: 'string', description: 'JSON-encoded value. money/number: 11.4 ; date: "2026-10-23" ; schedule: [{"qty":300,"date":"2026-10-23"}] ; text: "Net 30"' },
+      value_json: { type: 'string', description: 'JSON-encoded value in the format the vocabulary gives for the term. money/number/percent: 11.4 ; date: "2026-10-23" ; datetime: "2026-10-23T14:00" ; window: {"start":"2026-10-23T08:00","end":"2026-10-23T12:00"} ; schedule: [{"qty":300,"date":"2026-10-23"}] ; text: "Net 30"' },
       kind: { type: 'string', enum: ['offer', 'decision', 'info'] },
       mode: { type: 'string', enum: ['assert', 'correction', 'retraction'] },
       evidence: { type: 'string', description: 'verbatim sentence from the message/document' },
       confidence: { type: 'number' },
       hedged: { type: 'boolean' },
       from_attachment: { type: ['string', 'null'], description: 'attachment filename if the claim comes from a document, else null' },
-      partial: { type: 'boolean', description: 'schedule only: true if this updates only some lots of the current schedule' },
+      partial: { type: 'boolean', description: 'schedule only: true if this updates only some lots/nights/installments of the current schedule' },
     },
   };
   const obligation = {
@@ -109,7 +122,7 @@ function userPrompt(input: ExtractInput, terms: TermDef[]): string {
   const parties = task.participants
     .map((p) => `${p.label} <${p.address}> role=${p.role} speaks_for=${p.authority.join(',')}`)
     .join('; ');
-  const vocabulary = terms.map((t) => `- ${t.key} (${t.type}): ${t.description}`).join('\n');
+  const vocabulary = terms.map((t) => `- ${t.key} (${t.type}${t.values ? `: ${t.values.join('|')}` : ''}): ${t.description}. value_json = ${VALUE_FORMAT[t.type]}`).join('\n');
   const currentTerms = input.activeClaims
     .map((c) => `- ${c.id} ${name(c.speaker)} ${c.key} = ${JSON.stringify(c.value)}`)
     .join('\n') || '(none)';
