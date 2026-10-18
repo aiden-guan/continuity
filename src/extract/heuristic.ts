@@ -116,7 +116,7 @@ function extractFromText(text: string, input: ExtractInput, fromAttachment: stri
 
     const topics = topicKeysFor(pack, s);
     // an item of an asks list that names one of the pack's documents is a request for that document
-    const listedDoc = listed.items.includes(s) ? pack.documentKinds?.find((d) => d.promise.test(s.split(' — ').slice(1).join(' — ') || s)) : undefined;
+    const listedDoc = pack.trackDocumentRequests && listed.items.includes(s) ? pack.documentKinds?.find((d) => d.promise.test(s.split(' — ').slice(1).join(' — ') || s)) : undefined;
     if (listedDoc) {
       addObligation(p, { kind: 'request', debtor: 'recipient', text: s, topic_keys: topics, expects_artifact: listedDoc.kind, evidence: s, confidence: 0.75 });
       continue;
@@ -144,7 +144,7 @@ function extractFromText(text: string, input: ExtractInput, fromAttachment: stri
     }
     const expects = REQUEST.test(s) && /\b(send|share|attach|forward|return)\b/i.test(s) ? expectsArtifact(s, pack) : null;
     // a request for one of the pack's documents counts even when it names no term ("Please send the contract.")
-    if (REQUEST.test(s) && (topics.length || (expects && pack.documentKinds?.some((d) => d.kind === expects)))) {
+    if (REQUEST.test(s) && (topics.length || (expects && pack.trackDocumentRequests && pack.documentKinds?.some((d) => d.kind === expects)))) {
       addObligation(p, { kind: 'request', debtor: 'recipient', text: s, topic_keys: topics, expects_artifact: expects, evidence: s, confidence: 0.7 });
     }
   }

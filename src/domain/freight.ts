@@ -10,23 +10,23 @@ import { amounts, datedTimes, fieldValue, labelAmount, leadOf, toNumber } from '
 import { claimCheck, expectedFrom, ownClaim, partiesFor, requirementOf, standardActions, withdrawalCheck } from './common.ts';
 
 export const TERMS: TermDef[] = [
-  { key: 'rate.linehaul', type: 'money', description: 'Carrier linehaul rate for the load in USD (excluding fuel and accessorials)', topics: ['linehaul', 'line haul'] },
-  { key: 'rate.fuel_surcharge', type: 'money', description: 'Fuel surcharge for the load in USD (flat amount)', topics: ['fuel', 'fsc'] },
-  { key: 'rate.all_in', type: 'money', description: 'All-in carrier rate for the load in USD (linehaul + fuel); for multi-load commitments, per load', topics: ['all-in', 'all in', 'your rate', 'best rate', 'best price', 'quote', 'per load', 'truck for', 'cover'] },
-  { key: 'accessorial.detention_per_hour', type: 'money', description: 'Detention pay per hour after free time, USD', topics: ['detention', 'per hour', 'free time'] },
-  { key: 'pickup.window', type: 'window', description: "Window in which the carrier's truck will be at the shipper to load, local time", topics: ['pickup', 'pick up', 'loading window', 'at the shipper', 'make the window', 'load window', 'shipper\'s window'] },
-  { key: 'delivery.eta', type: 'datetime', description: "Carrier's committed or currently estimated arrival at the consignee, local time", topics: ['eta', 'deliver', 'arriv', 'on schedule', 'on time', 'where is', 'status'] },
-  { key: 'delivery.appointment', type: 'datetime', description: "Delivery appointment at the consignee's dock, set by the receiver, local time", topics: ['appointment', 'appt', 'dock'] },
-  { key: 'equipment.type', type: 'enum', values: ['dry_van', 'reefer', 'flatbed'], description: 'Trailer type the carrier will use', topics: ['equipment', 'reefer', 'dry van', 'flatbed', 'trailer'] },
-  { key: 'equipment.reefer_temp_f', type: 'number', range: 'any', description: 'Reefer set point in °F the carrier commits to run', topics: ['temp', 'set point', '°f', 'degrees'] },
-  { key: 'load.weight_lbs', type: 'number', description: 'Load weight in lbs', topics: ['weight', 'lbs'] },
-  { key: 'capacity.loads', type: 'schedule', unit: 'loads', description: 'Trucks/loads the carrier commits for a multi-load shipment, as {qty, date} with the pickup date of each group', topics: ['trucks', 'loads', 'capacity', 'how many', 'take all', 'cover all', 'all of them'] },
-  { key: 'carrier.mc_number', type: 'text', description: "Carrier's MC (operating authority) number", topics: ['mc number', 'mc#', 'authority'] },
-  { key: 'payment.remit_to', type: 'text', description: 'Where the carrier is paid (the carrier itself or its factoring company)', topics: ['remit', 'factoring', 'bank', 'payment to', 'pay to'] },
-  { key: 'payment.terms', type: 'text', description: 'Carrier payment terms, e.g. "Net 30" or "Quick pay 2%, 5 days"', topics: ['payment terms', 'net 30', 'quick pay', 'quickpay'] },
-  { key: 'offer.status', type: 'enum', values: ['withdrawn'], lifecycle: true, description: 'The carrier cancelled / fell off the load or withdrew its quote (value "withdrawn")', topics: ['fell through', 'fall off', 'cancel', 'withdraw'] },
-  { key: 'budget.max_all_in', type: 'money', description: 'Internally approved maximum all-in carrier cost for the load (Acme ops decision)', topics: ['budget', 'approve', 'approval', 'ceiling', 'sign off', 'ok a carrier'] },
-  { key: 'decision.tender', type: 'text', description: 'A decision to book / tender / decline the load (e.g. "booked")', topics: ['book it', 'book the', 'tender', 'confirm the load', 'confirm by', 'still holding', 'want the truck', 'want my truck', 'still want', 'want it', 'are we covered', 'covered yet', 'is it covered'] },
+  { key: 'rate.linehaul', type: 'money', description: 'Carrier linehaul rate for the load in USD (excluding fuel and accessorials)', topics: ['linehaul', 'line haul'], events: { default: 'rate_stated' } },
+  { key: 'rate.fuel_surcharge', type: 'money', description: 'Fuel surcharge for the load in USD (flat amount)', topics: ['fuel', 'fsc'], events: { default: 'rate_stated' } },
+  { key: 'rate.all_in', type: 'money', description: 'All-in carrier rate for the load in USD (linehaul + fuel); for multi-load commitments, per load', topics: ['all-in', 'all in', 'your rate', 'best rate', 'best price', 'quote', 'per load', 'truck for', 'cover'], events: { self: 'rate_offered', counterparty: 'carrier_quote', default: 'rate_stated' } },
+  { key: 'accessorial.detention_per_hour', type: 'money', description: 'Detention pay per hour after free time, USD', topics: ['detention', 'per hour', 'free time'], events: { default: 'accessorial_stated' } },
+  { key: 'pickup.window', type: 'window', description: "Window in which the carrier's truck will be at the shipper to load, local time", topics: ['pickup', 'pick up', 'loading window', 'at the shipper', 'make the window', 'load window', 'shipper\'s window'], events: { default: 'pickup_window_set' } },
+  { key: 'delivery.eta', type: 'datetime', description: "Carrier's committed or currently estimated arrival at the consignee, local time", topics: ['eta', 'deliver', 'arriv', 'on schedule', 'on time', 'where is', 'status'], events: { default: 'eta_updated' } },
+  { key: 'delivery.appointment', type: 'datetime', description: "Delivery appointment at the consignee's dock, set by the receiver, local time", topics: ['appointment', 'appt', 'dock'], events: { default: 'appointment_set' } },
+  { key: 'equipment.type', type: 'enum', values: ['dry_van', 'reefer', 'flatbed'], description: 'Trailer type the carrier will use', topics: ['equipment', 'reefer', 'dry van', 'flatbed', 'trailer'], events: { default: 'equipment_confirmed' } },
+  { key: 'equipment.reefer_temp_f', type: 'number', range: 'any', description: 'Reefer set point in °F the carrier commits to run', topics: ['temp', 'set point', '°f', 'degrees'], events: { default: 'equipment_confirmed' } },
+  { key: 'load.weight_lbs', type: 'number', description: 'Load weight in lbs', topics: ['weight', 'lbs'], events: { default: 'load_details_stated' } },
+  { key: 'capacity.loads', type: 'schedule', unit: 'loads', description: 'Trucks/loads the carrier commits for a multi-load shipment, as {qty, date} with the pickup date of each group', topics: ['trucks', 'loads', 'capacity', 'how many', 'take all', 'cover all', 'all of them'], events: { default: 'capacity_committed' } },
+  { key: 'carrier.mc_number', type: 'text', description: "Carrier's MC (operating authority) number", topics: ['mc number', 'mc#', 'authority'], events: { default: 'carrier_identified' } },
+  { key: 'payment.remit_to', type: 'text', description: 'Where the carrier is paid (the carrier itself or its factoring company)', topics: ['remit', 'factoring', 'bank', 'payment to', 'pay to'], events: { default: 'remit_to_stated' }, sensitive: 'change' },
+  { key: 'payment.terms', type: 'text', description: 'Carrier payment terms, e.g. "Net 30" or "Quick pay 2%, 5 days"', topics: ['payment terms', 'net 30', 'quick pay', 'quickpay'], events: { default: 'payment_terms_stated' } },
+  { key: 'offer.status', type: 'enum', values: ['withdrawn'], lifecycle: true, description: 'The carrier cancelled / fell off the load or withdrew its quote (value "withdrawn")', topics: ['fell through', 'fall off', 'cancel', 'withdraw'], events: { default: 'carrier_fell_off' } },
+  { key: 'budget.max_all_in', type: 'money', description: 'Internally approved maximum all-in carrier cost for the load (Acme ops decision)', topics: ['budget', 'approve', 'approval', 'ceiling', 'sign off', 'ok a carrier'], events: { internal: 'budget_approved', default: 'budget_approved' } },
+  { key: 'decision.tender', type: 'text', description: 'A decision to book / tender / decline the load (e.g. "booked")', topics: ['book it', 'book the', 'tender', 'confirm the load', 'confirm by', 'still holding', 'want the truck', 'want my truck', 'still want', 'want it', 'are we covered', 'covered yet', 'is it covered'], events: { self: 'load_booked', default: 'tender_decision' } },
 ];
 
 const termDef = (key: string) => TERMS.find((t) => t.key === key);
@@ -328,6 +328,7 @@ export const freight: DomainPack = {
   expectedTerms: expectedFrom(TERMS, new Set(['load.weight_lbs', 'carrier.mc_number', 'capacity.loads', 'decision.tender', 'rate.linehaul', 'rate.fuel_surcharge', 'accessorial.detention_per_hour', 'payment.terms', 'delivery.appointment'])),
   decisionKey: 'decision.tender',
   bindingPatterns: BINDING_PATTERNS,
+  trackDocumentRequests: true,
   documentKinds: [
     { kind: 'pod', match: /\bPOD\b|proof of delivery|delivery receipt/i, promise: /\bPODs?\b|proof of delivery/i, multipart: true },
     { kind: 'bol', match: /\bBOL\b|bill of lading/i, promise: /\bBOLs?\b|bill of lading/i, multipart: true },

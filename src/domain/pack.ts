@@ -150,6 +150,8 @@ export interface DomainPack {
   dueOf?(text: string, refIso: string): string | null;
   /** Domain document kinds, checked before the generic ones (quote, invoice, po, ...). */
   documentKinds?: DocumentKind[];
+  /** A request for one of documentKinds opens a loop even when it names no term ("Please send the contract."). */
+  trackDocumentRequests?: boolean;
   /** The offline policy agent's wording for this domain; without it the procurement wording is used. */
   writer?: PolicyWriter;
 }

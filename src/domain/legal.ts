@@ -11,23 +11,23 @@ import { amounts } from './text.ts';
 import { claimCheck, expectedFrom, ownClaim, partiesFor, requirementOf, standardActions, withdrawalCheck } from './common.ts';
 
 export const TERMS: TermDef[] = [
-  { key: 'liability.cap_months_fees', type: 'number', description: "Limitation-of-liability cap, expressed as months of fees paid or payable (12 = twelve months' fees)", topics: ['liability cap', 'the cap', 'cap on liability', 'limitation of liability', '§9.2', "months' fees"] },
-  { key: 'liability.cap_amount', type: 'money', description: 'Limitation-of-liability cap as a fixed amount in USD (only when stated as an amount)', topics: ['cap amount'] },
-  { key: 'indemnity.scope', type: 'text', description: 'What the vendor indemnifies against (e.g. "third-party IP infringement claims")', topics: ['indemn', '§10.1'] },
-  { key: 'term.months', type: 'number', description: 'Initial term of the agreement in months', topics: ['initial term', 'term length', '§12.1', '-month term'] },
-  { key: 'termination.convenience_notice_days', type: 'number', description: 'Days of written notice Acme must give to terminate for convenience', topics: ['termination for convenience', 'terminate for convenience', 'termination notice', '§12.3'] },
-  { key: 'renewal.auto', type: 'enum', values: ['none', 'annual', 'monthly'], description: 'Automatic renewal: none, annual (12-month renewal terms) or monthly', topics: ['auto-renewal', 'automatic renewal', 'renews', 'renewal term', '§12.4'] },
-  { key: 'renewal.notice_days', type: 'number', description: 'Days of notice required to stop an automatic renewal', topics: ['non-renewal', 'renewal notice'] },
-  { key: 'governing.law', type: 'enum', values: ['delaware', 'new_york', 'california', 'england'], description: 'Governing law of the agreement', topics: ['governing law', 'choice of law', '§15.1', 'which law'] },
-  { key: 'payment.net_days', type: 'number', range: 'nonnegative', description: 'Invoice payment terms in days (Net 30 = 30)', topics: ['payment terms', 'net 30', 'net 45', 'net 60', '§6.2'] },
-  { key: 'confidentiality.years', type: 'number', description: 'Years the confidentiality obligations survive termination', topics: ['confidentiality', '§11.4', 'survive'] },
-  { key: 'dpa.status', type: 'enum', values: ['included', 'excluded'], description: 'Whether a Data Processing Addendum is attached to the agreement', topics: ['dpa', 'data processing'] },
-  { key: 'effective.date', type: 'date', description: 'Effective / start date of the agreement', topics: ['effective date', 'start date', 'go-live', 'go live'] },
-  { key: 'signature.status', type: 'enum', values: ['unsigned', 'partially_signed', 'fully_executed'], description: "The vendor side's signature status of the execution version", topics: ['countersign', 'signature page', 'signed pages', 'fully executed'] },
-  { key: 'signature.remaining_by', type: 'date', description: 'Date by which the vendor promises its outstanding signature pages (when it has signed only partly)', topics: [] },
-  { key: 'offer.status', type: 'enum', values: ['withdrawn'], lifecycle: true, description: 'The vendor withdrew its proposal / pulled the deal (value "withdrawn")', topics: ['withdraw', 'pull the deal', 'not proceed'] },
-  { key: 'approval.liability_floor_months', type: 'number', description: "General Counsel's approved minimum liability cap, in months of fees (internal decision)", topics: ['sign-off', 'sign off', 'signoff', 'approve', 'approval', 'comfortable', 'ok to sign', 'green light'] },
-  { key: 'decision.execute', type: 'text', description: 'A decision to accept / sign / execute (or decline) the agreement', topics: ['can we sign', 'ready to sign', 'sign this week', 'execute'] },
+  { key: 'liability.cap_months_fees', type: 'number', description: "Limitation-of-liability cap, expressed as months of fees paid or payable (12 = twelve months' fees)", topics: ['liability cap', 'the cap', 'cap on liability', 'limitation of liability', '§9.2', "months' fees"], events: { self: 'position_proposed', counterparty: 'clause_position', default: 'clause_position' } },
+  { key: 'liability.cap_amount', type: 'money', description: 'Limitation-of-liability cap as a fixed amount in USD (only when stated as an amount)', topics: ['cap amount'], events: { default: 'clause_position' } },
+  { key: 'indemnity.scope', type: 'text', description: 'What the vendor indemnifies against (e.g. "third-party IP infringement claims")', topics: ['indemn', '§10.1'], events: { default: 'clause_position' } },
+  { key: 'term.months', type: 'number', description: 'Initial term of the agreement in months', topics: ['initial term', 'term length', '§12.1', '-month term'], events: { default: 'clause_position' } },
+  { key: 'termination.convenience_notice_days', type: 'number', description: 'Days of written notice Acme must give to terminate for convenience', topics: ['termination for convenience', 'terminate for convenience', 'termination notice', '§12.3'], events: { default: 'clause_position' } },
+  { key: 'renewal.auto', type: 'enum', values: ['none', 'annual', 'monthly'], description: 'Automatic renewal: none, annual (12-month renewal terms) or monthly', topics: ['auto-renewal', 'automatic renewal', 'renews', 'renewal term', '§12.4'], events: { default: 'clause_position' } },
+  { key: 'renewal.notice_days', type: 'number', description: 'Days of notice required to stop an automatic renewal', topics: ['non-renewal', 'renewal notice'], events: { default: 'clause_position' } },
+  { key: 'governing.law', type: 'enum', values: ['delaware', 'new_york', 'california', 'england'], description: 'Governing law of the agreement', topics: ['governing law', 'choice of law', '§15.1', 'which law'], events: { default: 'clause_position' } },
+  { key: 'payment.net_days', type: 'number', range: 'nonnegative', description: 'Invoice payment terms in days (Net 30 = 30)', topics: ['payment terms', 'net 30', 'net 45', 'net 60', '§6.2'], events: { default: 'clause_position' } },
+  { key: 'confidentiality.years', type: 'number', description: 'Years the confidentiality obligations survive termination', topics: ['confidentiality', '§11.4', 'survive'], events: { default: 'clause_position' } },
+  { key: 'dpa.status', type: 'enum', values: ['included', 'excluded'], description: 'Whether a Data Processing Addendum is attached to the agreement', topics: ['dpa', 'data processing'], events: { default: 'dpa_position' } },
+  { key: 'effective.date', type: 'date', description: 'Effective / start date of the agreement', topics: ['effective date', 'start date', 'go-live', 'go live'], events: { default: 'effective_date_set' }, deadline: true },
+  { key: 'signature.status', type: 'enum', values: ['unsigned', 'partially_signed', 'fully_executed'], description: "The vendor side's signature status of the execution version", topics: ['countersign', 'signature page', 'signed pages', 'fully executed'], events: { counterparty: 'vendor_signed', default: 'signature_updated' } },
+  { key: 'signature.remaining_by', type: 'date', description: 'Date by which the vendor promises its outstanding signature pages (when it has signed only partly)', topics: [], events: { default: 'signature_pages_promised' } },
+  { key: 'offer.status', type: 'enum', values: ['withdrawn'], lifecycle: true, description: 'The vendor withdrew its proposal / pulled the deal (value "withdrawn")', topics: ['withdraw', 'pull the deal', 'not proceed'], events: { default: 'deal_withdrawn' } },
+  { key: 'approval.liability_floor_months', type: 'number', description: "General Counsel's approved minimum liability cap, in months of fees (internal decision)", topics: ['sign-off', 'sign off', 'signoff', 'approve', 'approval', 'comfortable', 'ok to sign', 'green light'], events: { internal: 'gc_signed_off', default: 'gc_signed_off' } },
+  { key: 'decision.execute', type: 'text', description: 'A decision to accept / sign / execute (or decline) the agreement', topics: ['can we sign', 'ready to sign', 'sign this week', 'execute'], events: { self: 'agreement_signed', default: 'execution_decision' } },
 ];
 
 const termDef = (key: string) => TERMS.find((t) => t.key === key);
@@ -365,6 +365,7 @@ export const legal: DomainPack = {
   expectedTerms: expectedFrom(TERMS, new Set(['liability.cap_amount', 'indemnity.scope', 'effective.date', 'signature.status', 'signature.remaining_by', 'decision.execute', 'confidentiality.years', 'payment.net_days', 'term.months'])),
   decisionKey: 'decision.execute',
   bindingPatterns: BINDING_PATTERNS,
+  trackDocumentRequests: true,
   documentKinds: [
     { kind: 'signature_pages', match: /signature page|signed page/i, promise: /signature pages?|signed pages?|\b(?:all )?\d+ pages\b/i, multipart: true },
     { kind: 'execution_version', match: /execution (?:version|copy)|clean (?:version|copy)/i, promise: /execution (?:version|copy)|clean (?:version|copy)|signature version/i },

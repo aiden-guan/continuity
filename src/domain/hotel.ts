@@ -11,21 +11,21 @@ import { amounts, bankAccount, fieldValue, labelAmount } from './text.ts';
 import { claimCheck, expectedFrom, ownClaim, partiesFor, requirementOf, standardActions, withdrawalCheck } from './common.ts';
 
 export const TERMS: TermDef[] = [
-  { key: 'rate.group', type: 'money', description: 'Group room rate in USD per room, per night (before tax)', topics: ['your group rate', 'room rate', 'your rate', 'what rate', 'per night', 'per room-night', 'rate?'] },
-  { key: 'block.rooms', type: 'schedule', unit: 'rooms', description: 'Contracted / offered room block: one {qty: rooms, date: night} entry per night', topics: ['room block', 'block', 'rooms on', 'availability', 'add rooms', 'additional rooms', 'more rooms'] },
-  { key: 'attrition.allowance', type: 'percent', description: 'Share of the room block (in %) the group may release without penalty', topics: ['attrition'] },
-  { key: 'cutoff.date', type: 'date', description: 'Reservation cutoff date: unreserved block rooms return to general inventory after it', topics: ['cutoff', 'cut-off', 'cut off'] },
-  { key: 'fnb.minimum', type: 'money', description: 'Food & beverage minimum spend in USD (before service charge and tax)', topics: ['f&b', 'food and beverage', 'food & beverage', 'catering minimum'] },
-  { key: 'meeting.room_rental', type: 'money', range: 'nonnegative', description: 'Meeting-space rental in USD, total for the program', topics: ['meeting room', 'meeting space', 'room rental', 'breakout', 'general session'] },
-  { key: 'deposit.amount', type: 'money', description: 'Deposit amount in USD', topics: ['deposit'] },
-  { key: 'deposit.due', type: 'date', description: 'Date the deposit is due', topics: ['deposit due', 'when is the deposit'] },
-  { key: 'payment.wire_instructions', type: 'text', description: 'Bank account the hotel asks deposits to be wired to, e.g. "Harbor National Bank account ending 4471"', topics: ['wire', 'bank', 'account ending', 'banking'] },
-  { key: 'cancellation.terms', type: 'text', description: 'Cancellation clause (liquidated damages schedule)', topics: ['cancellation', 'cancel policy'] },
-  { key: 'concession.comp_ratio', type: 'text', description: 'Complimentary room ratio, e.g. "1 per 40" (one comp room-night per 40 paid)', topics: ['comp', 'complimentary', 'concession'] },
-  { key: 'offer.hold_until', type: 'date', description: 'Date until which the hotel holds the space on option for the group', topics: ['hold', 'option', 'first option'] },
-  { key: 'offer.status', type: 'enum', values: ['withdrawn'], lifecycle: true, description: 'The hotel released the space or can no longer offer the block (value "withdrawn")', topics: ['release the space', 'no longer available'] },
-  { key: 'budget.max_rate', type: 'money', description: 'Internally approved maximum group rate per room-night (finance decision)', topics: ['budget', 'approve', 'approval', 'sign off', 'ceiling', 'cleared'] },
-  { key: 'decision.contract', type: 'text', description: 'A decision to accept / sign / decline the proposal or contract', topics: ['sign the contract', 'move forward', 'accept the proposal', 'decision'] },
+  { key: 'rate.group', type: 'money', description: 'Group room rate in USD per room, per night (before tax)', topics: ['your group rate', 'room rate', 'your rate', 'what rate', 'per night', 'per room-night', 'rate?'], events: { self: 'rate_proposed', counterparty: 'rate_quoted', default: 'rate_stated' } },
+  { key: 'block.rooms', type: 'schedule', unit: 'rooms', description: 'Contracted / offered room block: one {qty: rooms, date: night} entry per night', topics: ['room block', 'block', 'rooms on', 'availability', 'add rooms', 'additional rooms', 'more rooms'], events: { counterparty: 'block_offered', default: 'block_stated' } },
+  { key: 'attrition.allowance', type: 'percent', description: 'Share of the room block (in %) the group may release without penalty', topics: ['attrition'], events: { default: 'attrition_stated' } },
+  { key: 'cutoff.date', type: 'date', description: 'Reservation cutoff date: unreserved block rooms return to general inventory after it', topics: ['cutoff', 'cut-off', 'cut off'], events: { default: 'cutoff_set' }, deadline: true },
+  { key: 'fnb.minimum', type: 'money', description: 'Food & beverage minimum spend in USD (before service charge and tax)', topics: ['f&b', 'food and beverage', 'food & beverage', 'catering minimum'], events: { default: 'fnb_minimum_stated' } },
+  { key: 'meeting.room_rental', type: 'money', range: 'nonnegative', description: 'Meeting-space rental in USD, total for the program', topics: ['meeting room', 'meeting space', 'room rental', 'breakout', 'general session'], events: { default: 'meeting_rental_stated' } },
+  { key: 'deposit.amount', type: 'money', description: 'Deposit amount in USD', topics: ['deposit'], events: { default: 'deposit_stated' } },
+  { key: 'deposit.due', type: 'date', description: 'Date the deposit is due', topics: ['deposit due', 'when is the deposit'], events: { default: 'deposit_due_set' }, deadline: true },
+  { key: 'payment.wire_instructions', type: 'text', description: 'Bank account the hotel asks deposits to be wired to, e.g. "Harbor National Bank account ending 4471"', topics: ['wire', 'bank', 'account ending', 'banking'], events: { default: 'wire_instructions_received' }, sensitive: 'change' },
+  { key: 'cancellation.terms', type: 'text', description: 'Cancellation clause (liquidated damages schedule)', topics: ['cancellation', 'cancel policy'], events: { default: 'cancellation_terms_stated' } },
+  { key: 'concession.comp_ratio', type: 'text', description: 'Complimentary room ratio, e.g. "1 per 40" (one comp room-night per 40 paid)', topics: ['comp', 'complimentary', 'concession'], events: { default: 'concession_stated' } },
+  { key: 'offer.hold_until', type: 'date', description: 'Date until which the hotel holds the space on option for the group', topics: ['hold', 'option', 'first option'], events: { default: 'option_hold_set' }, deadline: true },
+  { key: 'offer.status', type: 'enum', values: ['withdrawn'], lifecycle: true, description: 'The hotel released the space or can no longer offer the block (value "withdrawn")', topics: ['release the space', 'no longer available'], events: { default: 'space_released' } },
+  { key: 'budget.max_rate', type: 'money', description: 'Internally approved maximum group rate per room-night (finance decision)', topics: ['budget', 'approve', 'approval', 'sign off', 'ceiling', 'cleared'], events: { internal: 'rate_cap_approved', default: 'rate_cap_approved' } },
+  { key: 'decision.contract', type: 'text', description: 'A decision to accept / sign / decline the proposal or contract', topics: ['sign the contract', 'move forward', 'accept the proposal', 'decision'], events: { self: 'contract_signed', counterparty: 'contract_executed', default: 'contract_decision' } },
 ];
 
 const termDef = (key: string) => TERMS.find((t) => t.key === key);
@@ -342,6 +342,7 @@ export const hotel: DomainPack = {
   expectedTerms: expectedFrom(TERMS, new Set(['decision.contract', 'offer.hold_until', 'cancellation.terms', 'concession.comp_ratio', 'meeting.room_rental', 'deposit.amount', 'deposit.due', 'payment.wire_instructions'])),
   decisionKey: 'decision.contract',
   bindingPatterns: BINDING_PATTERNS,
+  trackDocumentRequests: true,
   documentKinds: [
     { kind: 'banquet_event_order', match: /\bBEOs?\b|banquet event order/i, promise: /\bBEOs?\b|banquet event orders?/i, multipart: true },
     { kind: 'rooming_list', match: /rooming list/i, promise: /rooming list/i },
