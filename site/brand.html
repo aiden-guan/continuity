@@ -1,0 +1,56 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Continuity Mark</title>
+<style>
+  body { margin:0; background:#f3f2ee; color:#161513; font:500 11px/1.4 ui-monospace,Menlo,monospace; }
+  .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:rgba(22,21,19,.12); }
+  .cell { background:#f3f2ee; padding:20px; display:grid; gap:14px; }
+  .big { width:340px; height:auto; justify-self:center; overflow:visible; }
+  .row { display:flex; gap:18px; align-items:center; justify-content:center; }
+  .lock { display:inline-flex; gap:8px; align-items:center; font:600 15px/1 system-ui,sans-serif; letter-spacing:-.02em; }
+  .lock svg { height:15px; width:auto; }
+  .dark { background:#161513; color:#f3f2ee; padding:6px 10px; border-radius:6px; }
+  b { color:#7b7871; font-weight:500; }
+</style>
+<div class="grid" id="g"></div>
+<script>
+const P = (1 + Math.sqrt(5)) / 2, O = '#e2501d', f = (n) => +n.toFixed(4);
+// Tile a φ:1 rectangle into squares; each square carries one quarter of the spiral.
+function tiles(n) {
+  let x = 0, y = 0, w = P, h = 1; const out = [];
+  for (let i = 0; i < n; i++) {
+    const k = i % 4; let s, c, a, b;
+    if (k === 0) { s = [x, y, h]; c = [x + h, y + h]; a = [x, y + h]; b = [x + h, y]; x += h; w -= h; }
+    else if (k === 1) { s = [x, y, w]; c = [x, y + w]; a = [x, y]; b = [x + w, y + w]; y += w; h -= w; }
+    else if (k === 2) { s = [x + w - h, y, h]; c = [x + w - h, y]; a = [x + w, y]; b = [x + w - h, y + h]; w -= h; }
+    else { s = [x, y + h - w, w]; c = [x + w, y + h - w]; a = [x + w, y + h]; b = [x, y + h - w]; h -= w; }
+    out.push({ s, c, a, b, r: s[2] });
+  }
+  return out;
+}
+const T = tiles(9);
+const arc = (t) => `A${f(t.r)} ${f(t.r)} 0 0 1 ${f(t.b[0])} ${f(t.b[1])}`;
+const wedge = (t) => `M${f(t.c[0])} ${f(t.c[1])}L${f(t.a[0])} ${f(t.a[1])}${arc(t)}Z`;
+const sq = (t, g = 0) => `<rect x="${f(t.s[0] + g)}" y="${f(t.s[1] + g)}" width="${f(t.s[2] - 2 * g)}" height="${f(t.s[2] - 2 * g)}"/>`;
+const VB = `viewBox="-.04 -.04 ${f(P + .08)} 1.08"`;
+const marks = {};
+// inset a tile's wedge by scaling about the square's centre, so the tiling shows as gaps
+const ins = (t, g) => { const cx = t.s[0] + t.s[2] / 2, cy = t.s[1] + t.s[2] / 2, k = (t.s[2] - g) / t.s[2];
+  const m = (p) => [cx + (p[0] - cx) * k, cy + (p[1] - cy) * k];
+  return { ...t, c: m(t.c), a: m(t.a), b: m(t.b), r: t.r * k }; };
+const B2 = (n, live, g) => `<svg ${VB}><g fill="currentColor">${T.slice(0, n).map((t, i) => i === live ? '' : `<path d="${wedge(ins(t, g))}"/>`).join('')}</g><path fill="${O}" d="${wedge(ins(T[live], g))}"/></svg>`;
+const K = `<g fill="none" stroke="#2f6fd6" stroke-width=".004">${T.map((t) => sq(t)).join('')}
+  <path stroke-dasharray=".02 .014" d="M${f(T[0].a[0])} ${f(T[0].a[1])}${T.map(arc).join('')}"/></g>
+  <g fill="#2f6fd6" font-family="ui-monospace,Menlo,monospace" font-size=".045">
+  <text x=".02" y="-.07">φ = 1.618…</text><text x=".44" y=".52">1</text><text x="1.26" y=".32">1/φ</text>
+  <text x="1.38" y=".82">1/φ²</text><text x="1.06" y=".93" font-size=".03">1/φ³</text></g>`;
+marks['construction'] = () => B2(5, 4, .05).replace('</svg>', K + '</svg>');
+marks['continuity'] = () => B2(5, 4, .05);
+const g = document.getElementById('g');
+for (const [k, fn] of Object.entries(marks)) {
+  const s = fn(), c = document.createElement('div'); c.className = 'cell';
+  c.innerHTML = `<b>${k}</b>${s.replace('<svg', '<svg class="big"')}
+    <div class="row"><span class="lock">${s}Continuity</span><span class="lock dark">${s}Continuity</span></div>`;
+  g.append(c);
+}
+</script>
