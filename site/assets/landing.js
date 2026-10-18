@@ -10,6 +10,7 @@ import { dither } from './dither.js';
 import { setupTheme, token } from './theme.js';
 import { splitWords, scramble, countUp, setupNavThread, stillMotion } from './motion.js';
 import { setupHeroParticles } from './particles.js';
+import { setupSwarm } from './swarm.js';
 import { setupMechanism } from './mechanism.js';
 import { setupRelay } from './relay.js';
 
@@ -387,6 +388,7 @@ function setupWordmark() {
 
 setupTheme();
 setupChrome();
+setupSwarm(one('.ann'));
 const heroThread = setupHeroThread(one('#hero-thread'));
 if (document.documentElement.classList.contains('px')) {
   setupHeroParticles({ hero: one('.hero'), line: one('.h-forget'), thread: one('#hero-thread'), nodes: HERO_EVENTS.map((e) => e.at), head: heroThread.head });
