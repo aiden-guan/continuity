@@ -234,7 +234,7 @@ const SER = {
   'primitive-native': { label: 'Primitive only (6 read tools)', color: 'var(--s-prim)', dash: '' },
   'full-history': { label: 'Full history in context', color: 'var(--s-full)', dash: '6 4' },
   'rolling-summary': { label: 'Rolling summary', color: 'var(--s-sum)', dash: '2 3' },
-  'agent-notes': { label: 'Model-kept notes', color: 'var(--s-notes)', dash: '8 3 2 3' },
+  'agent-notes': { label: 'Model-kept notes (latest state)', color: 'var(--s-notes)', dash: '8 3 2 3' },
   'continuity-briefing': { label: 'Continuity briefing', color: 'var(--signal)', dash: '4 3', sig: true },
   'continuity-history': { label: 'Continuity briefing + as-of replay', color: 'var(--signal)', dash: '', sig: true },
   'oracle': { label: 'True state given (bare list)', color: 'var(--s-oracle)', dash: '1 4' },
