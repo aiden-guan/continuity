@@ -72,7 +72,10 @@ test('the full deal room: fresh agents negotiate from compiled state and accept 
   assert.ok(h2.checks().every((x) => x.status === 'pass'));
   assert.equal(h2.artifacts().find((x) => x.filename === 'Crestline-Counter-ELM-42.pdf')?.status, 'superseded');
   assert.ok(h2.obligations().every((o) => o.status !== 'open'), 'every promise and question closed');
-  assert.equal(h2.context().next_actor, 'none');
+  // accepted, but a home purchase is not done until it is executed and closed: the next move is the seller's
+  const after = h2.context();
+  assert.equal(after.next_actor, 'them');
+  assert.match(after.next_actor_reason, /Accepted; waiting on listing agent for the executed contract and closing/);
 });
 
 test('typed timeline: ordered, typed, sourced; the terms at any moment are a step function', async () => {

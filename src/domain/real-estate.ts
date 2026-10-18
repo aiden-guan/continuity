@@ -311,6 +311,7 @@ export const realEstate: DomainPack = {
     .map((party) => ({ party, keys: ['price.purchase', 'closing.date'] })),
   decisionKey: 'decision.accept',
   ourOfferTerms: ['price.', 'closing.', 'contingency.'],
+  afterAcceptance: 'the executed contract and closing',
   bindingPatterns: [
     /\b((?:we|our buyer) (?:hereby )?accepts?\b|accept(?:s|ed)? (?:the|your|this) (?:counter|offer|price|terms)\b|we agree to (?:the|your) (?:counter|price|terms)|(?:wire|release) (?:the )?(?:earnest money|deposit|funds)|waive (?:the )?(?:inspection |appraisal )?contingenc(?:y|ies))/gi,
   ],

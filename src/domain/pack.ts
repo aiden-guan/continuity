@@ -133,6 +133,9 @@ export interface DomainPack {
    *  "we counter at $945,000, closing Dec 18"). Elsewhere what we write is an ask, not an offer, and only our
    *  decisions apply. Never a term our own side decides (a ceiling we quote is not the approver's budget). */
   ourOfferTerms?: string[];
+  /** What a deal still waits on from the other side once we have accepted ("the executed contract and closing");
+   *  unset when accepting finishes it (a confirmed order has nothing outstanding). */
+  afterAcceptance?: string;
   /** Term-key prefixes a withdrawal retracts (default: every offer term of the speaker). Withdrawing an
    *  early-payment offer does not withdraw the invoice it was made on. */
   withdrawable?: string[];

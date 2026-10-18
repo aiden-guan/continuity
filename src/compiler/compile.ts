@@ -10,7 +10,7 @@ import type { StateStore } from '../store/state.ts';
 import type { Artifact, CheckResult, Claim, Obligation, StoredEvent, TaskSpec, Transition } from '../types.ts';
 import { isOpen, labelOf, partyOf } from '../engine/resolver.ts';
 import { openApprovals } from '../engine/approval-log.ts';
-import { domainFor, termOf, type SuggestedAction } from '../domain/pack.ts';
+import { domainFor, outcomeOf, termOf, type SuggestedAction } from '../domain/pack.ts';
 import '../domain/index.ts';
 import { stripQuoted } from '../extract/heuristic.ts';
 import { nowIso } from '../clock.ts';
@@ -585,10 +585,15 @@ function suggestActions(store: StateStore, task: TaskSpec, s: SuggestInput) {
   const waitingOn = s.openObs.filter((o) => o.debtor !== self);
   const urgent = actions.filter((a) => a.priority === 1);
   const decided = !!pack.decisionKey && s.live.some((c) => c.key === pack.decisionKey && c.speaker === self && c.value !== 'declined');
-  const next_actor: NextActor = urgent.length ? 'us' : waitingOn.length ? 'them' : 'none';
+  // after we accept, a deal that still has to be executed and closed (a home purchase) waits on the other side;
+  // one that is done once we accept (a confirmed order) has nothing outstanding
+  const counterparty = task.participants.find((p) => p.role === 'counterparty');
+  const awaitingClose = decided && !!pack.afterAcceptance && !!counterparty && outcomeOf(pack, task, s.live) === 'accepted';
+  const next_actor: NextActor = urgent.length ? 'us' : waitingOn.length || awaitingClose ? 'them' : 'none';
   let reason: string;
   if (urgent.length) reason = `We need to act: ${urgent.map((a) => a.action).join(' | ')}`;
   else if (waitingOn.length) reason = `Waiting on: ${waitingOn.map((o) => `${label(o.debtor)} (${o.text})`).join('; ')}`;
+  else if (awaitingClose) reason = `Accepted; waiting on ${label(counterparty!.address)} for ${pack.afterAcceptance}`;
   else reason = decided ? 'Decision recorded; nothing outstanding' : 'Nothing outstanding';
   return { next_actor, reason, actions };
 }
