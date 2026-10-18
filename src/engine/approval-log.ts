@@ -133,6 +133,28 @@ export function approvalsForTask(store: StateStore, taskId: string, now = nowIso
   return list;
 }
 
+/**
+ * The tasks whose transition log has a card that is open as recorded: opened, and not followed by an
+ * approval_expired or by an approval_decided other than "held" (the same fold as approvalsForTask).
+ * A superset of the tasks with open approvals: expiry by time and staleness are judged after loading.
+ * Backends answer the same question in SQL (Backend.openApprovalTaskIds); this is the reference.
+ */
+export function openApprovalTaskIds(transitions: Iterable<Transition>): string[] {
+  const cards = new Map<string, { task_id: string; open: boolean }>();
+  for (const t of [...transitions].sort((x, y) => x.seq - y.seq)) {
+    if (t.type === APPROVAL_REQUESTED || (t.type === HELD_FOR_VERIFICATION && t.subject_id)) {
+      cards.set(approvalId(t.seq), { task_id: t.task_id, open: true });
+      continue;
+    }
+    if (t.type !== APPROVAL_DECIDED && t.type !== APPROVAL_EXPIRED) continue;
+    const d = t.detail as { approval_id?: string; status?: string };
+    const card = cards.get(String(d.approval_id ?? t.subject_id ?? ''));
+    if (!card || card.task_id !== t.task_id) continue;
+    card.open = t.type === APPROVAL_DECIDED && d.status === 'held';
+  }
+  return [...new Set([...cards.values()].filter((c) => c.open).map((c) => c.task_id))];
+}
+
 /** Cards a human still has to decide (pending, or held while someone verifies). */
 export function openApprovals(store: StateStore, taskId: string, now = nowIso()): Approval[] {
   return approvalsForTask(store, taskId, now).filter((a) => OPEN_STATUSES.includes(a.status));

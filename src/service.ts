@@ -532,7 +532,12 @@ export class Continuity {
   /** Approvals with their cards: open ones (pending, or held to verify), or all with `all`. */
   async approvals(org: string, opts: { taskId?: string; all?: boolean; allowTask?: (taskId: string) => boolean } = {}) {
     const allow = opts.allowTask ?? (() => true);
-    const tasks = opts.taskId ? [await this.task(org, opts.taskId)] : (await this.backend.listTasks(org)).map((t) => t.spec);
+    let tasks = opts.taskId ? [await this.task(org, opts.taskId)] : (await this.backend.listTasks(org)).map((t) => t.spec);
+    if (!opts.taskId && !opts.all) {
+      // load only the tasks whose log has a card still open as recorded, not every task of the org
+      const candidates = new Set(await this.backend.openApprovalTaskIds(org));
+      tasks = tasks.filter((t) => candidates.has(t.id));
+    }
     const out: ReturnType<Continuity['approvalView']>[] = [];
     for (const task of tasks.filter((t) => allow(t.id))) {
       const snap = await this.backend.loadTask(org, task.id);

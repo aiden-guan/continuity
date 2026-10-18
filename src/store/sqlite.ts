@@ -51,6 +51,8 @@ CREATE TABLE IF NOT EXISTS transitions (
   seq INTEGER PRIMARY KEY AUTOINCREMENT, task_id TEXT NOT NULL, event_id TEXT, at TEXT NOT NULL, type TEXT NOT NULL,
   subject_id TEXT, summary TEXT NOT NULL, detail_json TEXT NOT NULL
 );
+CREATE INDEX IF NOT EXISTS transitions_approval ON transitions(type, task_id, seq)
+  WHERE type IN ('approval_requested', 'claim_held_for_verification', 'approval_decided', 'approval_expired');
 CREATE TABLE IF NOT EXISTS checks (task_id TEXT NOT NULL, id TEXT NOT NULL, json TEXT NOT NULL, PRIMARY KEY (task_id, id));
 CREATE TABLE IF NOT EXISTS flags (id TEXT PRIMARY KEY, task_id TEXT, event_id TEXT NOT NULL, kind TEXT NOT NULL, detail TEXT NOT NULL, at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS cursors (agent_id TEXT NOT NULL, task_id TEXT NOT NULL, last_seq INTEGER NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY (agent_id, task_id));
@@ -404,6 +406,19 @@ export class SqliteBackend implements Backend {
     if (instance) s.meta.set('instance_id', instance.value);
     s.discardDelta();
     return s;
+  }
+
+  async openApprovalTaskIds(org: string): Promise<string[]> {
+    this.#checkOrg(org);
+    // a card stays open unless the latest decision/expiry naming it (after it, same task) closed it
+    const rows = this.#q(`SELECT DISTINCT o.task_id FROM transitions o
+      WHERE (o.type = 'approval_requested' OR (o.type = 'claim_held_for_verification' AND o.subject_id IS NOT NULL))
+        AND COALESCE((SELECT c.type = 'approval_decided' AND COALESCE(json_extract(c.detail_json, '$.status'), '') = 'held'
+          FROM transitions c
+          WHERE c.type IN ('approval_decided', 'approval_expired') AND c.task_id = o.task_id AND c.seq > o.seq
+            AND COALESCE(json_extract(c.detail_json, '$.approval_id'), c.subject_id) = 'ap_' || o.seq
+          ORDER BY c.seq DESC LIMIT 1), 1)`).all() as Row[];
+    return rows.map((r) => String(r.task_id));
   }
 
   // ------------------------------------------------------------------ commit

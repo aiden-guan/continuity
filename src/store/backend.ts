@@ -172,6 +172,13 @@ export interface Backend {
 
   // versioned task state
   loadTask(org: string, taskId: string): Promise<TaskSnapshot>;
+  /**
+   * Tasks with an approval card open as recorded in their transition log: an approval_requested or
+   * claim_held_for_verification not yet followed by approval_expired or by an approval_decided other
+   * than "held" (src/engine/approval-log.ts openApprovalTaskIds). A superset of the tasks with open
+   * approvals: expiry by time and staleness need the loaded task. Unordered.
+   */
+  openApprovalTaskIds(org: string): Promise<string[]>;
   commit<T>(snap: TaskSnapshot, mutate: (s: MemoryStore) => T, opts?: CommitOptions): Promise<CommitResult<T>>;
 
   // durable jobs

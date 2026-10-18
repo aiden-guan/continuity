@@ -7,6 +7,7 @@ import type {
 } from './backend.ts';
 import type { EventInput, StoredEvent, TaskSpec } from '../types.ts';
 import { stripAttachmentBytes } from './rows.ts';
+import { openApprovalTaskIds } from '../engine/approval-log.ts';
 
 const httpError = (message: string, status: number) => Object.assign(new Error(message), { status });
 const key = (...parts: (string | number)[]) => parts.join('\u0000');
@@ -180,6 +181,8 @@ export class MemoryBackend implements Backend {
     if (!auth.getTask(taskId)) throw httpError(`unknown task ${taskId}`, 404);
     return { org, taskId, version: auth.stateVersion(taskId), store: this.#workingSet(org, taskId) };
   }
+
+  async openApprovalTaskIds(org: string) { return openApprovalTaskIds(this.org(org).transitions); }
 
   async commit<T>(snap: TaskSnapshot, mutate: (s: MemoryStore) => T, opts: CommitOptions = {}): Promise<CommitResult<T>> {
     const auth = this.org(snap.org);
