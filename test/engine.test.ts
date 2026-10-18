@@ -323,3 +323,26 @@ test('our conditional promises ("pay on invoice") are tracked but not urgent', a
   assert.equal(reminder.priority, 3);
   assert.notEqual(ctx.next_actor, 'us');
 });
+
+test('a colleague re-sending the replaced quote "for your files" changes nothing', async () => {
+  const cs = 'cs@northwind.example';
+  const task = procurementTask(addr);
+  const group = task.participants.find((p) => p.address === addr.supplier)!.group;
+  task.participants.push({ address: cs, name: 'Northwind CS', role: 'counterparty', label: 'supplier CS', authority: ['price.', 'delivery.', 'order.', 'payment.', 'quote.'], group });
+  const h = new Harness(task);
+  const rfq = await h.out(addr.supplier, 'RFQ — PO-4817', 'Hi Dana, please quote 500 units.', '2026-10-19T09:00:00Z');
+  const pdf = (bytes: Buffer, filename: string) => [{ filename, content_type: 'application/pdf', bytes }];
+  await h.in({ from: addr.supplier, fromName: 'Dana', to: addr.self, subject: 'Re: RFQ — PO-4817', body: 'Quote attached.', at: '2026-10-19T10:00:00Z', threadKey: 's', inReplyTo: rfq.messageId, attachments: pdf(quoteV1(), 'Q-2291.pdf') });
+  await h.in({ from: addr.supplier, fromName: 'Dana', to: addr.self, subject: 'Re: RFQ — PO-4817', body: 'Revised quote attached.', at: '2026-10-20T10:00:00Z', threadKey: 's', inReplyTo: rfq.messageId, attachments: pdf(quoteV2(), 'Q-2291-rev2.pdf') });
+  const before = h.claims().filter((c) => c.status === 'active').map((c) => [c.speaker, c.key, JSON.stringify(c.value)].join(' ')).sort();
+
+  await h.in({ from: cs, fromName: 'Northwind CS', to: addr.self, subject: 'FW: RE: RFQ — PO-4817', body: 'Dana asked me to send the quote paperwork for your files.\n\n -----Original Message-----\nFrom: \tRuiz, Dana\nSent:\tMonday, October 19, 2026 10:00 AM\n\nQuote attached.', at: '2026-10-21T10:00:00Z', threadKey: 'cs', attachments: pdf(quoteV1(), 'Q-2291.pdf') });
+
+  const copy = h.artifacts().filter((x) => x.filename === 'Q-2291.pdf').at(-1)!;
+  assert.equal(copy.status, 'superseded');
+  const fromCs = h.claims().filter((c) => c.speaker === cs);
+  assert.ok(fromCs.length > 0 && fromCs.every((c) => c.status === 'superseded' && /copy of Q-2291\.pdf, which was already replaced/.test(c.supersede_reason!)));
+  assert.equal(h.claims().filter((c) => c.status === 'contested').length, 0, 'the old terms do not contest the current ones');
+  const after = h.claims().filter((c) => c.status === 'active').map((c) => [c.speaker, c.key, JSON.stringify(c.value)].join(' ')).sort();
+  assert.deepEqual(after, before);
+});

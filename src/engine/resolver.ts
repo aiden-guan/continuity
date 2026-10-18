@@ -163,8 +163,21 @@ export function applyProposal(inp: ApplyInput) {
   }
 
   // ---- 1. artifacts: a newer doc of the same kind from the same owner replaces the older one
+  // a byte-identical copy of a document already replaced ("for your files", the original quote re-sent after
+  // the revision) is history: it is superseded on arrival, and nothing it says applies (see 2)
+  const staleCopies = new Map<string, Artifact>();
+  for (const incoming of inp.artifacts) {
+    const original = store.artifactsForTask(task.id).find((x) => x.id !== incoming.id && x.event_id !== incoming.event_id && x.sha256 === incoming.sha256 && x.status === 'superseded');
+    if (original) staleCopies.set(incoming.filename, original);
+  }
   for (const incoming of inp.artifacts) {
     log('artifact_added', `${who} sent ${incoming.filename} (${incoming.kind}${incoming.version_label ? ` ${incoming.version_label}` : ''})`, incoming.id);
+    const original = staleCopies.get(incoming.filename);
+    if (original) {
+      store.updateArtifact(incoming.id, 'superseded', original.superseded_by ?? null);
+      log('artifact_superseded', `${incoming.filename} is a copy of ${original.filename}, which was already replaced`, incoming.id, { by: original.superseded_by ?? null, copy_of: original.id });
+      continue;
+    }
     if (!verified) continue; // an unproven sender cannot retire the current document
     for (const earlier of store.artifactsForTask(task.id)) {
       if (earlier.id === incoming.id) continue;
@@ -249,6 +262,7 @@ export function applyProposal(inp: ApplyInput) {
     const artifact = pc.from_attachment ? artifactNamed.get(pc.from_attachment) ?? null : null;
     const artifactId = artifact?.id ?? null;
     const display = pack.displayValue(pc.key, value);
+    const staleCopy = pc.from_attachment ? staleCopies.get(pc.from_attachment) : undefined;
     const base = {
       task_id: task.id, key: pc.key, value, display, kind: pc.kind, speaker, source_event_id: event.id,
       source_artifact_id: artifactId, evidence: pc.evidence, superseded_by: null, supersede_reason: null,
@@ -256,6 +270,14 @@ export function applyProposal(inp: ApplyInput) {
     };
     const attachEvidence = (claimId: string) => store.addClaimEvidence(claimId, event.id, artifactId, pc.evidence);
     const isLifecycle = lifecycleKeys.has(pc.key);
+
+    // 1'. read from a copy of a document that was already replaced: recorded as history, never applied
+    if (staleCopy) {
+      const late = store.insertClaim({ ...base, status: 'superseded', supersede_reason: `from ${pc.from_attachment}, a copy of ${staleCopy.filename}, which was already replaced` });
+      attachEvidence(late.id);
+      log('stale_evidence', `${pc.key} = ${display} from ${who}'s copy of the replaced ${staleCopy.filename}; not applied`, late.id);
+      continue;
+    }
 
     let authoritative = false;
     if (whoParty && verified) {
