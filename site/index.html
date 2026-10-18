@@ -65,7 +65,7 @@
         <div class="hero-grid">
           <h1 class="hero-h"><span class="h-forget"><span class="pw">Agents</span> <span class="pw">forget.</span></span><br><span class="h-keep">The thread doesn’t.</span></h1>
           <div class="hero-side reveal" style="--d:.08s">
-            <p class="lede">Continuity keeps a living state for every conversation your agents have. When one dies, the next picks up exactly where it stopped.</p>
+            <p class="lede">Agents read where things stand, not the whole thread.</p>
             <div class="cta-row">
               <a class="btn primary" href="live.html">See it live <span class="arrow">→</span></a>
               <a class="btn" href="#story">Watch the replay</a>
@@ -80,7 +80,9 @@
         </div>
         <figcaption class="wrap">
           <span class="fig-n">Fig. 1</span>
-          <span>One thread, three agents. Agent A is killed mid-deal. B and C wake with no memory and resume from state.</span>
+          <span class="fig-t">One thread, three agents. Context stays flat.</span>
+          <!-- ticks with the playhead (landing.js · heroReadout) -->
+          <span class="hero-read" aria-hidden="true"><span>msgs <b data-msgs>10</b></span><span>context <b data-ctx>1.0k</b> tok</span></span>
         </figcaption>
       </figure>
     </header>
@@ -90,14 +92,14 @@
       <div class="wrap sec-grid">
         <div class="sec-k reveal"><span class="n">01</span><span class="t">The problem</span></div>
         <div class="sec-body">
-          <h2 class="h2 reveal">When an agent dies, the next one starts from&nbsp;zero.</h2>
-          <p class="body-l reveal">Real conversations run for weeks. Agents don’t. A replacement agent inherits an inbox, not an understanding. It doesn’t know that:</p>
-          <ol class="ledger reveal">
-            <li><span class="n">a</span><span class="t">The delivery date changed.</span><code>delivery.schedule · superseded</code></li>
-            <li><span class="n">b</span><span class="t">The supplier still owes us a revised quote.</span><code>open loop · supplier</code></li>
-            <li><span class="n">c</span><span class="t">Finance already approved the budget.</span><code>answered · do not re-ask</code></li>
+          <h2 class="h2 reveal">Long threads break&nbsp;agents.</h2>
+          <!-- each meter morphs from --a to --b: an agent that rereads the whole thread, as the thread grows (bench/value) -->
+          <ol class="ledger woes reveal">
+            <li style="--a:.34;--b:1"><span class="n">a</span><span class="t">Cost grows.</span><span class="meter" aria-hidden="true"><i></i></span><code>2.4k → 7.1k tokens</code></li>
+            <li style="--a:.72;--b:.33"><span class="n">b</span><span class="t">Accuracy drops.</span><span class="meter" aria-hidden="true"><i></i></span><code>72% → 33% right</code></li>
+            <li style="--a:1;--b:0"><span class="n">c</span><span class="t">Handoffs reset.</span><span class="meter" aria-hidden="true"><i></i></span><code>memory → 0</code></li>
           </ol>
-          <p class="aside reveal">Rereading the whole thread works until it doesn’t: it’s slow, expensive, and the model still misses the correction on page nine.</p>
+          <p class="source reveal">Agent rereads the whole thread · +120 emails · 6 changes deep</p>
         </div>
       </div>
     </section>

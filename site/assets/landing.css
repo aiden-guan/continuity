@@ -190,6 +190,13 @@
 
 .fig.hero-fig { margin-top: 0; }
 .hero-fig canvas { display: block; width: 100%; height: clamp(132px, 20vh, 240px); }
+/* the message count runs away; the context beside it barely moves */
+.hero-fig figcaption { flex-wrap: wrap; }
+.hero-fig .fig-t { flex: 1 1 0; min-width: 0; }
+.hero-read { display: flex; gap: 16px; font-variant-numeric: tabular-nums; }
+@media (max-width: 620px) { .hero-read { flex-basis: 100%; padding-left: calc(6ch + 14px); } }
+.hero-read b { font-weight: 500; color: var(--ink); }
+.hero-read [data-msgs] { display: inline-block; min-width: 3ch; text-align: right; }
 
 /* ============================================================ figures */
 .fig { margin: clamp(48px, 7vw, 80px) 0 0; }
@@ -293,16 +300,32 @@
 .ledger .n { font: 500 12px var(--mono); color: var(--muted); }
 .ledger .t { font-size: clamp(18px, 1.7vw, 22px); letter-spacing: -0.02em; }
 .ledger code { font-size: 12px; color: var(--muted); }
-.aside {
-  max-width: 56ch;
-  margin: 24px 0 0;
-  font-size: 15px;
-  line-height: 1.6;
-  color: var(--muted);
+
+/* the three costs of a long thread: each meter lands at its "before", then slides to its "after" */
+.woes li { grid-template-columns: 28px minmax(0, 1fr) clamp(90px, 16vw, 200px) 19ch; align-items: center; }
+.woes code { text-align: right; font-variant-numeric: tabular-nums; }
+.meter { position: relative; height: 6px; overflow: hidden; background: var(--line); }
+.meter i {
+  position: absolute;
+  inset: 0;
+  background: var(--ink);
+  transform: scaleX(var(--a));
+  transform-origin: left;
+  transition: transform 1.4s var(--ease), background-color 0.6s var(--ease);
 }
+.woes.in .meter i { transform: scaleX(var(--b)); background-color: var(--signal); }
+.woes li:nth-child(1) .meter i { transition-delay: 0.9s; }
+.woes li:nth-child(2) .meter i { transition-delay: 1.05s; }
+.woes li:nth-child(3) .meter i { transition-delay: 1.2s; }
+.woes + .source { margin-top: 16px; }
+
 @media (max-width: 620px) {
   .ledger li { grid-template-columns: 22px 1fr; }
   .ledger code { grid-column: 2; }
+  .woes li { grid-template-columns: 22px minmax(0, 1fr) 132px; row-gap: 10px; }
+  .woes .t { grid-column: 2 / -1; }
+  .woes .meter { grid-column: 2; }
+  .woes code { grid-column: 3; }
 }
 
 /* ============================================================ 02 · mechanism (email → state diff) */

@@ -77,11 +77,30 @@ const HERO_EVENTS = [
 ];
 const HERO_AGENTS = [
   { name: 'agent-a', start: 0.03, end: 0.33, dies: true },
-  { name: 'agent-b', start: 0.645, end: 0.74, note: 'memory 0 · 1.4k tok' },
+  { name: 'agent-b', start: 0.645, end: 0.74, note: 'memory 0' },
   { name: 'agent-c', start: 0.875, end: 0.955, note: 'memory 0' },
 ];
 const HERO_GAP = { start: 0.33, end: 0.645 };
 const HERO_LOOP_MS = 17000;
+// Fig. 1's readout: [messages, briefing tokens] as one thread grows (eval/results/scale.json)
+const HERO_SCALE = [[10, 989], [17, 1058], [37, 1165], [73, 1375], [137, 1481], [267, 1596]];
+
+function heroReadout(fig) {
+  const msgs = one('[data-msgs]', fig);
+  const tokens = one('[data-ctx]', fig);
+  let last = -1;
+  return (head) => {
+    const n = Math.round(10 + head * 257);
+    if (n === last) return;
+    last = n;
+    const i = HERO_SCALE.findIndex(([m]) => m >= n);
+    const [m1, t1] = HERO_SCALE[Math.max(0, i - 1)];
+    const [m2, t2] = HERO_SCALE[i];
+    const t = m2 === m1 ? t2 : t1 + ((t2 - t1) * (n - m1)) / (m2 - m1);
+    msgs.textContent = n;
+    tokens.textContent = `${(t / 1000).toFixed(1)}k`;
+  };
+}
 
 // colours are read from the theme tokens, and re-read when the theme changes
 function readInk() {
@@ -99,6 +118,7 @@ function setupHeroThread(canvas) {
   let lastHead = 0;
   let frameId = 0;
   let inView = true;
+  const readout = heroReadout(canvas.closest('figure'));
   const epoch = performance.now();
   const kick = () => { if (!frameId) frameId = requestAnimationFrame(frame); };
 
@@ -143,6 +163,7 @@ function setupHeroThread(canvas) {
     const head = Math.min(1, phase * 1.07); // reaches the end early and holds there
     const alpha = phase > 0.95 ? 1 - (phase - 0.95) / 0.05 : phase < 0.02 ? phase / 0.02 : 1;
     if (head < lastHead) sparks = []; // the loop restarted
+    readout(head);
 
     const small = W < 720;
     const margin = Math.max(20, Math.min(W * 0.05, 64));
