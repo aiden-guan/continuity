@@ -5,7 +5,8 @@
 // one number, t, between home (0) and the thread (1):
 //   · on load the letters rise out of the Fig. 1 thread (t falls from 1 to 0)
 //   · scrolling dissolves the line back down, right to left, pooling into the event nodes Fig. 1
-//     has already reached (lit ink) — so where the streams go depends on how far its loop has run
+//     has already reached (lit ink) — so where the streams go depends on how far its loop has run.
+//     A particle picks its node when it starts moving and keeps it until it is home again.
 //   · a few particles of "forget." keep drifting off and coming back
 //   · the pointer pushes particles aside; they spring home
 // Position is a pure function of t and the clock, so scrolling back up reassembles the line.
@@ -170,7 +171,6 @@ export function setupHeroParticles({ hero, line, thread, nodes = [], head = () =
     const since = now - introAt;
     const at = head(now);
     const lit = litNodes(at);
-    const follow = 1 - Math.exp(-dt / 320); // in-flight particles drift to a newly lit node
 
     ctx.fillStyle = ink;
     ctx.beginPath(); // every fully opaque particle goes into one path
@@ -188,7 +188,9 @@ export function setupHeroParticles({ hero, line, thread, nodes = [], head = () =
       if (t > 0) moving = true;
 
       const goal = targetX(p.across, lit, at) + p.jx;
-      p.tx = t > 0 ? p.tx + (goal - p.tx) * follow : goal;
+      // a node lit mid-flight doesn't pull particles over: the choice holds until they are home
+      if (!p.locked || t === 0) p.tx = goal;
+      p.locked = t > 0;
 
       const e = easeInOut(t);
       const arc = Math.sin(Math.PI * t) * p.swirl;
