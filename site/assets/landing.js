@@ -1,16 +1,21 @@
-// The story page. Five pieces:
-//   1. nav that turns solid after the fold, active section links, reveal-on-scroll
-//   2. hero thread: a looping canvas drawing of agents living and dying on one line
-//   3. the replayed demo: sticky thread + state readout driven by real engine output (snapshot.json)
-//   4. results: the cell meters
-//   5. footer wordmark, dithered — the page's one dithered moment, kept quiet
+// The story page. Its pieces:
+//   1. nav that turns solid after the fold, a scroll thread, active section links, reveal-on-scroll
+//      (headings rise word by word, section labels decode)
+//   2. hero: "Agents forget." as particles (particles.js) over a looping canvas of agents on one thread
+//   3. Fig. 2, the email → state sequence (mechanism.js)
+//   4. the replayed demo: sticky thread + state readout driven by real engine output (snapshot.json)
+//   5. results: Fig. 3 to scale (tokenfield.js), counters and cell meters
+//   6. footer wordmark, dithered — the page's one dithered moment, kept quiet
 import { dither } from './dither.js';
 import { threadSVG, eventLabel, esc } from './board.js';
 import { setupTheme, token } from './theme.js';
+import { splitWords, scramble, countUp, setupNavThread, stillMotion } from './motion.js';
+import { setupHeroParticles } from './particles.js';
+import { setupMechanism } from './mechanism.js';
+import { setupTokenField } from './tokenfield.js';
 
 const one = (sel, root = document) => root.querySelector(sel);
 const all = (sel, root = document) => Array.from(root.querySelectorAll(sel));
-const stillMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const MONO_11 = '400 11px "Geist Mono", ui-monospace, monospace';
 const MONO_12 = '500 12px "Geist Mono", ui-monospace, monospace';
@@ -21,15 +26,27 @@ function setupChrome() {
   const onScroll = () => nav.classList.toggle('solid', scrollY > 24);
   addEventListener('scroll', onScroll, { passive: true });
   onScroll();
+  setupNavThread(nav);
+
+  // headings rise word by word; the words carry their own stagger
+  all('.h2, .end-line, .h-keep').forEach(splitWords);
 
   const watcher = new IntersectionObserver((entries) => {
     for (const entry of entries) {
       if (!entry.isIntersecting) continue;
-      entry.target.classList.add('in');
-      watcher.unobserve(entry.target);
+      const el = entry.target;
+      el.classList.add('in');
+      watcher.unobserve(el);
+      const label = el.matches('.sec-k') && one('.t', el);
+      if (label) scramble(label, label.textContent, { duration: 650, delay: 120 });
+      if (el.matches('.metric')) all('.bar-row b', el).forEach((b, i) => countUp(b, { delay: 250 + i * 120 }));
+      if (el.matches('.ledger')) all('code', el).forEach((c, i) => scramble(c, c.textContent, { duration: 600, delay: 400 + i * 140 }));
     }
   }, { rootMargin: '0px 0px -8% 0px' });
   all('.reveal').forEach((el) => watcher.observe(el));
+
+  // the hero's second line rises as soon as the type is ready
+  (document.fonts?.ready ?? Promise.resolve()).then(() => one('.h-keep')?.classList.add('in'));
 
   // the nav link for the section under the reading line
   const links = all('.nav-links a');
@@ -376,8 +393,11 @@ async function setupStory() {
     const c = snap.as_of[beat.at]?.context;
     const model = { slots: nodes.length, nodes: nodes.map((n, k) => ({ ...n, hot: k === beat.hot })), head: beat.head, agents: beat.agents, gaps: beat.gaps };
     threadBox.innerHTML = threadSVG(model, { width: Math.max(320, threadBox.clientWidth), height: 150, labels: innerWidth > 520 });
+    const before = one('.actor', mini)?.textContent;
     mini.className = `mini ${(c?.checks ?? []).some((x) => x.status === 'fail') ? 'bad' : ''}`;
     mini.innerHTML = miniMarkup(c);
+    const actor = one('.actor', mini);
+    if (before && actor.textContent !== before) actor.classList.add('roll');
     one('#stage-v').textContent = `${beat.at} · state v${c?.meta?.state_version ?? '—'}`;
     steps.forEach((s) => s.classList.toggle('on', Number(s.dataset.i) === i));
   }
@@ -449,6 +469,11 @@ function setupWordmark() {
 setupTheme();
 setupChrome();
 setupHeroThread(one('#hero-thread'));
+if (document.documentElement.classList.contains('px')) {
+  setupHeroParticles({ hero: one('.hero'), line: one('.h-forget'), thread: one('#hero-thread') });
+}
+setupMechanism(one('#mech'));
+setupTokenField(one('#field'));
 setupStory();
 setupCells();
 setupWordmark();

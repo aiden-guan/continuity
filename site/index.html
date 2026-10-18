@@ -6,7 +6,11 @@
   <title>Continuity — Agents forget. The thread doesn’t.</title>
   <meta name="description" content="Continuity gives every conversation your AI agents have a living state, so any new agent picks up exactly where the last one left off. Built on Primitive.">
   <meta name="theme-color" content="#f3f2ee">
-  <script>try { if (localStorage.getItem('theme') === 'dark') document.documentElement.dataset.theme = 'dark'; } catch {}</script>
+  <script>
+    try { if (localStorage.getItem('theme') === 'dark') document.documentElement.dataset.theme = 'dark'; } catch {}
+    // motion is on unless the viewer asked for less; the hero's particle line hides its DOM text under this class
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('px');
+  </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -55,7 +59,7 @@
           <span>Built on Primitive</span>
         </div>
         <div class="hero-grid">
-          <h1 class="hero-h reveal">Agents forget.<br><span class="dim">The thread doesn’t.</span></h1>
+          <h1 class="hero-h"><span class="h-forget"><span class="pw">Agents</span> <span class="pw">forget.</span></span><br><span class="h-keep">The thread doesn’t.</span></h1>
           <div class="hero-side reveal" style="--d:.08s">
             <p class="lede">Continuity keeps a living state for every conversation your agents have. When one dies, the next picks up exactly where it stopped.</p>
             <div class="cta-row">
@@ -80,7 +84,7 @@
     <!-- ============ 01 · the problem -->
     <section id="problem" class="sec">
       <div class="wrap sec-grid">
-        <div class="sec-k reveal"><span class="n">01</span>The problem</div>
+        <div class="sec-k reveal"><span class="n">01</span><span class="t">The problem</span></div>
         <div class="sec-body">
           <h2 class="h2 reveal">When an agent dies, the next one starts from&nbsp;zero.</h2>
           <p class="body-l reveal">Real conversations run for weeks. Agents don’t. A replacement agent inherits an inbox, not an understanding. It doesn’t know that:</p>
@@ -97,34 +101,35 @@
     <!-- ============ 02 · the mechanism -->
     <section id="idea" class="sec">
       <div class="wrap sec-grid">
-        <div class="sec-k reveal"><span class="n">02</span>Mechanism</div>
+        <div class="sec-k reveal"><span class="n">02</span><span class="t">Mechanism</span></div>
         <div class="sec-body">
           <h2 class="h2 reveal">Continuity remembers where things stand.</h2>
           <p class="body-l reveal">Every inbound email becomes evidence. A resolver turns evidence into state: current terms, open loops, checks, and who acts next. Agents read the state, not the transcript.</p>
         </div>
       </div>
 
-      <figure class="fig reveal">
+      <figure id="mech" class="fig reveal">
         <div class="fig-frame">
           <div class="wrap diff">
             <div class="diff-in">
               <div class="diff-h"><span>Inbound</span><span>ev_6 · supplier</span></div>
-              <p class="mail">Correction to my earlier email: only 300 units can arrive Friday. The other 200 won’t arrive until Wednesday, Oct 28. I’ll send a revised quote by tomorrow.</p>
+              <p class="mail">Correction to my earlier email: <mark data-to="old new">only 300 units can arrive Friday</mark>. The other <mark data-to="check">200 won’t arrive until Wednesday, Oct 28</mark>. I’ll <mark data-to="owed">send a revised quote by tomorrow</mark>.</p>
             </div>
             <div class="diff-arrow" aria-hidden="true"><i></i></div>
             <div class="diff-out">
-              <div class="diff-h"><span>State</span><span>PO-4817</span></div>
-              <div class="dl del"><b>−</b><code>delivery</code><span>500 units Fri Oct 23</span></div>
-              <div class="dl add"><b>+</b><code>delivery</code><span>300 Fri Oct 23 · 200 Wed Oct 28</span></div>
-              <div class="dl add"><b>+</b><code>owed</code><span>supplier → revised quote</span></div>
-              <div class="dl warn"><b>✕</b><code>check</code><span>All units by Fri Oct 23</span></div>
-              <div class="dl"><b>→</b><code>next</code><span><em>Us.</em> Raise it with the supplier.</span></div>
+              <div class="diff-h"><span>State</span><span data-ver data-from="PO-4817 · v28" data-to="PO-4817 · v33">PO-4817 · v33</span></div>
+              <div class="dl del base" data-k="old"><b>−</b><code>delivery</code><span>500 units Fri Oct 23</span></div>
+              <div class="dl add" data-k="new"><b>+</b><code>delivery</code><span>300 Fri Oct 23 · 200 Wed Oct 28</span></div>
+              <div class="dl warn" data-k="check"><b>✕</b><code>check</code><span>All units by Fri Oct 23</span></div>
+              <div class="dl add" data-k="owed"><b>+</b><code>owed</code><span>supplier → revised quote</span></div>
+              <div class="dl base" data-k="next" data-first="&lt;em&gt;Us.&lt;/em&gt; Accept the order." data-final="&lt;em&gt;Us.&lt;/em&gt; Raise it with the supplier."><b>→</b><code>next</code><span><em>Us.</em> Raise it with the supplier.</span></div>
             </div>
           </div>
         </div>
         <figcaption class="wrap">
           <span class="fig-n">Fig. 2</span>
           <span>One email in, one state transition out. Every term keeps the event it came from, and the old value is kept, struck through.</span>
+          <button class="replay" type="button" data-replay>Replay</button>
         </figcaption>
       </figure>
     </section>
@@ -132,7 +137,7 @@
     <!-- ============ 03 · the demo, replayed from real engine output (filled by landing.js) -->
     <section id="story" class="sec story-sec">
       <div class="wrap sec-grid">
-        <div class="sec-k reveal"><span class="n">03</span>Replay</div>
+        <div class="sec-k reveal"><span class="n">03</span><span class="t">Replay</span></div>
         <div class="sec-body">
           <h2 class="h2 reveal">Watch an agent die. <span class="dim">Then watch the work continue.</span></h2>
         </div>
@@ -150,9 +155,22 @@
     <!-- ============ 04 · proof -->
     <section id="proof" class="sec">
       <div class="wrap sec-grid">
-        <div class="sec-k reveal"><span class="n">04</span>Results</div>
+        <div class="sec-k reveal"><span class="n">04</span><span class="t">Results</span></div>
         <div class="sec-body">
           <h2 class="h2 reveal">1,000× less context. <span class="dim">The right answer.</span></h2>
+
+          <figure id="field" class="field reveal">
+            <div class="field-h">
+              <div><b data-count>2,769,083</b><span>tokens to reread 267 messages</span></div>
+              <div class="field-me"><b>2,442</b><span>tokens in the Continuity briefing</span></div>
+            </div>
+            <div class="field-c"><canvas aria-label="1,134 squares, each one briefing, merging into a single square"></canvas></div>
+            <figcaption>
+              <span class="fig-n">Fig. 3</span>
+              <span>To scale. Each square is one 2,442-token briefing; the transcript is 1,134 of them.</span>
+              <button class="replay" type="button" data-replay>Replay</button>
+            </figcaption>
+          </figure>
 
           <div class="proof">
             <div class="metric reveal">
