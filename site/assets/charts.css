@@ -77,3 +77,76 @@
 .spec th i.r2 { background: transparent; box-shadow: inset 0 0 0 1.5px var(--muted); }
 .lc.picked { background: var(--surface); }
 .lc:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--signal); }
+
+/* ============================================================ results: the headline numbers
+   The four summary stats; hovering the row widens it to the right and slams in what the memory layers cost
+   by comparison, one at a time, each sized by how many times cheaper Continuity is (3.7x → 11x → 30x),
+   each landing with a jolt of the row. */
+.stats-more {
+  container-type: inline-size;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 0fr) minmax(0, 0fr);
+  outline: none;
+  transition: grid-template-columns 0.6s var(--ease);
+}
+.stats-more .stat { position: relative; transition: padding 0.6s var(--ease), border-color 0.3s; }
+.stats-more .stat b { white-space: nowrap; transition: font-size 0.6s var(--ease); }
+.stats-more .stat span { transition: font-size 0.6s var(--ease); }
+.stats-more .slam { overflow: hidden; min-width: 0; padding-left: 0; padding-right: 0; border-left-color: transparent; }
+.stats-more .slam b,
+.stats-more .slam span { opacity: 0; }
+.stats-more .slam b { color: var(--signal); transform-origin: left bottom; }
+/* sized by the multiple, on a log scale against the 3.7x beside them */
+.stats-more .slam:nth-child(5) { --z: 1.95; }
+.stats-more .slam:nth-child(6) { --z: 2.9; }
+
+@media (min-width: 961px) {
+  .stats-more .slam b { font-size: calc(3.6cqi * var(--z)); }
+  .stats-more.open { grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.5fr) minmax(0, 2.15fr); }
+  .stats-more.open .stat { padding-right: 10px; }
+  .stats-more.open .stat + .stat { padding-left: 12px; border-left-color: var(--line); }
+  .stats-more.open .stat:not(.slam) b { font-size: 3.6cqi; }
+  .stats-more.open .stat span { font-size: 9.5px; }
+}
+
+/* the slam: drops in oversized and blurred, overshoots, settles; a signal rule strikes across; then its label */
+.stats-more .slam.hit b { animation: slam 0.62s cubic-bezier(0.2, 0.9, 0.25, 1) both; }
+.stats-more .slam.hit span { animation: label-in 0.4s var(--ease) 0.35s both; }
+.stats-more .slam.hit::before {
+  content: "";
+  position: absolute;
+  inset: -1px 0 auto 12px;
+  height: 2px;
+  background: var(--signal);
+  transform-origin: left;
+  animation: impact 0.9s var(--ease) 0.28s both;
+}
+.stats-more.jolt { animation: jolt 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+@keyframes slam {
+  0% { opacity: 0; transform: translateY(-38%) scale(2.3); filter: blur(8px); }
+  48% { opacity: 1; transform: translateY(0) scale(0.9); filter: blur(0); }
+  66% { transform: scale(1.07); }
+  82% { transform: scale(0.98); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes label-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes impact { 0% { transform: scaleX(0); opacity: 1; } 60% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
+@keyframes jolt {
+  0%, 100% { transform: none; }
+  18% { transform: translate(calc(var(--amp, 5) * -1px), calc(var(--amp, 5) * 0.4px)); }
+  36% { transform: translate(calc(var(--amp, 5) * 0.8px), calc(var(--amp, 5) * -0.3px)); }
+  54% { transform: translate(calc(var(--amp, 5) * -0.5px), 0); }
+  72% { transform: translate(calc(var(--amp, 5) * 0.25px), 0); }
+}
+/* still motion: the row opens with both numbers already in place */
+.stats-more.still .slam b,
+.stats-more.still .slam span { opacity: 1; animation: none; }
+
+/* narrow screens: two columns; the two new numbers take a third row */
+@media (max-width: 960px) {
+  .stats-more,
+  .stats-more.open { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stats-more .slam { display: none; }
+  .stats-more.open .slam { display: block; padding-left: 20px; padding-right: 10px; border-left-color: var(--line); }
+  .stats-more.open .slam:nth-child(5) { padding-left: 0; border-left-color: transparent; }
+  .stats-more .slam b { font-size: calc(36px * var(--z) * 0.62); }
+}

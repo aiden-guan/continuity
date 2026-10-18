@@ -173,5 +173,47 @@ function setupBoards() {
   boards.forEach((b) => io.observe(b));
 }
 
+// Hovering the summary row widens it and slams in the memory-cost multiples one at a time, each followed by
+// a jolt of the row that grows with the number. Touch screens play it once when the row scrolls in.
+function setupCheaper() {
+  const row = document.querySelector('.stats-more');
+  if (!row) return;
+  const slams = [...row.querySelectorAll('.slam')];
+  let timers = [];
+  const later = (ms, fn) => timers.push(setTimeout(fn, ms));
+  const jolt = (amp) => {
+    row.style.setProperty('--amp', amp);
+    row.classList.remove('jolt');
+    void row.offsetWidth; // restart the animation
+    row.classList.add('jolt');
+  };
+  const open = () => {
+    timers.forEach(clearTimeout);
+    timers = [];
+    row.classList.add('open');
+    if (stillMotion) { row.classList.add('still'); return; }
+    slams.forEach((s, i) => later(420 + i * 680, () => {
+      s.classList.add('hit');
+      later(290, () => jolt(i ? 10 : 5)); // the moment the number lands
+    }));
+  };
+  const close = () => {
+    timers.forEach(clearTimeout);
+    timers = [];
+    row.classList.remove('open', 'jolt', 'still');
+    slams.forEach((s) => s.classList.remove('hit'));
+  };
+  if (matchMedia('(hover: none)').matches) {
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { io.disconnect(); setTimeout(open, 900); } }, { rootMargin: '0px 0px -25% 0px' });
+    io.observe(row);
+    return;
+  }
+  row.addEventListener('mouseenter', open);
+  row.addEventListener('mouseleave', close);
+  row.addEventListener('focus', open);
+  row.addEventListener('blur', close);
+}
+
 setupLineCharts();
 setupBoards();
+setupCheaper();
