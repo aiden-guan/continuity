@@ -71,8 +71,12 @@ for (const [fam, pick] of families) {
 // ---- (b) event-driven wakes
 if (wakesDir && existsSync(join(wakesDir, 'wakes.jsonl'))) {
   const wrows = readFileSync(join(wakesDir, 'wakes.jsonl'), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)) as { case_id: string; condition: string; wakes: { wake: number; task_messages_visible: number; cost_cold: number; cost_measured: number; tokens: number; memory_tokens_est: number }[]; lifetime_cost_cold: number; lifetime_cost_measured: number; lifetime_tokens: number }[];
-  const wconds = [...new Set(wrows.map((r) => r.condition))];
-  const nCases = new Set(wrows.map((r) => r.case_id)).size;
+  const allRows = wrows.splice(0);
+  const wconds = [...new Set(allRows.map((r) => r.condition))];
+  // paired: only threads every condition has finished
+  const complete = [...new Set(allRows.map((r) => r.case_id))].filter((id) => wconds.every((c) => allRows.some((r) => r.case_id === id && r.condition === c)));
+  wrows.push(...allRows.filter((r) => complete.includes(r.case_id)));
+  const nCases = complete.length;
   md.push(`## (b) Event-driven: a fresh wake on every inbound email`, '', `${nCases} threads (${[...new Set(wrows.map((r) => r.case_id.split('/')[1]))].join(', ')}), ${mean(wrows.map((r) => r.wakes.length)).toFixed(1)} wakes per thread on average. Measured per wake, summed over the thread.`, '', '| condition | lifetime cost / thread (cold) | 95% CI | lifetime cost (measured) | lifetime tokens / thread | per-wake memory tokens (first → last wake) |', '|---|---|---|---|---|---|');
   const life: Record<string, unknown> = {};
   for (const c of wconds) {

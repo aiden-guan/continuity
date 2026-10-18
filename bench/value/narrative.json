@@ -1,0 +1,137 @@
+{
+ "title": "Continuity keeps agents right as deals pile up changes",
+ "lede": [
+  "We built 84 held-out procurement deals in which the price, the approval, the delivery date and the promised documents change one after another, then asked a fresh agent the question a colleague would ask: can we place the order? Same model, same prompt, same judge; only the memory differs. Reading Continuity's compiled state, the agent was right in <b>71%</b> of runs. Using Primitive's own read tools it was right in <b>42%</b>, and with the whole email history in its context, <b>43%</b>.",
+  "The gap comes from the architecture. With one or two changes, reading the mail is as good as reading Continuity. From four changes on, an agent that rebuilds the state from email starts mixing up which price, which approval and which date still hold, while Continuity's resolver has already applied every change in order."
+ ],
+ "tiles": [
+  {
+   "value": "+29 pp",
+   "label": "More right decisions than Primitive-only across all 84 held-out cases (71% vs 42%)",
+   "sub": "paired, p < 0.001 · 45 cases won, 9 lost",
+   "sig": true
+  },
+  {
+   "value": "69% vs 33%",
+   "label": "Right decisions at six interdependent changes, Continuity vs the full history in context",
+   "sub": "p = 0.031 · Primitive-only 36%"
+  },
+  {
+   "value": "3.2×",
+   "label": "Cheaper per correct decision than Primitive-only once the same agent wakes 50 times",
+   "sub": "break-even ≈ 3 wakes · cold-cache prices"
+  },
+  {
+   "value": "+23 pp",
+   "label": "More runs with every critical fact right, scored by code with no model judge (83% vs 60% for Primitive-only)",
+   "sub": "p < 0.001 · vs full history +19 pp"
+  }
+ ],
+ "tiles_caption": "Held-out cases (variants 11–22, frozen by hash before any result was read), claude-haiku-5-5 for every condition and the judge, 3 independent trials per case. Intervals and p-values treat the case, not the trial, as the unit.",
+ "concepts_intro": "Six properties were expected to follow from Continuity's design: an append-only event log, a deterministic resolver and a compiled briefing. Each row says what in the design should help, the situation it maps to, and what we measured. A win means Continuity's handoff success or cost was better at a significant level; a tie means the difference was small or not significant.",
+ "concepts": [
+  {
+   "concept": "Temporal dependency chains",
+   "mechanism": "The resolver applies every change in order, so the agent reads the result instead of re-deriving it",
+   "case": "A quote corrected upward, finance re-approving, the supplier reverting, a forwarder disputing the date: is the PO safe to send?",
+   "result": "<span class=\"pill win\">win</span> 69% vs 33–36% at six changes; tied with full history at one or two"
+  },
+  {
+   "concept": "Multi-thread coordination",
+   "mechanism": "The linker joins threads into one task; state is kept per task, not per thread",
+   "case": "The approval sits in the finance thread, the price change in the supplier thread, the date in a forwarder thread",
+   "result": "<span class=\"pill win\">win</span> +31 pp vs Primitive-only, +42 pp vs full history over 2–8 threads; the gap does not grow steadily with thread count"
+  },
+  {
+   "concept": "Commitment tracking",
+   "mechanism": "A promise stays open until the document itself arrives",
+   "case": "\"Revised quote attached\" with nothing attached; a new quote promised after the schedule changes back",
+   "result": "<span class=\"pill tie\">tie</span> owed quotes handled in 90% of runs, the same as Primitive-only (full history 82%)"
+  },
+  {
+   "concept": "Supersession",
+   "mechanism": "A correction replaces only what it corrects; a revert brings the old value back",
+   "case": "Price $31.20 → $31.75 → $31.20 → $31.75, with the budget raised in another thread to cover it",
+   "result": "<span class=\"pill tie\">mixed</span> used a dead fact in 7.5% of runs vs 13.1% for Primitive-only; close to full history (9.5%)"
+  },
+  {
+   "concept": "Historical reconstruction",
+   "mechanism": "The log keeps every superseded value with the message that replaced it, and can rebuild the state as of any message",
+   "case": "An auditor asks what blocked the order right after a given email, or which email killed the old price",
+   "result": "<span class=\"pill tie\">running</span> held-out run in progress (Figure 3)"
+  },
+  {
+   "concept": "Persistent state reuse",
+   "mechanism": "The state is computed once as mail arrives and reused at every wake",
+   "case": "An agent woken on every inbound email, a daily check-in, or several agents sharing one deal",
+   "result": "<span class=\"pill win\">win</span> after ~3 wakes vs Primitive-only and ~10 vs full history; <span class=\"pill loss\">loss</span> on a single wake"
+  }
+ ],
+ "fig1_title": "The more the deal has changed, the more Continuity matters",
+ "fig1_text": [
+  "Each case is one deal with 1, 2, 4 or 6 interdependent changes, always in 16 task emails (state-neutral chatter fills the gap) plus unrelated mail. A run counts as a success only if the agent's decision is right (it tells finance every open problem, or that nothing blocks the order, presses the supplier on what is theirs, and never uses a dead fact or commits while blocked) <b>and</b> its written state gets every critical item right.",
+  "Continuity holds between 64% and 92% at every depth (69% at six changes). Full history falls from 72% to 33%, and Primitive-only from 64% to 36%. At one or two changes Continuity and full history are statistically tied; at six, Continuity leads both by 33–36 points (p = 0.039 and 0.031).",
+  "The result does not depend on the model judge. Scored by code alone, on whether the agent's written state gets every critical item right (price, cap, schedule, owed documents, open disputes, no dead value reported as current), Continuity is right in 83% of runs against 60% for Primitive-only and 64% for full history (+23 pp and +19 pp, both p < 0.001 over 84 cases)."
+ ],
+ "fig1_caption": "Handoff success, 12 held-out cases × 3 trials per point; whiskers are 95% bootstrap intervals over cases. The dotted line is the same agent handed the true state as a bare list (1 trial per case). It is not an upper bound: on held-out cases it scored 71% overall, the same as Continuity, and below Continuity at four and six changes, because its failures are decisions and strict grading rather than memory.",
+ "fig1b_title": "Spreading the same changes over more threads",
+ "fig1b_text": [
+  "Here the six changes and their wording are identical at every level; only the threading differs, from 2 threads (one with the supplier, one with finance) to 8 (a new thread for every change, referenced only by the PO number). Continuity leads at every thread count: +31 pp over Primitive-only and +42 pp over full history pooled (both p < 0.001).",
+  "The expected pattern, a gap that widens with every extra thread, did not appear cleanly. Primitive-only did worst at 5 threads (11%), not 8. Full history did poorly even with 2 threads (19%). A likely reason: with everything in two long threads, each reply quotes all the earlier ones, and the agent reading that nest of quotes lost track of which statements were current: its most common failures there are reporting the supplier's own successive schedules as a dispute, and naming problems that had already been resolved."
+ ],
+ "fig1b_caption": "Handoff success, 12 held-out cases × 3 trials per point, 95% bootstrap intervals.",
+ "fig2_title": "Continuity costs more once and less every time after",
+ "fig2_text": [
+  "Continuity pays up front: every incoming email, unrelated mail included, goes through the extractor. For one decision that is about 76,000 tokens against 26,000 for Primitive-only and 13,000 for full history, and on a single wake Continuity is the most expensive per correct decision ($0.0146, against $0.0121 and $0.0076). After that, each wake reads a compact briefing: $0.0025 per wake, against $0.0050 for Primitive-only's tool loop and $0.0033 for re-reading the history.",
+  "Combined with its higher success rate, Continuity becomes cheaper per correct decision than Primitive-only after about 3 wakes and than full history after about 10. At 50 wakes it costs $0.0038 per correct decision: 3.2× less than Primitive-only and 2× less than full history."
+ ],
+ "fig2_caption": "Cost per correct decision = (one-time cost + wakes × per-wake cost) / (wakes × success rate), from the measured costs and success rates of all 84 held-out cases. Cold-cache prices: every input token at the full $0.10/MTok input price (claude-haiku-5-5, price table dated 2026-10-06), because wakes hours apart share no prompt cache. The curve assumes the state does not change between wakes.",
+ "fig2b_title": "With new mail arriving: a fresh agent on every inbound email",
+ "fig2b_caption": "Measured, not modelled: on depth-6 held-out threads, a fresh agent woke on every inbound task email and each condition paid for what it read at that moment (Continuity: extraction of the mail since the last wake plus the briefing; rolling summary: one rewrite per email plus the summary; Primitive-only: its tool loop; full history: every email so far). Cold-cache prices. Only threads every condition finished are included; the remaining threads are still running and will be added.",
+ "fig2c_title": "",
+ "fig2c_text": "",
+ "fig2c_caption": "",
+ "fig3_title": "History questions",
+ "fig3_text": "The held-out run for this figure is in progress and will be added to this page when it finishes. On 6 development cases, the agent with Continuity's as-of replay answered \"what blocked the order right after message X?\" correctly in 5 of 6, against 3 of 6 with the full history; that is too few cases to cite.",
+ "fig3_caption": "",
+ "losses_text": "Where Continuity does worse, or no better:",
+ "losses": [
+  "<b>Short histories.</b> With one or two changes, the full history in context does as well (72% vs 64% at two changes; not significant either way).",
+  "<b>A single decision.</b> One decision costs about 1.6× full history and uses about 3× the tokens of Primitive-only, because every email is extracted, unrelated mail included. It pays back only when the same state is used again (Figure 2).",
+  "<b>Short threads, wake on every email.</b> On 16-email threads, re-reading the full history at every wake stays cheaper per thread than Continuity (about 10–15% less). Context savings need longer threads; that run is in progress.",
+  "<b>Committing while blocked.</b> Continuity's agent accepted the order while something blocked it in 3 of 252 runs (1.2%), all in the fan-out family. Full history did so once; Primitive-only never did.",
+  "<b>Two threads.</b> With everything in two threads, Continuity's agent used a dead fact more often than Primitive-only (17% vs 6% of runs) and caught slightly fewer blockers (88% vs 94%).",
+  "<b>Lost between engine and agent.</b> The engine's state is right more often than the agent's report of it (for example 89% vs 75% at five threads). Most of the gap is the agent dropping finance's cap: in 16 of 19 such runs the engine had it right. The briefing also shows our own budget request as a \"tentative\" budget line, which likely misleads the agent.",
+  "<b>Sub-skills on their own.</b> Owed documents and superseded values are handled about as well by the best baseline. Continuity's advantage is in putting all the changes together correctly in one decision.",
+  "<b>Grading strictness.</b> The judge is stricter on some held-out phrasings than the dev cases showed: the agent handed the true state scored 90.5% on dev but 71% held-out (for example, \"please confirm all 200 still arrive by Nov 20\" counts as re-asking an answered question). That strictness applies to every condition equally, and the graders were not changed after held-out results were read. The judge-free check above shows the same gap."
+ ],
+ "method": [
+  "<b>Same agent everywhere.</b> Every condition uses the same model (claude-haiku-5-5), the same system prompt, the same output schema, the same task header and the same judge. Only the memory the agent is handed differs.",
+  "<b>Strong baselines.</b> Primitive-only gets the new message plus up to 6 calls to Primitive-shaped read tools (list and search inbox, sent mail, threads, conversations, attachments). Full history is handed every task email with ground-truth task membership, so it never sees unrelated mail; Continuity has to replay the whole inbox, unrelated mail included, and do its own linking.",
+  "<b>Labels independent of Continuity.</b> Each case's correct state and acceptable actions are computed by the scenario generator from its own parameters; nothing that builds cases imports engine code. A second pass that tracks evidence per term must agree with the first, or generation fails.",
+  "<b>Held-out cases.</b> Variants 1–10 were used only to calibrate the graders, against an agent handed the true state (it reached 90.5% on dev; on held-out cases it scored 71%, see the losses section). Variants 11–22 were frozen by hash before any held-out result was read, and no grader was changed after. One generator change was made after freezing and before any held-out result was read: a pattern with an ambiguous label was removed (3 cases changed, none yet run).",
+  "<b>Volume held constant.</b> Every case has 16 task emails whatever its depth; state-neutral chatter fills the gap, and background mail (including a look-alike deal with the same supplier) is mixed in.",
+  "<b>Statistics.</b> Each case runs 3 independent trials. Intervals are 95% bootstrap over cases on per-case means; p-values are sign-flip permutation tests on per-case differences, so repeated trials of one case are not counted as independent evidence.",
+  "<b>Judge and code.</b> State is scored by code. Decisions are scored by deterministic checks where a rule is unambiguous (who an email goes to) and otherwise by a blind model judge that sees only the drafted emails, plain-language ground truth and the condition text, never which condition produced them. The judge-free critical-state result is reported next to the headline.",
+  "<b>All-in cost.</b> Costs are provider-reported tokens at the dated price table in bench/core/llm.ts. Continuity is charged for every extraction call on every message, unrelated mail included; Primitive-only is charged for its tool loop. The judge is excluded for everyone. Figure 2 uses cold-cache prices (no prompt-cache discount), because wakes hours apart do not share a cache.",
+  "<b>Engine version.</b> Continuity is the optimization track's Round 2 engine, copied read-only (branch value/bench, commit af69a53), with its current extractor setting (thinking off; skip empty mail; rules for plain outbound mail). Nothing in the engine was changed for this benchmark. Three engine defects found here have since been fixed on that track; these numbers predate the fixes."
+ ],
+ "demo_text": "Recommended live demo: held-out case value_chain_d6/16, where Continuity was right in all 3 trials and both baselines were wrong in all 3. The supplier raises the price, reverts it, then raises it again; its forwarder states a later delivery date; supplier operations floats an unauthorised price; finance raises its approval in a separate thread to cover the new price. When finance asks whether the order can go, the only real blocker is the disputed delivery date. Both baselines lost that dispute under the later price changes, and treated the unauthorised price as a rival price.",
+ "demo_steps": [
+  "Send the six changes as real Primitive mail. The supplier, forwarder, operations and finance counterparties are scripted, and labelled as scripted on screen.",
+  "Show each email becoming typed state: price corrected, reverted, corrected again; the forwarder's date held as a dispute between two parties on the supplier's side; the operations price held as unverified; finance's raised cap applied from its own thread.",
+  "Show the compiled briefing: the price is within the new cap, the operations price is not applied, and the only blocker is the disputed date, each with its source email.",
+  "Wake a fresh agent with the same identity. It answers finance correctly and asks the supplier and forwarder to reconcile the date, citing message ids.",
+  "Optionally run the same fair Primitive-only agent beside it. Its failure here is measured (0 of 3 held-out trials), not staged. Show the aggregate chart next to it so one case is not mistaken for the whole result."
+ ],
+ "defects": [
+  "<b>Briefing: our own budget request shown as a tentative budget</b> (open). The agent dropped finance's cap from its report in 16 runs where the engine had it right. Rendering our request as \"Acme (us) budget = $X: not authoritative\" is the likely cause.",
+  "<b>Document staleness after a revert</b> (fixed on the optimization track after this snapshot). When a price went up and back, the briefing still marked the original quote PDF stale on price, naming the first replacement rather than today's value.",
+  "<b>Document requests counted as goods</b> (fixed on the optimization track). \"Send a formal quote for 750 units\" became 750 owed quotes, a zombie open loop.",
+  "<b>Price and quantity checks run against the freight forwarder</b> (fixed on the optimization track). Per-party checks now run only on terms the party may set.",
+  "<b>Price corrections create a low-confidence delivery claim</b> (minor, open). \"No other changes\" after a price correction became a tentative delivery restatement.",
+  "<b>Design question: supplier self-correction after a forwarder confirmation.</b> If the supplier changes its own schedule after its forwarder confirmed the old one, the engine treats it as a dispute between two parties on the supplier's side, while a reasonable reader could let the supplier's newer statement win. The value cases avoid this pattern until it is decided.",
+  "<b>Next measurements.</b> Re-run Figure 1 on the optimization track's current engine (three of the defects above are fixed there); add longer threads (running now); and add a second vertical, since every case here is procurement."
+ ],
+ "reproduce_text": "Code and cases: branch <code>value/bench</code> in this repository, folder <code>bench/value/</code> (commits <code>c59515f</code> freeze → <code>da21ea7</code> re-freeze; held-out manifest <code>bench/value/manifest.json</code>). Raw rows, with every agent output, score and token count: <code>bench/results/value-fig1/rows.jsonl</code> (756 rows), <code>value-fig1-oracle</code>, <code>value-wakes/wakes.jsonl</code>. Commands: <code>node bench/value/run.ts validate</code>; <code>node bench/value/run.ts run --name fig1 --variants 11,…,22 --conditions continuity,primitive-native,full-history --trials 3</code>; <code>node bench/value/analyze.ts bench/results/value-fig1</code>; <code>node bench/value/wakes.ts --name wakes</code>; <code>node bench/value/economics.ts bench/results/value-fig1 bench/results/value-wakes</code>. The design and fairness rules are in <code>bench/value/README.md</code>."
+}

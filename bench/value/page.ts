@@ -237,7 +237,7 @@ const SER = {
   'agent-notes': { label: 'Model-kept notes', color: 'var(--s-notes)', dash: '8 3 2 3' },
   'continuity-briefing': { label: 'Continuity briefing', color: 'var(--signal)', dash: '4 3', sig: true },
   'continuity-history': { label: 'Continuity briefing + as-of replay', color: 'var(--signal)', dash: '', sig: true },
-  'oracle': { label: 'Ceiling (true state given)', color: 'var(--s-oracle)', dash: '1 4' },
+  'oracle': { label: 'True state given (bare list)', color: 'var(--s-oracle)', dash: '1 4' },
 };
 const pct = (x) => (x * 100).toFixed(0) + '%';
 const pct1 = (x) => (x * 100).toFixed(1) + '%';
@@ -369,7 +369,7 @@ if (D.economics) {
 
 // ---------------- Figure 3: horizontal bars, all three right, with CI whiskers
 (function () {
-  const H = D.history; if (!H || !H.length) return;
+  const H = D.history; if (!H || !H.length) { document.getElementById('fig3').closest('.panel').hidden = true; return; }
   const svg = document.getElementById('fig3');
   const order = ['full-history', 'rolling-summary', 'agent-notes', 'continuity-briefing', 'continuity-history'].filter((c) => H.some((h) => h.condition === c));
   const rowsH = order.map((c) => H.find((h) => h.condition === c));

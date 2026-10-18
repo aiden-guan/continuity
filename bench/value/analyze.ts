@@ -64,6 +64,7 @@ function membership(r: Row): { family: string; level: number }[] {
   if (!(r.backlog ?? 0)) {
     if (d) out.push({ family: 'depth', level: Number(d[1]) });
     else if (t) out.push({ family: 'threads', level: Number(t[1]) });
+    if (d || t) out.push({ family: 'overall', level: 0 });
   }
   if (hasBacklogRuns && r.archetype === LENGTH_ARCH) out.push({ family: 'length', level: r.backlog ?? 0 });
   return out;
@@ -144,7 +145,7 @@ for (const fam of families) {
   const famRows = rows.filter((r) => inFam(r, fam));
   const levels = [...new Set(famRows.map((r) => levelIn(r, fam)))].sort((a, b) => a - b);
   const famOut: Record<string, unknown> = {};
-  md.push(`## ${fam === 'depth' ? 'Dependency depth (number of interdependent changes)' : fam === 'threads' ? 'Thread fan-out (six changes spread over N threads)' : fam === 'length' ? `Thread length (${LENGTH_ARCH} with N extra state-neutral emails)` : fam}`, '');
+  md.push(`## ${fam === 'depth' ? 'Dependency depth (number of interdependent changes)' : fam === 'threads' ? 'Thread fan-out (six changes spread over N threads)' : fam === 'length' ? `Thread length (${LENGTH_ARCH} with N extra state-neutral emails)` : fam === 'overall' ? 'All held-out cases (depth and fan-out families pooled)' : fam}`, '');
   const metricDefs: [keyof M, string][] = [['chs', 'Handoff success'], ['blockers', 'Blockers caught'], ['critical', 'Critical state right'], ['stale', 'Used a dead fact'], ['unsafe', 'Committed while blocked'], ['cost', 'Cost / decision (all-in)'], ['tokens', 'Tokens / decision (all-in)']];
   for (const [key, label] of metricDefs) {
     md.push(`### ${label}`, '', `| ${fam} | ${conditions.map((c) => c).join(' | ')} | cases × trials |`, `|---|${conditions.map(() => '---').join('|')}|---|`);
