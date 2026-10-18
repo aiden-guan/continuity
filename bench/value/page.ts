@@ -181,6 +181,15 @@ ul { margin: 0; padding-left: 20px; color: var(--ink-2); display: grid; gap: 6px
 </section>
 
 <section>
+  <div class="figno">Figure 2c</div>
+  <h2>${N.fig2c_title ?? ''}</h2>
+  ${p('fig2c_text')}
+  <div class="panel"><h3>Context the agent reads per decision</h3><div class="legend" id="leg2c"></div><svg class="chart" id="fig2c" viewBox="0 0 760 320" role="img" aria-label="Memory tokens per decision by thread length"></svg>
+  <h3>Handoff success at the same lengths</h3><div class="legend" id="leg2d"></div><svg class="chart" id="fig2d" viewBox="0 0 760 300" role="img" aria-label="Handoff success by thread length"></svg>
+  <p class="cap">${N.fig2c_caption ?? ''}</p><details><summary>Data and paired tests</summary><div class="tbl" id="tbl2c"></div></details></div>
+</section>
+
+<section>
   <div class="figno">Figure 3</div>
   <h2>${N.fig3_title}</h2>
   ${p('fig3_text')}
@@ -264,7 +273,9 @@ function lineChart(svg, o) {
   for (const s of order) {
     const S = SER[s.key]; const pts = s.pts.filter((p) => p.y != null);
     if (!pts.length) continue;
-    if (o.ci) for (const p of pts) if (p.lo != null) el('line', { x1: fx(p.x), x2: fx(p.x), y1: fy(p.lo), y2: fy(p.hi), stroke: S.color, 'stroke-width': 1.25, opacity: 0.45 }, svg);
+    // whiskers dodge sideways per series so overlapping intervals stay readable
+    const dodge = (o.series.findIndex((x) => x.key === s.key) - (o.series.length - 1) / 2) * 5;
+    if (o.ci) for (const p of pts) if (p.lo != null) el('line', { x1: fx(p.x) + dodge, x2: fx(p.x) + dodge, y1: fy(p.lo), y2: fy(p.hi), stroke: S.color, 'stroke-width': 1.5, opacity: 0.5 }, svg);
     el('path', { d: pts.map((p, i) => (i ? 'L' : 'M') + fx(p.x).toFixed(1) + ' ' + fy(p.y).toFixed(1)).join(' '), fill: 'none', stroke: S.color, 'stroke-width': S.sig ? 2.5 : 2, 'stroke-dasharray': S.dash, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, svg);
     for (const p of pts) {
       el('circle', { cx: fx(p.x), cy: fy(p.y), r: S.sig ? 5 : 4, fill: S.color, stroke: 'var(--surface)', 'stroke-width': 2 }, svg);
@@ -313,6 +324,18 @@ function famChart(fam, svgId, legId, tblId, xlabel) {
 }
 famChart('depth', 'fig1', 'leg1', 'tbl1', 'Interdependent changes in the history (total email count held at 16)');
 famChart('threads', 'fig1b', 'leg1b', 'tbl1b', 'Threads the same six changes are spread over');
+if (D.analysis.families.length) {
+  famChart('length', 'fig2d', 'leg2d', 'tbl2c', 'Extra state-neutral emails in the thread (16 task emails before)');
+  const L = D.analysis.families.length.levels;
+  const conds = Object.keys(L[0].by_condition).filter((c) => SER[c] && c !== 'oracle');
+  legend('leg2c', conds);
+  const ymax = Math.max(...L.flatMap((l) => conds.map((c) => l.by_condition[c] ? l.by_condition[c].memory : 0))) * 1.15;
+  const step = ymax > 20000 ? 5000 : ymax > 8000 ? 2000 : 1000;
+  lineChart(document.getElementById('fig2c'), {
+    xs: L.map((l) => l.level), xlabel: 'Extra state-neutral emails in the thread', ymax, yticks: Array.from({ length: Math.floor(ymax / step) + 1 }, (_, i) => i * step), yfmt: (v) => v >= 1000 ? (v / 1000).toFixed(v % 1000 ? 1 : 0) + 'K' : String(Math.round(v)),
+    series: conds.map((c) => ({ key: c, pts: L.map((l) => { const s = l.by_condition[c]; return s ? { x: l.level, y: s.memory, tip: '+' + l.level + ' emails: ' + Math.round(s.memory).toLocaleString() + ' memory tokens (est.)<br>' + Math.round(s.tokens).toLocaleString() + ' tokens/decision all-in · ' + usd(s.cost) } : { x: l.level, y: null }; }) })),
+  });
+} else { const sec = document.getElementById('fig2c').closest('section'); sec.hidden = true; }
 
 // ---------------- Figure 2
 if (D.economics) {

@@ -53,13 +53,23 @@ function metrics(r: Row): M {
   };
 }
 
-const levelOf = (arch: string) => {
-  const d = arch.match(/^value_chain_d(\d+)$/);
-  if (d) return { family: 'depth', level: Number(d[1]) };
-  const t = arch.match(/^value_fanout_t(\d+)$/);
-  if (t) return { family: 'threads', level: Number(t[1]) };
-  return { family: arch, level: 0 };
-};
+// a row belongs to one or more families: its archetype's family (base cases only), and the thread-length
+// family when its archetype is the one run with --backlog (level = extra state-neutral emails)
+const LENGTH_ARCH = process.env.VALUE_LENGTH_ARCH ?? 'value_chain_d4';
+const hasBacklogRuns = rows.some((r) => (r.backlog ?? 0) > 0);
+function membership(r: Row): { family: string; level: number }[] {
+  const out: { family: string; level: number }[] = [];
+  const d = r.archetype.match(/^value_chain_d(\d+)$/);
+  const t = r.archetype.match(/^value_fanout_t(\d+)$/);
+  if (!(r.backlog ?? 0)) {
+    if (d) out.push({ family: 'depth', level: Number(d[1]) });
+    else if (t) out.push({ family: 'threads', level: Number(t[1]) });
+  }
+  if (hasBacklogRuns && r.archetype === LENGTH_ARCH) out.push({ family: 'length', level: r.backlog ?? 0 });
+  return out;
+}
+const inFam = (r: Row, fam: string) => membership(r).some((m) => m.family === fam);
+const levelIn = (r: Row, fam: string) => membership(r).find((m) => m.family === fam)!.level;
 
 // per case × condition: mean over trials
 type CaseMeans = Map<string, Map<string, M & { n: number }>>; // case -> condition -> means
@@ -123,7 +133,7 @@ const order = ['continuity', 'primitive-native', 'full-history', 'rolling-summar
 conditions.sort((a, b) => order.indexOf(a) - order.indexOf(b));
 const baselines = conditions.filter((c) => c !== 'continuity' && c !== 'oracle');
 
-const families = [...new Set(rows.map((r) => levelOf(r.archetype).family))];
+const families = [...new Set(rows.flatMap((r) => membership(r).map((m) => m.family)))];
 const out: Record<string, unknown> = { dirs, rows: rows.length, errored_rows: errors, conditions, families: {} };
 const md: string[] = [`# Value benchmark analysis`, '', `Results: ${dirs.map((d) => `\`${d}\``).join(', ')} · ${rows.length} scored rows${errors ? ` · ${errors} errored rows excluded` : ''}`, ''];
 const metas = dirs.filter((d) => existsSync(join(d, 'meta.json'))).map((d) => JSON.parse(readFileSync(join(d, 'meta.json'), 'utf8')));
@@ -131,15 +141,15 @@ for (const m of metas) md.push(`- \`${m.name}\`: model ${m.model}, trials ${m.tr
 md.push('');
 
 for (const fam of families) {
-  const famRows = rows.filter((r) => levelOf(r.archetype).family === fam);
-  const levels = [...new Set(famRows.map((r) => levelOf(r.archetype).level))].sort((a, b) => a - b);
+  const famRows = rows.filter((r) => inFam(r, fam));
+  const levels = [...new Set(famRows.map((r) => levelIn(r, fam)))].sort((a, b) => a - b);
   const famOut: Record<string, unknown> = {};
-  md.push(`## ${fam === 'depth' ? 'Dependency depth (number of interdependent changes)' : fam === 'threads' ? 'Thread fan-out (six changes spread over N threads)' : fam}`, '');
+  md.push(`## ${fam === 'depth' ? 'Dependency depth (number of interdependent changes)' : fam === 'threads' ? 'Thread fan-out (six changes spread over N threads)' : fam === 'length' ? `Thread length (${LENGTH_ARCH} with N extra state-neutral emails)` : fam}`, '');
   const metricDefs: [keyof M, string][] = [['chs', 'Handoff success'], ['blockers', 'Blockers caught'], ['critical', 'Critical state right'], ['stale', 'Used a dead fact'], ['unsafe', 'Committed while blocked'], ['cost', 'Cost / decision (all-in)'], ['tokens', 'Tokens / decision (all-in)']];
   for (const [key, label] of metricDefs) {
     md.push(`### ${label}`, '', `| ${fam} | ${conditions.map((c) => c).join(' | ')} | cases × trials |`, `|---|${conditions.map(() => '---').join('|')}|---|`);
     for (const lv of levels) {
-      const cm = caseMeans(famRows.filter((r) => levelOf(r.archetype).level === lv));
+      const cm = caseMeans(famRows.filter((r) => levelIn(r, fam) === lv));
       const cells = conditions.map((c) => {
         const xs = [...cm.values()].map((m) => m.get(c)?.[key]).filter((x): x is number => typeof x === 'number');
         if (!xs.length) return '—';
@@ -157,7 +167,7 @@ for (const fam of families) {
 
   // paired: Continuity vs each baseline, per level and pooled
   md.push('### Paired: Continuity minus baseline (handoff success)', '', '| level | baseline | Δ success (95% CI) | sign-flip p | case wins / losses | McNemar over trials (C-only / B-only, p) | Δ blockers caught | cost ratio C/B |', '|---|---|---|---|---|---|---|---|');
-  const levelGroups: [string, Row[]][] = [...levels.map((lv) => [String(lv), famRows.filter((r) => levelOf(r.archetype).level === lv)] as [string, Row[]]), ['all', famRows]];
+  const levelGroups: [string, Row[]][] = [...levels.map((lv) => [String(lv), famRows.filter((r) => levelIn(r, fam) === lv)] as [string, Row[]]), ['all', famRows]];
   for (const [lv, rs] of levelGroups) {
     const cm = caseMeans(rs);
     for (const b of baselines) {
@@ -181,7 +191,7 @@ for (const fam of families) {
 
   // level summaries for charts
   famOut.levels = levels.map((lv) => {
-    const cm = caseMeans(famRows.filter((r) => levelOf(r.archetype).level === lv));
+    const cm = caseMeans(famRows.filter((r) => levelIn(r, fam) === lv));
     return {
       level: lv,
       by_condition: Object.fromEntries(conditions.map((c) => {

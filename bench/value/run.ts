@@ -26,6 +26,7 @@ import { DEFAULT_MODEL, Llm } from '../core/llm.ts';
 import { runCell, type Row } from '../core/pipeline.ts';
 import { renderReport } from '../core/report.ts';
 import { SPLIT_VARIANTS } from '../verticals/index.ts';
+import { withBacklog } from '../core/scale.ts';
 import { valueModule } from './index.ts';
 
 process.env.CONTINUITY_EXTRACTOR_THINKING ??= 'off';
@@ -37,6 +38,7 @@ const { values: a, positionals } = parseArgs({
     archetypes: { type: 'string', default: '' },
     split: { type: 'string', default: '' },
     variants: { type: 'string', default: '' },
+    backlog: { type: 'string', default: '0' },
     conditions: { type: 'string', default: 'primitive-native,full-history,continuity,oracle' },
     condition: { type: 'string', default: '' },
     trials: { type: 'string', default: '1' },
@@ -56,11 +58,14 @@ const MANIFEST = 'bench/value/manifest.json';
 // eval variants for the value suite: 12 per family (11–22)
 const VALUE_SPLITS: Record<Split, number[]> = { ...SPLIT_VARIANTS, eval: Array.from({ length: 12 }, (_, i) => 11 + i) };
 
-function selected(): BenchCase[] {
+/** Base cases (as frozen) and, with --backlog, the same cases with N state-neutral emails appended (labels unchanged). */
+function selectedWithBase(): { c: BenchCase; base: BenchCase }[] {
   const archs = valueModule.archetypes.filter((x) => !list(a.archetypes).length || list(a.archetypes).includes(x.id));
   const variants = a.variants ? list(a.variants).map(Number) : (list(a.split).length ? list(a.split) : ['golden', 'dev', 'eval']).flatMap((s) => VALUE_SPLITS[s as Split]);
-  return archs.flatMap((x) => variants.map((v) => x.generate(v)));
+  const bases = archs.flatMap((x) => variants.map((v) => x.generate(v)));
+  return bases.flatMap((base) => list(a.backlog).map(Number).map((n) => ({ c: withBacklog(base, n, valueModule), base })));
 }
+const selected = () => selectedWithBase().map((x) => x.c);
 
 const caseHash = (c: BenchCase) => createHash('sha256').update(JSON.stringify(c)).digest('hex');
 const git = (...args: string[]) => { try { return execFileSync('git', args, { encoding: 'utf8' }).trim(); } catch { return ''; } };
@@ -135,14 +140,15 @@ async function main() {
       return;
     }
     case 'freeze': {
-      const cases = selected().filter((c) => c.split === 'eval');
+      const cases = selectedWithBase().map((x) => x.base).filter((c, i, all) => c.split === 'eval' && all.findIndex((y) => y.id === c.id) === i);
       writeFileSync(MANIFEST, `${JSON.stringify({ frozen_at: new Date().toISOString(), commit: git('rev-parse', 'HEAD'), cases: Object.fromEntries(cases.map((c) => [c.id, caseHash(c)])) }, null, 1)}\n`);
       console.log(`froze ${cases.length} eval cases → ${MANIFEST}`);
       return;
     }
     case 'run': {
-      const cases = selected();
-      const evalCases = cases.filter((c) => c.split === 'eval');
+      const withBase = selectedWithBase();
+      const cases = withBase.map((x) => x.c);
+      const evalCases = [...new Map(withBase.filter((x) => x.base.split === 'eval').map((x) => [x.base.id, x.base])).values()];
       if (evalCases.length && !a['allow-unfrozen']) {
         if (!existsSync(MANIFEST)) throw new Error('value eval split is not frozen: run `node bench/value/run.ts freeze` first');
         const m = JSON.parse(readFileSync(MANIFEST, 'utf8')) as { cases: Record<string, string> };
@@ -160,7 +166,7 @@ async function main() {
       const rowsFile = join(dir, 'rows.jsonl');
       const done = new Set(latestRows(readRows(rowsFile)).filter((r) => !r.error).map((r) => r.key));
       const meta = {
-        name, suite: 'value', model: a.model, judge_model: a.model, effort, trials, conditions: conds.map((c) => c.id), mock: a.mock, cases: cases.length,
+        name, suite: 'value', model: a.model, judge_model: a.model, effort, trials, conditions: conds.map((c) => c.id), mock: a.mock, cases: cases.length, backlog: a.backlog,
         archetypes: [...new Set(cases.map((c) => c.archetype))], variants: [...new Set(cases.map((c) => c.variant))],
         commit: git('rev-parse', 'HEAD'), dirty: git('status', '--porcelain').length > 0,
         extractor: { thinking: process.env.CONTINUITY_EXTRACTOR_THINKING, route: process.env.CONTINUITY_EXTRACT_ROUTE },
