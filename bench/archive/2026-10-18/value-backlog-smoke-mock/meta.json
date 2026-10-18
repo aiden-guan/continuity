@@ -1,0 +1,29 @@
+{
+ "name": "value-backlog-smoke-mock",
+ "suite": "value",
+ "model": "claude-haiku-5-5",
+ "judge_model": "claude-haiku-5-5",
+ "effort": "medium",
+ "trials": 1,
+ "conditions": [
+  "continuity",
+  "full-history",
+  "primitive-native"
+ ],
+ "mock": true,
+ "cases": 1,
+ "backlog": "40",
+ "archetypes": [
+  "value_chain_d4"
+ ],
+ "variants": [
+  11
+ ],
+ "commit": "8ad6a4ba9005cfabf9e00091abee70312317521c",
+ "dirty": true,
+ "extractor": {
+  "thinking": "off",
+  "route": "skip-empty,outbound-plain-rules"
+ },
+ "started_at": "2026-10-18T05:50:50.975Z"
+}

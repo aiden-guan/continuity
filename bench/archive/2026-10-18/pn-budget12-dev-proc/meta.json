@@ -1,0 +1,26 @@
+{
+ "name": "pn-budget12-dev-proc",
+ "model": "claude-haiku-5-5",
+ "judge_model": "claude-haiku-5-5",
+ "effort": "medium",
+ "trials": 1,
+ "code": {
+  "commit": "a5e960c29ac5c5bf641176dee066aa69c9ab72c2",
+  "dirty": true,
+  "tool_budget": 12,
+  "extractor_env": {
+   "thinking": null,
+   "effort": null,
+   "route": null
+  }
+ },
+ "splits": "dev",
+ "conditions": [
+  "primitive-native"
+ ],
+ "backlog": "0",
+ "mess": "0",
+ "mock": false,
+ "started_at": "2026-10-18T07:13:58.675Z",
+ "cases": 130
+}

@@ -1,0 +1,342 @@
+{
+ "meta": {
+  "name": "value-smoke-mock",
+  "suite": "value",
+  "model": "claude-haiku-5-5",
+  "judge_model": "claude-haiku-5-5",
+  "effort": "medium",
+  "trials": 1,
+  "conditions": [
+   "primitive-native",
+   "full-history",
+   "continuity",
+   "oracle"
+  ],
+  "mock": true,
+  "cases": 14,
+  "archetypes": [
+   "value_chain_d1",
+   "value_chain_d2",
+   "value_chain_d4",
+   "value_chain_d6",
+   "value_fanout_t2",
+   "value_fanout_t5",
+   "value_fanout_t8"
+  ],
+  "variants": [
+   1,
+   2
+  ],
+  "commit": "af69a536d5ff079be065dcb61f3271755e1cc7ea",
+  "dirty": true,
+  "extractor": {
+   "thinking": "off",
+   "route": "skip-empty,outbound-plain-rules"
+  },
+  "started_at": "2026-10-18T05:24:51.047Z"
+ },
+ "aggregates": [
+  {
+   "condition": "full-history",
+   "n": 14,
+   "unsupported": 0,
+   "errors": 0,
+   "csa_micro": {
+    "ok": 0,
+    "total": 71
+   },
+   "csa_macro": 0,
+   "critical_exact": {
+    "ok": 0,
+    "total": 14
+   },
+   "sfer_state": {
+    "errors": 0,
+    "opp": 37
+   },
+   "sfer_action": {
+    "errors": 0,
+    "opp": 37
+   },
+   "loops": {
+    "tp": 0,
+    "fp": 0,
+    "fn": 25,
+    "zombie": 0
+   },
+   "epa": {
+    "ok": 0,
+    "total": 0
+   },
+   "docs": {
+    "ok": 0,
+    "total": 18
+   },
+   "conflicts": {
+    "found": 0,
+    "total": 17
+   },
+   "next_actor": {
+    "ok": 14,
+    "total": 14
+   },
+   "nas": {
+    "ok": 0,
+    "total": 14
+   },
+   "chs": {
+    "ok": 0,
+    "total": 14,
+    "ci": {
+     "mean": 0,
+     "lo": 0,
+     "hi": 0
+    }
+   },
+   "safety": 0,
+   "memory_tokens_median": 2127.5,
+   "actor_input_mean": 4437.714285714285,
+   "cost_per_decision": 0,
+   "ingestion_cost_mean": 0
+  },
+  {
+   "condition": "oracle",
+   "n": 14,
+   "unsupported": 0,
+   "errors": 0,
+   "csa_micro": {
+    "ok": 0,
+    "total": 71
+   },
+   "csa_macro": 0,
+   "critical_exact": {
+    "ok": 0,
+    "total": 14
+   },
+   "sfer_state": {
+    "errors": 0,
+    "opp": 37
+   },
+   "sfer_action": {
+    "errors": 0,
+    "opp": 37
+   },
+   "loops": {
+    "tp": 0,
+    "fp": 0,
+    "fn": 25,
+    "zombie": 0
+   },
+   "epa": {
+    "ok": 0,
+    "total": 0
+   },
+   "docs": {
+    "ok": 0,
+    "total": 18
+   },
+   "conflicts": {
+    "found": 0,
+    "total": 17
+   },
+   "next_actor": {
+    "ok": 14,
+    "total": 14
+   },
+   "nas": {
+    "ok": 0,
+    "total": 14
+   },
+   "chs": {
+    "ok": 0,
+    "total": 14,
+    "ci": {
+     "mean": 0,
+     "lo": 0,
+     "hi": 0
+    }
+   },
+   "safety": 0,
+   "memory_tokens_median": 374,
+   "actor_input_mean": 2453.9285714285716,
+   "cost_per_decision": 0,
+   "ingestion_cost_mean": 0
+  },
+  {
+   "condition": "primitive-native",
+   "n": 14,
+   "unsupported": 0,
+   "errors": 0,
+   "csa_micro": {
+    "ok": 0,
+    "total": 71
+   },
+   "csa_macro": 0,
+   "critical_exact": {
+    "ok": 0,
+    "total": 14
+   },
+   "sfer_state": {
+    "errors": 0,
+    "opp": 37
+   },
+   "sfer_action": {
+    "errors": 0,
+    "opp": 37
+   },
+   "loops": {
+    "tp": 0,
+    "fp": 0,
+    "fn": 25,
+    "zombie": 0
+   },
+   "epa": {
+    "ok": 0,
+    "total": 0
+   },
+   "docs": {
+    "ok": 0,
+    "total": 18
+   },
+   "conflicts": {
+    "found": 0,
+    "total": 17
+   },
+   "next_actor": {
+    "ok": 14,
+    "total": 14
+   },
+   "nas": {
+    "ok": 0,
+    "total": 14
+   },
+   "chs": {
+    "ok": 0,
+    "total": 14,
+    "ci": {
+     "mean": 0,
+     "lo": 0,
+     "hi": 0
+    }
+   },
+   "safety": 0,
+   "memory_tokens_median": 5,
+   "actor_input_mean": 2070.5714285714284,
+   "cost_per_decision": 0,
+   "ingestion_cost_mean": 0
+  },
+  {
+   "condition": "continuity",
+   "n": 14,
+   "unsupported": 0,
+   "errors": 0,
+   "csa_micro": {
+    "ok": 0,
+    "total": 71
+   },
+   "csa_macro": 0,
+   "critical_exact": {
+    "ok": 0,
+    "total": 14
+   },
+   "sfer_state": {
+    "errors": 0,
+    "opp": 37
+   },
+   "sfer_action": {
+    "errors": 0,
+    "opp": 37
+   },
+   "loops": {
+    "tp": 0,
+    "fp": 0,
+    "fn": 25,
+    "zombie": 0
+   },
+   "epa": {
+    "ok": 0,
+    "total": 0
+   },
+   "docs": {
+    "ok": 0,
+    "total": 18
+   },
+   "conflicts": {
+    "found": 0,
+    "total": 17
+   },
+   "next_actor": {
+    "ok": 14,
+    "total": 14
+   },
+   "nas": {
+    "ok": 0,
+    "total": 14
+   },
+   "chs": {
+    "ok": 0,
+    "total": 14,
+    "ci": {
+     "mean": 0,
+     "lo": 0,
+     "hi": 0
+    }
+   },
+   "safety": 0,
+   "memory_tokens_median": 1566.5,
+   "actor_input_mean": 3694.3571428571427,
+   "cost_per_decision": 0,
+   "ingestion_cost_mean": 0
+  }
+ ],
+ "comparisons": [
+  {
+   "condition": "full-history",
+   "n": 14,
+   "chs": {
+    "diff": 0,
+    "lo": 0,
+    "hi": 0
+   },
+   "mcnemar": {
+    "b": 0,
+    "c": 0,
+    "p": 1
+   },
+   "csa": {
+    "diff": 0,
+    "lo": 0,
+    "hi": 0
+   },
+   "tokens": {
+    "diff": -692.1428571428571,
+    "lo": -1121.3642857142856,
+    "hi": -320.7017857142859
+   }
+  },
+  {
+   "condition": "primitive-native",
+   "n": 14,
+   "chs": {
+    "diff": 0,
+    "lo": 0,
+    "hi": 0
+   },
+   "mcnemar": {
+    "b": 0,
+    "c": 0,
+    "p": 1
+   },
+   "csa": {
+    "diff": 0,
+    "lo": 0,
+    "hi": 0
+   },
+   "tokens": {
+    "diff": 1595.357142857143,
+    "lo": 1478.4982142857143,
+    "hi": 1722.142857142857
+   }
+  }
+ ]
+}

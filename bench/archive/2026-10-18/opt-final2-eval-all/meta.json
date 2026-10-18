@@ -1,0 +1,27 @@
+{
+ "name": "opt-final2-eval-all",
+ "model": "claude-haiku-5-5",
+ "judge_model": "claude-haiku-5-5",
+ "effort": "medium",
+ "trials": 1,
+ "code": {
+  "commit": "a5e960c29ac5c5bf641176dee066aa69c9ab72c2",
+  "dirty": true,
+  "tool_budget": 6,
+  "extractor_env": {
+   "thinking": "off",
+   "effort": null,
+   "route": "skip-empty,outbound-plain-rules"
+  }
+ },
+ "splits": "eval",
+ "conditions": [
+  "primitive-native",
+  "continuity"
+ ],
+ "backlog": "0",
+ "mess": "0",
+ "mock": false,
+ "started_at": "2026-10-18T07:24:13.413Z",
+ "cases": 650
+}

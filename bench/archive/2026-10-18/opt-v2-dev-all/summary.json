@@ -1,0 +1,173 @@
+{
+ "meta": {
+  "name": "opt-v2-dev-all",
+  "model": "claude-haiku-5-5",
+  "judge_model": "claude-haiku-5-5",
+  "effort": "medium",
+  "trials": 1,
+  "splits": "dev",
+  "conditions": [
+   "primitive-native",
+   "continuity"
+  ],
+  "backlog": "0",
+  "mess": "0",
+  "mock": false,
+  "started_at": "2026-10-18T05:10:37.441Z",
+  "cases": 650
+ },
+ "aggregates": [
+  {
+   "condition": "primitive-native",
+   "n": 649,
+   "unsupported": 0,
+   "errors": 1,
+   "csa_micro": {
+    "ok": 3751,
+    "total": 4521
+   },
+   "csa_macro": 0.8360872992155045,
+   "critical_exact": {
+    "ok": 402,
+    "total": 649
+   },
+   "sfer_state": {
+    "errors": 41,
+    "opp": 707
+   },
+   "sfer_action": {
+    "errors": 37,
+    "opp": 454
+   },
+   "loops": {
+    "tp": 345,
+    "fp": 1256,
+    "fn": 119,
+    "zombie": 209
+   },
+   "epa": {
+    "ok": 3388,
+    "total": 3427
+   },
+   "docs": {
+    "ok": 472,
+    "total": 649
+   },
+   "conflicts": {
+    "found": 322,
+    "total": 367
+   },
+   "next_actor": {
+    "ok": 158,
+    "total": 649
+   },
+   "nas": {
+    "ok": 501,
+    "total": 649
+   },
+   "chs": {
+    "ok": 338,
+    "total": 649,
+    "ci": {
+     "mean": 0.5208012326656395,
+     "lo": 0.48228043143297383,
+     "hi": 0.559322033898305
+    }
+   },
+   "safety": 0,
+   "memory_tokens_median": 1280,
+   "actor_input_mean": 5199.02157164869,
+   "cost_per_decision": 0.004276164483821262,
+   "ingestion_cost_mean": 0
+  },
+  {
+   "condition": "continuity",
+   "n": 650,
+   "unsupported": 0,
+   "errors": 0,
+   "csa_micro": {
+    "ok": 4365,
+    "total": 4530
+   },
+   "csa_macro": 0.9587639070331377,
+   "critical_exact": {
+    "ok": 541,
+    "total": 650
+   },
+   "sfer_state": {
+    "errors": 17,
+    "opp": 708
+   },
+   "sfer_action": {
+    "errors": 22,
+    "opp": 455
+   },
+   "loops": {
+    "tp": 357,
+    "fp": 1095,
+    "fn": 109,
+    "zombie": 186
+   },
+   "epa": {
+    "ok": 4032,
+    "total": 4037
+   },
+   "docs": {
+    "ok": 557,
+    "total": 650
+   },
+   "conflicts": {
+    "found": 332,
+    "total": 367
+   },
+   "next_actor": {
+    "ok": 310,
+    "total": 650
+   },
+   "nas": {
+    "ok": 526,
+    "total": 650
+   },
+   "chs": {
+    "ok": 458,
+    "total": 650,
+    "ci": {
+     "mean": 0.7046153846153846,
+     "lo": 0.6692307692307692,
+     "hi": 0.74
+    }
+   },
+   "safety": 0,
+   "memory_tokens_median": 1575.5,
+   "actor_input_mean": 7192.693846153847,
+   "cost_per_decision": 0.0025678561153846154,
+   "ingestion_cost_mean": 0.0018126508384615377
+  }
+ ],
+ "comparisons": [
+  {
+   "condition": "primitive-native",
+   "n": 649,
+   "chs": {
+    "diff": 0.18335901386748846,
+    "lo": 0.13405238828967642,
+    "hi": 0.23112480739599384
+   },
+   "mcnemar": {
+    "b": 197,
+    "c": 78,
+    "p": 4.81052949151308e-13
+   },
+   "csa": {
+    "diff": 0.12278954139508855,
+    "lo": 0.1064799065213165,
+    "hi": 0.13941661114523224
+   },
+   "tokens": {
+    "diff": 274.4391371340524,
+    "lo": 225.92068567026195,
+    "hi": 323.32838983050846
+   }
+  }
+ ]
+}

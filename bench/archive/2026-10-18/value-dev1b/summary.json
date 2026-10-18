@@ -1,0 +1,343 @@
+{
+ "meta": {
+  "name": "value-dev1b",
+  "suite": "value",
+  "model": "claude-haiku-5-5",
+  "judge_model": "claude-haiku-5-5",
+  "effort": "medium",
+  "trials": 1,
+  "conditions": [
+   "primitive-native",
+   "full-history",
+   "continuity",
+   "oracle"
+  ],
+  "mock": false,
+  "cases": 21,
+  "archetypes": [
+   "value_chain_d1",
+   "value_chain_d2",
+   "value_chain_d4",
+   "value_chain_d6",
+   "value_fanout_t2",
+   "value_fanout_t5",
+   "value_fanout_t8"
+  ],
+  "variants": [
+   1,
+   2,
+   3
+  ],
+  "commit": "af69a536d5ff079be065dcb61f3271755e1cc7ea",
+  "dirty": true,
+  "extractor": {
+   "thinking": "off",
+   "route": "skip-empty,outbound-plain-rules"
+  },
+  "started_at": "2026-10-18T05:32:09.898Z"
+ },
+ "aggregates": [
+  {
+   "condition": "primitive-native",
+   "n": 21,
+   "unsupported": 0,
+   "errors": 0,
+   "csa_micro": {
+    "ok": 68,
+    "total": 107
+   },
+   "csa_macro": 0.6365079365079364,
+   "critical_exact": {
+    "ok": 13,
+    "total": 21
+   },
+   "sfer_state": {
+    "errors": 5,
+    "opp": 48
+   },
+   "sfer_action": {
+    "errors": 4,
+    "opp": 48
+   },
+   "loops": {
+    "tp": 22,
+    "fp": 32,
+    "fn": 10,
+    "zombie": 18
+   },
+   "epa": {
+    "ok": 66,
+    "total": 66
+   },
+   "docs": {
+    "ok": 4,
+    "total": 31
+   },
+   "conflicts": {
+    "found": 17,
+    "total": 20
+   },
+   "next_actor": {
+    "ok": 4,
+    "total": 21
+   },
+   "nas": {
+    "ok": 7,
+    "total": 21
+   },
+   "chs": {
+    "ok": 5,
+    "total": 21,
+    "ci": {
+     "mean": 0.23809523809523808,
+     "lo": 0.09523809523809523,
+     "hi": 0.42857142857142855
+    }
+   },
+   "safety": 0,
+   "memory_tokens_median": 2462,
+   "actor_input_mean": 7300.571428571428,
+   "cost_per_decision": 0.0048898488095238096,
+   "ingestion_cost_mean": 0
+  },
+  {
+   "condition": "oracle",
+   "n": 21,
+   "unsupported": 0,
+   "errors": 0,
+   "csa_micro": {
+    "ok": 107,
+    "total": 107
+   },
+   "csa_macro": 1,
+   "critical_exact": {
+    "ok": 21,
+    "total": 21
+   },
+   "sfer_state": {
+    "errors": 0,
+    "opp": 48
+   },
+   "sfer_action": {
+    "errors": 0,
+    "opp": 48
+   },
+   "loops": {
+    "tp": 32,
+    "fp": 14,
+    "fn": 0,
+    "zombie": 7
+   },
+   "epa": {
+    "ok": 105,
+    "total": 105
+   },
+   "docs": {
+    "ok": 31,
+    "total": 31
+   },
+   "conflicts": {
+    "found": 20,
+    "total": 20
+   },
+   "next_actor": {
+    "ok": 5,
+    "total": 21
+   },
+   "nas": {
+    "ok": 16,
+    "total": 21
+   },
+   "chs": {
+    "ok": 16,
+    "total": 21,
+    "ci": {
+     "mean": 0.7619047619047619,
+     "lo": 0.5714285714285714,
+     "hi": 0.9523809523809523
+    }
+   },
+   "safety": 0,
+   "memory_tokens_median": 358,
+   "actor_input_mean": 4465.761904761905,
+   "cost_per_decision": 0.0016467538095238095,
+   "ingestion_cost_mean": 0
+  },
+  {
+   "condition": "full-history",
+   "n": 21,
+   "unsupported": 0,
+   "errors": 0,
+   "csa_micro": {
+    "ok": 101,
+    "total": 107
+   },
+   "csa_macro": 0.9460317460317462,
+   "critical_exact": {
+    "ok": 17,
+    "total": 21
+   },
+   "sfer_state": {
+    "errors": 0,
+    "opp": 48
+   },
+   "sfer_action": {
+    "errors": 1,
+    "opp": 48
+   },
+   "loops": {
+    "tp": 25,
+    "fp": 28,
+    "fn": 7,
+    "zombie": 17
+   },
+   "epa": {
+    "ok": 94,
+    "total": 99
+   },
+   "docs": {
+    "ok": 27,
+    "total": 31
+   },
+   "conflicts": {
+    "found": 20,
+    "total": 20
+   },
+   "next_actor": {
+    "ok": 1,
+    "total": 21
+   },
+   "nas": {
+    "ok": 13,
+    "total": 21
+   },
+   "chs": {
+    "ok": 10,
+    "total": 21,
+    "ci": {
+     "mean": 0.47619047619047616,
+     "lo": 0.2857142857142857,
+     "hi": 0.6666666666666666
+    }
+   },
+   "safety": 0,
+   "memory_tokens_median": 2334,
+   "actor_input_mean": 8056.190476190476,
+   "cost_per_decision": 0.003031975714285714,
+   "ingestion_cost_mean": 0
+  },
+  {
+   "condition": "continuity",
+   "n": 21,
+   "unsupported": 0,
+   "errors": 0,
+   "csa_micro": {
+    "ok": 103,
+    "total": 107
+   },
+   "csa_macro": 0.9666666666666668,
+   "critical_exact": {
+    "ok": 18,
+    "total": 21
+   },
+   "sfer_state": {
+    "errors": 0,
+    "opp": 48
+   },
+   "sfer_action": {
+    "errors": 1,
+    "opp": 48
+   },
+   "loops": {
+    "tp": 21,
+    "fp": 15,
+    "fn": 11,
+    "zombie": 9
+   },
+   "epa": {
+    "ok": 101,
+    "total": 101
+   },
+   "docs": {
+    "ok": 29,
+    "total": 31
+   },
+   "conflicts": {
+    "found": 16,
+    "total": 20
+   },
+   "next_actor": {
+    "ok": 13,
+    "total": 21
+   },
+   "nas": {
+    "ok": 12,
+    "total": 21
+   },
+   "chs": {
+    "ok": 12,
+    "total": 21,
+    "ci": {
+     "mean": 0.5714285714285714,
+     "lo": 0.38095238095238093,
+     "hi": 0.7619047619047619
+    }
+   },
+   "safety": 0,
+   "memory_tokens_median": 1861,
+   "actor_input_mean": 7440.476190476191,
+   "cost_per_decision": 0.0023401690476190476,
+   "ingestion_cost_mean": 0.0030315557142857144
+  }
+ ],
+ "comparisons": [
+  {
+   "condition": "primitive-native",
+   "n": 21,
+   "chs": {
+    "diff": 0.3333333333333333,
+    "lo": 0.09523809523809523,
+    "hi": 0.5714285714285714
+   },
+   "mcnemar": {
+    "b": 8,
+    "c": 1,
+    "p": 0.03906249999999999
+   },
+   "csa": {
+    "diff": 0.3301587301587302,
+    "lo": 0.2634920634920635,
+    "hi": 0.39682539682539686
+   },
+   "tokens": {
+    "diff": -671.7619047619048,
+    "lo": -1020.3083333333334,
+    "hi": -358.23452380952386
+   }
+  },
+  {
+   "condition": "full-history",
+   "n": 21,
+   "chs": {
+    "diff": 0.09523809523809523,
+    "lo": -0.19047619047619047,
+    "hi": 0.38095238095238093
+   },
+   "mcnemar": {
+    "b": 5,
+    "c": 3,
+    "p": 0.7265625000000002
+   },
+   "csa": {
+    "diff": 0.020634920634920624,
+    "lo": -0.0142857142857143,
+    "hi": 0.05714285714285713
+   },
+   "tokens": {
+    "diff": -436.57142857142856,
+    "lo": -736.1488095238095,
+    "hi": -166.99880952380954
+   }
+  }
+ ]
+}

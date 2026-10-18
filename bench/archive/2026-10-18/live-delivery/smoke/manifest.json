@@ -1,0 +1,1597 @@
+{
+ "name": "smoke",
+ "run_tag": "47a3d",
+ "domain": "tiny-koi.primitive.email",
+ "created_at": "2026-10-18T03:26:30.042Z",
+ "since": "2026-10-18T03:24:29.178Z",
+ "cases": {
+  "procurement/correction/0": {
+   "case_id": "procurement/correction/0",
+   "case_hash": "5327e7169dc31a7c3a07eb030ba4b1249b44271eb2e8cc32c067d0143d42aac3",
+   "status": "delivered",
+   "self": "b47a3d03d4f1.procurement-f550@tiny-koi.primitive.email",
+   "aliases": {
+    "dana.ruiz@northwind-components.example": "b47a3d03d4f1.dana-ruiz-388b@tiny-koi.primitive.email",
+    "deals@bulk-electronics.example": "b47a3d03d4f1.deals-bc5b@tiny-koi.primitive.email",
+    "priya.shah@acme-buyer.example": "b47a3d03d4f1.priya-shah-f550@tiny-koi.primitive.email",
+    "procurement@acme-buyer.example": "b47a3d03d4f1.procurement-f550@tiny-koi.primitive.email"
+   },
+   "messages": [
+    {
+     "m": "m01",
+     "key": "e1",
+     "direction": "outbound",
+     "sent_id": "26c4653a-de4c-439e-8da3-3808930d4590",
+     "message_id": "<primitive-direct-26c4653a-de4c-439e-8da3-3808930d4590@tiny-koi.primitive.email>",
+     "thread_id": "a050c433-d1fd-4b6e-872d-14491381e08c",
+     "references": [],
+     "inbound_id": null,
+     "scripted_at": "2026-10-19T09:00:00Z",
+     "sent_at": "2026-10-18T03:26:30.086Z",
+     "received_at": null,
+     "latency_ms": null,
+     "replayed": false
+    },
+    {
+     "m": "m02",
+     "key": "e2",
+     "direction": "outbound",
+     "sent_id": "67a23599-1cb0-4bb2-b40b-4e080a0c29ac",
+     "message_id": "<primitive-direct-67a23599-1cb0-4bb2-b40b-4e080a0c29ac@tiny-koi.primitive.email>",
+     "thread_id": "3eda5ae6-6479-4ca6-8d00-c0540be749a8",
+     "references": [],
+     "inbound_id": null,
+     "scripted_at": "2026-10-19T09:01:00Z",
+     "sent_at": "2026-10-18T03:26:46.126Z",
+     "received_at": null,
+     "latency_ms": null,
+     "replayed": false
+    },
+    {
+     "m": "m03",
+     "key": "e3",
+     "direction": "inbound",
+     "sent_id": "5a95c2fe-b3fd-4d58-ae8d-4746a0607cfa",
+     "message_id": "<primitive-direct-5a95c2fe-b3fd-4d58-ae8d-4746a0607cfa@tiny-koi.primitive.email>",
+     "thread_id": "a050c433-d1fd-4b6e-872d-14491381e08c",
+     "references": [
+      "<primitive-direct-26c4653a-de4c-439e-8da3-3808930d4590@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "159d3405-c4be-4327-a9b5-d84bebc21a0f",
+     "scripted_at": "2026-10-19T11:20:00Z",
+     "sent_at": "2026-10-18T03:27:02.099Z",
+     "received_at": "2026-10-18T03:27:02.176Z",
+     "latency_ms": 77,
+     "replayed": false
+    },
+    {
+     "m": "m04",
+     "key": "b1",
+     "direction": "inbound",
+     "sent_id": "9d99adc3-55e4-4314-98e5-145583286685",
+     "message_id": "<primitive-direct-9d99adc3-55e4-4314-98e5-145583286685@tiny-koi.primitive.email>",
+     "thread_id": "a2c4fd96-9b86-4a70-9998-2457d4deb728",
+     "references": [],
+     "inbound_id": "86c07f4d-8ea3-4c10-9601-dde4546d9170",
+     "scripted_at": "2026-10-19T12:11:00Z",
+     "sent_at": "2026-10-18T03:27:18.083Z",
+     "received_at": "2026-10-18T03:27:18.138Z",
+     "latency_ms": 55,
+     "replayed": true
+    },
+    {
+     "m": "m05",
+     "key": "e4",
+     "direction": "inbound",
+     "sent_id": "282074de-0993-412f-85e9-5fac4bfb25c8",
+     "message_id": "<primitive-direct-282074de-0993-412f-85e9-5fac4bfb25c8@tiny-koi.primitive.email>",
+     "thread_id": "3eda5ae6-6479-4ca6-8d00-c0540be749a8",
+     "references": [
+      "<primitive-direct-67a23599-1cb0-4bb2-b40b-4e080a0c29ac@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "10a25324-3870-490e-976c-12f629ab5ead",
+     "scripted_at": "2026-10-19T15:05:00Z",
+     "sent_at": "2026-10-18T03:28:15.926Z",
+     "received_at": "2026-10-18T03:28:16.050Z",
+     "latency_ms": 124,
+     "replayed": false
+    },
+    {
+     "m": "m06",
+     "key": "e5",
+     "direction": "inbound",
+     "sent_id": "7fc38e01-93ac-42eb-bf96-c5da044250a0",
+     "message_id": "<primitive-direct-7fc38e01-93ac-42eb-bf96-c5da044250a0@tiny-koi.primitive.email>",
+     "thread_id": "a050c433-d1fd-4b6e-872d-14491381e08c",
+     "references": [
+      "<primitive-direct-26c4653a-de4c-439e-8da3-3808930d4590@tiny-koi.primitive.email>",
+      "<primitive-direct-5a95c2fe-b3fd-4d58-ae8d-4746a0607cfa@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "e288a1cf-b88c-4144-8a72-d4f5d9926dcb",
+     "scripted_at": "2026-10-20T10:12:00Z",
+     "sent_at": "2026-10-18T03:28:31.891Z",
+     "received_at": "2026-10-18T03:28:31.957Z",
+     "latency_ms": 66,
+     "replayed": false
+    }
+   ],
+   "started_at": "2026-10-18T03:26:30.044Z",
+   "verification": {
+    "faults": [],
+    "differences": []
+   },
+   "finished_at": "2026-10-18T03:28:32.837Z"
+  },
+  "procurement/unanswered_subquestion/0": {
+   "case_id": "procurement/unanswered_subquestion/0",
+   "case_hash": "52181e12473055195b288f65b961806da3bbfbd0866be207fc0d4abebe0a9061",
+   "status": "delivered",
+   "self": "b47a3dcf1980.procurement-f550@tiny-koi.primitive.email",
+   "aliases": {
+    "dana.ruiz@northwind-components.example": "b47a3dcf1980.dana-ruiz-388b@tiny-koi.primitive.email",
+    "deals@bulk-electronics.example": "b47a3dcf1980.deals-bc5b@tiny-koi.primitive.email",
+    "priya.shah@acme-buyer.example": "b47a3dcf1980.priya-shah-f550@tiny-koi.primitive.email",
+    "procurement@acme-buyer.example": "b47a3dcf1980.procurement-f550@tiny-koi.primitive.email"
+   },
+   "messages": [
+    {
+     "m": "m01",
+     "key": "e1",
+     "direction": "outbound",
+     "sent_id": "07650672-a228-4d11-8d48-73f3494b85fb",
+     "message_id": "<primitive-direct-07650672-a228-4d11-8d48-73f3494b85fb@tiny-koi.primitive.email>",
+     "thread_id": "383cede2-0c97-4506-b5bb-75ee79ab1141",
+     "references": [],
+     "inbound_id": null,
+     "scripted_at": "2026-10-19T10:05:00Z",
+     "sent_at": "2026-10-18T03:26:34.125Z",
+     "received_at": null,
+     "latency_ms": null,
+     "replayed": false
+    },
+    {
+     "m": "m02",
+     "key": "b1",
+     "direction": "inbound",
+     "sent_id": "3be5e2b2-5a35-47ec-bad2-8f1b424ce69a",
+     "message_id": "<primitive-direct-3be5e2b2-5a35-47ec-bad2-8f1b424ce69a@tiny-koi.primitive.email>",
+     "thread_id": "e133582a-0eb7-46b7-8787-e426859f59af",
+     "references": [],
+     "inbound_id": "500f91cd-0871-49b4-9c9a-ed1db421c812",
+     "scripted_at": "2026-10-19T11:11:00Z",
+     "sent_at": "2026-10-18T03:26:50.091Z",
+     "received_at": "2026-10-18T03:26:50.144Z",
+     "latency_ms": 53,
+     "replayed": false
+    },
+    {
+     "m": "m03",
+     "key": "b2",
+     "direction": "inbound",
+     "sent_id": "11eff8b6-fe9d-468b-97a3-97b137ab8ea2",
+     "message_id": "<primitive-direct-11eff8b6-fe9d-468b-97a3-97b137ab8ea2@tiny-koi.primitive.email>",
+     "thread_id": "89bc3ab0-3bcf-4437-8aa3-f799cd9ea2b2",
+     "references": [],
+     "inbound_id": "5cbe7213-dec6-457a-b064-846be904876c",
+     "scripted_at": "2026-10-19T11:48:00Z",
+     "sent_at": "2026-10-18T03:27:06.085Z",
+     "received_at": "2026-10-18T03:27:06.135Z",
+     "latency_ms": 50,
+     "replayed": false
+    },
+    {
+     "m": "m04",
+     "key": "e2",
+     "direction": "inbound",
+     "sent_id": "649e15bf-cea8-41ae-a856-478d195fcf40",
+     "message_id": "<primitive-direct-649e15bf-cea8-41ae-a856-478d195fcf40@tiny-koi.primitive.email>",
+     "thread_id": "383cede2-0c97-4506-b5bb-75ee79ab1141",
+     "references": [
+      "<primitive-direct-07650672-a228-4d11-8d48-73f3494b85fb@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "bd1e13c2-3d2d-499e-961c-b9d3e1ffe1aa",
+     "scripted_at": "2026-10-19T16:42:00Z",
+     "sent_at": "2026-10-18T03:27:22.133Z",
+     "received_at": "2026-10-18T03:27:22.215Z",
+     "latency_ms": 82,
+     "replayed": true
+    }
+   ],
+   "started_at": "2026-10-18T03:26:30.045Z",
+   "verification": {
+    "faults": [],
+    "differences": []
+   },
+   "finished_at": "2026-10-18T03:28:04.748Z"
+  },
+  "procurement/stale_document/0": {
+   "case_id": "procurement/stale_document/0",
+   "case_hash": "f4b05ac33788aa0842291bc1f2cdfeaa8a674fc57cba583a29fa954a5e474f66",
+   "status": "delivered",
+   "self": "b47a3db28540.procurement-f550@tiny-koi.primitive.email",
+   "aliases": {
+    "dana.ruiz@northwind-components.example": "b47a3db28540.dana-ruiz-388b@tiny-koi.primitive.email",
+    "deals@bulk-electronics.example": "b47a3db28540.deals-bc5b@tiny-koi.primitive.email",
+    "priya.shah@acme-buyer.example": "b47a3db28540.priya-shah-f550@tiny-koi.primitive.email",
+    "procurement@acme-buyer.example": "b47a3db28540.procurement-f550@tiny-koi.primitive.email"
+   },
+   "messages": [
+    {
+     "m": "m01",
+     "key": "e1",
+     "direction": "outbound",
+     "sent_id": "5a8d8e27-24c7-460a-af3e-448783d3258b",
+     "message_id": "<primitive-direct-5a8d8e27-24c7-460a-af3e-448783d3258b@tiny-koi.primitive.email>",
+     "thread_id": "d11a29d8-4165-4110-a221-6606408af878",
+     "references": [],
+     "inbound_id": null,
+     "scripted_at": "2026-10-19T09:10:00Z",
+     "sent_at": "2026-10-18T03:26:38.096Z",
+     "received_at": null,
+     "latency_ms": null,
+     "replayed": false
+    },
+    {
+     "m": "m02",
+     "key": "b1",
+     "direction": "inbound",
+     "sent_id": "af2371c9-75e1-4479-8932-9a92ff684eaa",
+     "message_id": "<primitive-direct-af2371c9-75e1-4479-8932-9a92ff684eaa@tiny-koi.primitive.email>",
+     "thread_id": "d9777a86-1ab7-484c-9a4c-5aabf8895536",
+     "references": [],
+     "inbound_id": "add728c6-e90e-43b6-a9c7-a9ee47735d79",
+     "scripted_at": "2026-10-19T10:11:00Z",
+     "sent_at": "2026-10-18T03:26:54.127Z",
+     "received_at": "2026-10-18T03:26:54.333Z",
+     "latency_ms": 206,
+     "replayed": true
+    },
+    {
+     "m": "m03",
+     "key": "b2",
+     "direction": "inbound",
+     "sent_id": "a57d8544-8088-4180-81a8-82cc71ba756f",
+     "message_id": "<primitive-direct-a57d8544-8088-4180-81a8-82cc71ba756f@tiny-koi.primitive.email>",
+     "thread_id": "8ae866d5-7701-499f-ace8-a924119e1c9b",
+     "references": [],
+     "inbound_id": "f5655558-eb44-4235-a897-54949adeb871",
+     "scripted_at": "2026-10-19T10:48:00Z",
+     "sent_at": "2026-10-18T03:28:23.927Z",
+     "received_at": "2026-10-18T03:28:24.040Z",
+     "latency_ms": 113,
+     "replayed": false
+    },
+    {
+     "m": "m04",
+     "key": "e2",
+     "direction": "inbound",
+     "sent_id": "7a25459f-5f16-4548-bade-aa6cabc2f716",
+     "message_id": "<primitive-direct-7a25459f-5f16-4548-bade-aa6cabc2f716@tiny-koi.primitive.email>",
+     "thread_id": "d11a29d8-4165-4110-a221-6606408af878",
+     "references": [
+      "<primitive-direct-5a8d8e27-24c7-460a-af3e-448783d3258b@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "0edd1a6e-23d9-4415-8e93-ffe9a04304b1",
+     "scripted_at": "2026-10-19T13:05:00Z",
+     "sent_at": "2026-10-18T03:28:39.929Z",
+     "received_at": "2026-10-18T03:28:40.331Z",
+     "latency_ms": 402,
+     "replayed": false
+    },
+    {
+     "m": "m05",
+     "key": "e3",
+     "direction": "inbound",
+     "sent_id": "63eec207-e79f-4b2a-8307-163d1211291e",
+     "message_id": "<primitive-direct-63eec207-e79f-4b2a-8307-163d1211291e@tiny-koi.primitive.email>",
+     "thread_id": "d11a29d8-4165-4110-a221-6606408af878",
+     "references": [
+      "<primitive-direct-5a8d8e27-24c7-460a-af3e-448783d3258b@tiny-koi.primitive.email>",
+      "<primitive-direct-7a25459f-5f16-4548-bade-aa6cabc2f716@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "3f14d3ec-44d2-47d2-affc-3d6b7d660d59",
+     "scripted_at": "2026-10-20T10:12:00Z",
+     "sent_at": "2026-10-18T03:28:55.927Z",
+     "received_at": "2026-10-18T03:28:56.141Z",
+     "latency_ms": 214,
+     "replayed": false
+    }
+   ],
+   "started_at": "2026-10-18T03:26:30.045Z",
+   "verification": {
+    "faults": [],
+    "differences": []
+   },
+   "finished_at": "2026-10-18T03:28:57.141Z"
+  },
+  "procurement/cold_handoff/0": {
+   "case_id": "procurement/cold_handoff/0",
+   "case_hash": "32d66053dde3f0649e5aebac75ee69f6e55c75899c49ee097a0c7b2e57d51d1b",
+   "status": "delivered",
+   "self": "b47a3dab036d.procurement-f550@tiny-koi.primitive.email",
+   "aliases": {
+    "dana.ruiz@northwind-components.example": "b47a3dab036d.dana-ruiz-388b@tiny-koi.primitive.email",
+    "deals@bulk-electronics.example": "b47a3dab036d.deals-bc5b@tiny-koi.primitive.email",
+    "news@industry-weekly.example": "b47a3dab036d.news-7a84@tiny-koi.primitive.email",
+    "priya.shah@acme-buyer.example": "b47a3dab036d.priya-shah-f550@tiny-koi.primitive.email",
+    "procurement@acme-buyer.example": "b47a3dab036d.procurement-f550@tiny-koi.primitive.email"
+   },
+   "messages": [
+    {
+     "m": "m01",
+     "key": "e1",
+     "direction": "outbound",
+     "sent_id": "abbfd67c-6e9c-46cf-b07e-1b08b0f69506",
+     "message_id": "<primitive-direct-abbfd67c-6e9c-46cf-b07e-1b08b0f69506@tiny-koi.primitive.email>",
+     "thread_id": "6b8925b4-5cb3-4cdc-a17a-4715766841ad",
+     "references": [],
+     "inbound_id": null,
+     "scripted_at": "2026-10-19T09:00:00Z",
+     "sent_at": "2026-10-18T03:26:42.111Z",
+     "received_at": null,
+     "latency_ms": null,
+     "replayed": false
+    },
+    {
+     "m": "m02",
+     "key": "e2",
+     "direction": "inbound",
+     "sent_id": "88949525-4639-49f6-aac0-2548ad70d895",
+     "message_id": "<primitive-direct-88949525-4639-49f6-aac0-2548ad70d895@tiny-koi.primitive.email>",
+     "thread_id": "6b8925b4-5cb3-4cdc-a17a-4715766841ad",
+     "references": [
+      "<primitive-direct-abbfd67c-6e9c-46cf-b07e-1b08b0f69506@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "1a0a7054-ed29-49c3-9d13-3b9f346288b9",
+     "scripted_at": "2026-10-19T10:05:00Z",
+     "sent_at": "2026-10-18T03:26:58.094Z",
+     "received_at": "2026-10-18T03:26:58.170Z",
+     "latency_ms": 76,
+     "replayed": false
+    },
+    {
+     "m": "m03",
+     "key": "b1",
+     "direction": "inbound",
+     "sent_id": "500783a6-3eae-447e-bfdd-444337ebcd5b",
+     "message_id": "<primitive-direct-500783a6-3eae-447e-bfdd-444337ebcd5b@tiny-koi.primitive.email>",
+     "thread_id": "20280878-2b34-42ec-9d63-584bf20b12a4",
+     "references": [],
+     "inbound_id": "18edf7b0-0e3f-49f5-b964-bcc0bda6d1fc",
+     "scripted_at": "2026-10-19T11:11:00Z",
+     "sent_at": "2026-10-18T03:27:14.088Z",
+     "received_at": "2026-10-18T03:27:14.143Z",
+     "latency_ms": 55,
+     "replayed": false
+    },
+    {
+     "m": "m04",
+     "key": "b2",
+     "direction": "inbound",
+     "sent_id": "0968aad7-7c15-4380-9e07-1e7f76cd338e",
+     "message_id": "<primitive-direct-0968aad7-7c15-4380-9e07-1e7f76cd338e@tiny-koi.primitive.email>",
+     "thread_id": "0721b89e-fbc1-4d37-b091-43f5558aa69f",
+     "references": [],
+     "inbound_id": "e324e272-ebfb-4057-af87-07dc504d3d9b",
+     "scripted_at": "2026-10-19T11:48:00Z",
+     "sent_at": "2026-10-18T03:27:30.080Z",
+     "received_at": "2026-10-18T03:27:30.136Z",
+     "latency_ms": 56,
+     "replayed": false
+    },
+    {
+     "m": "m05",
+     "key": "b3",
+     "direction": "inbound",
+     "sent_id": "06850a58-249b-4910-8f5c-7e3db73e94b2",
+     "message_id": "<primitive-direct-06850a58-249b-4910-8f5c-7e3db73e94b2@tiny-koi.primitive.email>",
+     "thread_id": "ac3dc4d8-5918-40d6-8498-04319f525d56",
+     "references": [],
+     "inbound_id": "62f2b2a9-b69d-4f63-9663-f2b498fe5879",
+     "scripted_at": "2026-10-19T12:25:00Z",
+     "sent_at": "2026-10-18T03:28:11.898Z",
+     "received_at": "2026-10-18T03:28:11.952Z",
+     "latency_ms": 54,
+     "replayed": false
+    },
+    {
+     "m": "m06",
+     "key": "b4",
+     "direction": "inbound",
+     "sent_id": "c8ca7976-6bb7-4d25-a86a-f808794e5d88",
+     "message_id": "<primitive-direct-c8ca7976-6bb7-4d25-a86a-f808794e5d88@tiny-koi.primitive.email>",
+     "thread_id": "a6c720ea-7baa-43c0-b1d2-fe21cefd377d",
+     "references": [],
+     "inbound_id": "1c0a4b0f-a742-4aae-9429-e2de3b4b4470",
+     "scripted_at": "2026-10-19T13:02:00Z",
+     "sent_at": "2026-10-18T03:28:27.887Z",
+     "received_at": "2026-10-18T03:28:27.931Z",
+     "latency_ms": 44,
+     "replayed": false
+    },
+    {
+     "m": "m07",
+     "key": "e3",
+     "direction": "inbound",
+     "sent_id": "2bcf8aa1-d67c-4b64-9c43-f240a8cf5265",
+     "message_id": "<primitive-direct-2bcf8aa1-d67c-4b64-9c43-f240a8cf5265@tiny-koi.primitive.email>",
+     "thread_id": "6b8925b4-5cb3-4cdc-a17a-4715766841ad",
+     "references": [
+      "<primitive-direct-abbfd67c-6e9c-46cf-b07e-1b08b0f69506@tiny-koi.primitive.email>",
+      "<primitive-direct-88949525-4639-49f6-aac0-2548ad70d895@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "e56a7963-4241-42cb-b896-dbee53dfbcce",
+     "scripted_at": "2026-10-20T09:30:00Z",
+     "sent_at": "2026-10-18T03:28:43.891Z",
+     "received_at": "2026-10-18T03:28:43.982Z",
+     "latency_ms": 91,
+     "replayed": false
+    },
+    {
+     "m": "m08",
+     "key": "e4",
+     "direction": "outbound",
+     "sent_id": "35e4d542-32e5-4122-a237-8c2a739026f6",
+     "message_id": "<primitive-direct-35e4d542-32e5-4122-a237-8c2a739026f6@tiny-koi.primitive.email>",
+     "thread_id": "b645c807-bdd3-441e-b721-a85193e191b4",
+     "references": [],
+     "inbound_id": null,
+     "scripted_at": "2026-10-20T11:15:00Z",
+     "sent_at": "2026-10-18T03:28:59.928Z",
+     "received_at": null,
+     "latency_ms": null,
+     "replayed": false
+    },
+    {
+     "m": "m09",
+     "key": "e5",
+     "direction": "inbound",
+     "sent_id": "58fdbf60-4cb1-4ad4-a224-d44c184a6987",
+     "message_id": "<primitive-direct-58fdbf60-4cb1-4ad4-a224-d44c184a6987@tiny-koi.primitive.email>",
+     "thread_id": "b645c807-bdd3-441e-b721-a85193e191b4",
+     "references": [
+      "<primitive-direct-35e4d542-32e5-4122-a237-8c2a739026f6@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "16d72561-983c-4653-abc4-462769e81e55",
+     "scripted_at": "2026-10-20T14:30:00Z",
+     "sent_at": "2026-10-18T03:29:15.926Z",
+     "received_at": "2026-10-18T03:29:16.242Z",
+     "latency_ms": 316,
+     "replayed": false
+    },
+    {
+     "m": "m10",
+     "key": "e6",
+     "direction": "outbound",
+     "sent_id": "78b5798c-8164-4d15-bc6c-7b00fe5a65f2",
+     "message_id": "<primitive-direct-78b5798c-8164-4d15-bc6c-7b00fe5a65f2@tiny-koi.primitive.email>",
+     "thread_id": "b645c807-bdd3-441e-b721-a85193e191b4",
+     "references": [
+      "<primitive-direct-35e4d542-32e5-4122-a237-8c2a739026f6@tiny-koi.primitive.email>",
+      "<primitive-direct-58fdbf60-4cb1-4ad4-a224-d44c184a6987@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": null,
+     "scripted_at": "2026-10-20T14:50:00Z",
+     "sent_at": "2026-10-18T03:29:31.896Z",
+     "received_at": null,
+     "latency_ms": null,
+     "replayed": false
+    },
+    {
+     "m": "m11",
+     "key": "e7",
+     "direction": "outbound",
+     "sent_id": "46f078a3-f2b0-44cc-b91e-c0f3e29fdc54",
+     "message_id": "<primitive-direct-46f078a3-f2b0-44cc-b91e-c0f3e29fdc54@tiny-koi.primitive.email>",
+     "thread_id": "6b8925b4-5cb3-4cdc-a17a-4715766841ad",
+     "references": [
+      "<primitive-direct-abbfd67c-6e9c-46cf-b07e-1b08b0f69506@tiny-koi.primitive.email>",
+      "<primitive-direct-88949525-4639-49f6-aac0-2548ad70d895@tiny-koi.primitive.email>",
+      "<primitive-direct-2bcf8aa1-d67c-4b64-9c43-f240a8cf5265@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": null,
+     "scripted_at": "2026-10-20T15:10:00Z",
+     "sent_at": "2026-10-18T03:29:47.913Z",
+     "received_at": null,
+     "latency_ms": null,
+     "replayed": false
+    },
+    {
+     "m": "m12",
+     "key": "e8",
+     "direction": "inbound",
+     "sent_id": "4ee48150-800d-4128-9720-72ca1d499253",
+     "message_id": "<primitive-direct-4ee48150-800d-4128-9720-72ca1d499253@tiny-koi.primitive.email>",
+     "thread_id": "6b8925b4-5cb3-4cdc-a17a-4715766841ad",
+     "references": [
+      "<primitive-direct-abbfd67c-6e9c-46cf-b07e-1b08b0f69506@tiny-koi.primitive.email>",
+      "<primitive-direct-88949525-4639-49f6-aac0-2548ad70d895@tiny-koi.primitive.email>",
+      "<primitive-direct-2bcf8aa1-d67c-4b64-9c43-f240a8cf5265@tiny-koi.primitive.email>",
+      "<primitive-direct-46f078a3-f2b0-44cc-b91e-c0f3e29fdc54@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "5e58a644-b087-4f62-8410-698cfb3bd6ac",
+     "scripted_at": "2026-10-21T09:05:00Z",
+     "sent_at": "2026-10-18T03:30:03.925Z",
+     "received_at": "2026-10-18T03:30:04.134Z",
+     "latency_ms": 209,
+     "replayed": false
+    },
+    {
+     "m": "m13",
+     "key": "e9",
+     "direction": "inbound",
+     "sent_id": "4b933151-0d0e-46ea-8e88-264732100435",
+     "message_id": "<primitive-direct-4b933151-0d0e-46ea-8e88-264732100435@tiny-koi.primitive.email>",
+     "thread_id": "8902535f-a263-4972-913e-2d5aae5f7cb6",
+     "references": [],
+     "inbound_id": "aa2f9ba2-aa79-44c4-b04d-39de68ad19b6",
+     "scripted_at": "2026-10-21T09:40:00Z",
+     "sent_at": "2026-10-18T03:30:19.927Z",
+     "received_at": "2026-10-18T03:30:20.335Z",
+     "latency_ms": 408,
+     "replayed": false
+    },
+    {
+     "m": "m14",
+     "key": "e10",
+     "direction": "inbound",
+     "sent_id": "6ead2639-c236-4ff4-8871-d6cefa4b8020",
+     "message_id": "<primitive-direct-6ead2639-c236-4ff4-8871-d6cefa4b8020@tiny-koi.primitive.email>",
+     "thread_id": "62aaaba0-a3bf-43b4-b6a2-2b1681f570eb",
+     "references": [],
+     "inbound_id": "0ecda2e3-f757-4a3e-9877-f79ce138e25f",
+     "scripted_at": "2026-10-21T10:00:00Z",
+     "sent_at": "2026-10-18T03:30:35.925Z",
+     "received_at": "2026-10-18T03:30:36.040Z",
+     "latency_ms": 115,
+     "replayed": false
+    },
+    {
+     "m": "m15",
+     "key": "e11",
+     "direction": "inbound",
+     "sent_id": "7c057a97-0919-47c7-8bf3-6096fd03d629",
+     "message_id": "<primitive-direct-7c057a97-0919-47c7-8bf3-6096fd03d629@tiny-koi.primitive.email>",
+     "thread_id": "6b8925b4-5cb3-4cdc-a17a-4715766841ad",
+     "references": [
+      "<primitive-direct-abbfd67c-6e9c-46cf-b07e-1b08b0f69506@tiny-koi.primitive.email>",
+      "<primitive-direct-88949525-4639-49f6-aac0-2548ad70d895@tiny-koi.primitive.email>",
+      "<primitive-direct-2bcf8aa1-d67c-4b64-9c43-f240a8cf5265@tiny-koi.primitive.email>",
+      "<primitive-direct-46f078a3-f2b0-44cc-b91e-c0f3e29fdc54@tiny-koi.primitive.email>",
+      "<primitive-direct-4ee48150-800d-4128-9720-72ca1d499253@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "39f66e75-17ba-4f3e-b497-0c7cabf4dba5",
+     "scripted_at": "2026-10-21T13:40:00Z",
+     "sent_at": "2026-10-18T03:30:51.928Z",
+     "received_at": "2026-10-18T03:30:52.336Z",
+     "latency_ms": 408,
+     "replayed": false
+    },
+    {
+     "m": "m16",
+     "key": "e12",
+     "direction": "inbound",
+     "sent_id": "098103ac-2682-43a4-8fe2-ab8d5f31d485",
+     "message_id": "<primitive-direct-098103ac-2682-43a4-8fe2-ab8d5f31d485@tiny-koi.primitive.email>",
+     "thread_id": "5deb7f88-a1a8-4e75-8277-84a619dd35f3",
+     "references": [],
+     "inbound_id": "0ad26551-2355-4dcc-961f-75d47ed1e6d8",
+     "scripted_at": "2026-10-22T15:20:00Z",
+     "sent_at": "2026-10-18T03:31:07.933Z",
+     "received_at": "2026-10-18T03:31:08.218Z",
+     "latency_ms": 285,
+     "replayed": false
+    }
+   ],
+   "started_at": "2026-10-18T03:26:30.045Z",
+   "verification": {
+    "faults": [],
+    "differences": []
+   },
+   "finished_at": "2026-10-18T03:31:13.261Z"
+  },
+  "procurement/cross_thread/0": {
+   "case_id": "procurement/cross_thread/0",
+   "case_hash": "b52bdbec82b2ea59f6efc533b40655d0d1593adc92b1c29e893fd3b307cd7992",
+   "status": "delivered",
+   "self": "b47a3d945df6.procurement-f550@tiny-koi.primitive.email",
+   "aliases": {
+    "dana.ruiz@northwind-components.example": "b47a3d945df6.dana-ruiz-388b@tiny-koi.primitive.email",
+    "deals@bulk-electronics.example": "b47a3d945df6.deals-bc5b@tiny-koi.primitive.email",
+    "priya.shah@acme-buyer.example": "b47a3d945df6.priya-shah-f550@tiny-koi.primitive.email",
+    "procurement@acme-buyer.example": "b47a3d945df6.procurement-f550@tiny-koi.primitive.email"
+   },
+   "messages": [
+    {
+     "m": "m01",
+     "key": "e1",
+     "direction": "outbound",
+     "sent_id": "6b0db21e-e547-4ed0-9a3c-3b57cbcebe14",
+     "message_id": "<primitive-direct-6b0db21e-e547-4ed0-9a3c-3b57cbcebe14@tiny-koi.primitive.email>",
+     "thread_id": "e5b0fe5d-a25e-4996-aa57-aa98216ab8cd",
+     "references": [],
+     "inbound_id": null,
+     "scripted_at": "2026-10-19T09:00:00Z",
+     "sent_at": "2026-10-18T03:27:10.129Z",
+     "received_at": null,
+     "latency_ms": null,
+     "replayed": false
+    },
+    {
+     "m": "m02",
+     "key": "e2",
+     "direction": "outbound",
+     "sent_id": "66aa5d95-f990-4981-9bd2-a206776f1e90",
+     "message_id": "<primitive-direct-66aa5d95-f990-4981-9bd2-a206776f1e90@tiny-koi.primitive.email>",
+     "thread_id": "748d2949-d71e-465a-a847-806c23bf3c45",
+     "references": [],
+     "inbound_id": null,
+     "scripted_at": "2026-10-19T09:20:00Z",
+     "sent_at": "2026-10-18T03:27:26.092Z",
+     "received_at": null,
+     "latency_ms": null,
+     "replayed": false
+    },
+    {
+     "m": "m03",
+     "key": "b1",
+     "direction": "inbound",
+     "sent_id": "30c672a8-34a5-495e-81f4-4c8cad2fe837",
+     "message_id": "<primitive-direct-30c672a8-34a5-495e-81f4-4c8cad2fe837@tiny-koi.primitive.email>",
+     "thread_id": "7120e27b-05e1-462b-966c-2eef029f3400",
+     "references": [],
+     "inbound_id": "af0d30ac-506a-4bc8-9b2d-0d5b338a6c27",
+     "scripted_at": "2026-10-19T10:11:00Z",
+     "sent_at": "2026-10-18T03:28:19.892Z",
+     "received_at": "2026-10-18T03:28:19.939Z",
+     "latency_ms": 47,
+     "replayed": false
+    },
+    {
+     "m": "m04",
+     "key": "b2",
+     "direction": "inbound",
+     "sent_id": "6c9f388c-4500-4d56-9ee7-6d68ebc6d940",
+     "message_id": "<primitive-direct-6c9f388c-4500-4d56-9ee7-6d68ebc6d940@tiny-koi.primitive.email>",
+     "thread_id": "74cec2fc-ea02-42e5-a5da-893e9947713c",
+     "references": [],
+     "inbound_id": "0d9da11d-0c2c-49b4-8c2f-8728ce00b3b4",
+     "scripted_at": "2026-10-19T10:48:00Z",
+     "sent_at": "2026-10-18T03:28:35.914Z",
+     "received_at": "2026-10-18T03:28:35.983Z",
+     "latency_ms": 69,
+     "replayed": false
+    },
+    {
+     "m": "m05",
+     "key": "b3",
+     "direction": "inbound",
+     "sent_id": "1bb7d3b8-0c92-40a7-b7e4-97f9b9d6aa7f",
+     "message_id": "<primitive-direct-1bb7d3b8-0c92-40a7-b7e4-97f9b9d6aa7f@tiny-koi.primitive.email>",
+     "thread_id": "569f8533-d87f-4864-9683-b74ee9af53e5",
+     "references": [],
+     "inbound_id": "100ab5ea-feb3-468e-8614-4772d58d64a3",
+     "scripted_at": "2026-10-19T13:46:00Z",
+     "sent_at": "2026-10-18T03:28:52.039Z",
+     "received_at": "2026-10-18T03:28:52.159Z",
+     "latency_ms": 120,
+     "replayed": false
+    },
+    {
+     "m": "m06",
+     "key": "e3",
+     "direction": "inbound",
+     "sent_id": "654935d6-4b11-41c7-82e1-182672fab931",
+     "message_id": "<primitive-direct-654935d6-4b11-41c7-82e1-182672fab931@tiny-koi.primitive.email>",
+     "thread_id": "e5b0fe5d-a25e-4996-aa57-aa98216ab8cd",
+     "references": [
+      "<primitive-direct-6b0db21e-e547-4ed0-9a3c-3b57cbcebe14@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "2af0bc0f-c86d-4eee-8445-812553ff0120",
+     "scripted_at": "2026-10-19T14:10:00Z",
+     "sent_at": "2026-10-18T03:29:07.929Z",
+     "received_at": "2026-10-18T03:29:08.330Z",
+     "latency_ms": 401,
+     "replayed": false
+    },
+    {
+     "m": "m07",
+     "key": "b4",
+     "direction": "inbound",
+     "sent_id": "440b0cde-908b-41a4-a583-94a6719bf5d5",
+     "message_id": "<primitive-direct-440b0cde-908b-41a4-a583-94a6719bf5d5@tiny-koi.primitive.email>",
+     "thread_id": "4a966322-ab2b-45e9-b260-5b4360867fdb",
+     "references": [],
+     "inbound_id": "e8c6f1cc-2d7c-4823-8bfe-bcb02a504d7e",
+     "scripted_at": "2026-10-20T09:20:00Z",
+     "sent_at": "2026-10-18T03:29:23.923Z",
+     "received_at": "2026-10-18T03:29:24.027Z",
+     "latency_ms": 104,
+     "replayed": false
+    },
+    {
+     "m": "m08",
+     "key": "e4",
+     "direction": "inbound",
+     "sent_id": "f66ea7d0-0082-4628-aeef-6c4ea4ae1ba0",
+     "message_id": "<primitive-direct-f66ea7d0-0082-4628-aeef-6c4ea4ae1ba0@tiny-koi.primitive.email>",
+     "thread_id": "04aedf46-721e-4151-b31e-772eddb9e1de",
+     "references": [],
+     "inbound_id": "daad7ac9-57d6-4356-9fcf-09416d96ae31",
+     "scripted_at": "2026-10-20T09:45:00Z",
+     "sent_at": "2026-10-18T03:29:39.927Z",
+     "received_at": "2026-10-18T03:29:40.018Z",
+     "latency_ms": 91,
+     "replayed": false
+    }
+   ],
+   "started_at": "2026-10-18T03:26:54.539Z",
+   "verification": {
+    "faults": [],
+    "differences": []
+   },
+   "finished_at": "2026-10-18T03:29:40.707Z"
+  },
+  "procurement/partial_fulfilment/0": {
+   "case_id": "procurement/partial_fulfilment/0",
+   "case_hash": "9c784895b2d4d1817659aff46cb340102c5db4e7f0394475f9ff47c498efd72e",
+   "status": "delivered",
+   "self": "b47a3dcc0c2d.procurement-f550@tiny-koi.primitive.email",
+   "aliases": {
+    "dana.ruiz@northwind-components.example": "b47a3dcc0c2d.dana-ruiz-388b@tiny-koi.primitive.email",
+    "deals@bulk-electronics.example": "b47a3dcc0c2d.deals-bc5b@tiny-koi.primitive.email",
+    "priya.shah@acme-buyer.example": "b47a3dcc0c2d.priya-shah-f550@tiny-koi.primitive.email",
+    "procurement@acme-buyer.example": "b47a3dcc0c2d.procurement-f550@tiny-koi.primitive.email"
+   },
+   "messages": [
+    {
+     "m": "m01",
+     "key": "e1",
+     "direction": "outbound",
+     "sent_id": "f2926bfc-4c9a-4ba3-af7f-71f0cac8bf2b",
+     "message_id": "<primitive-direct-f2926bfc-4c9a-4ba3-af7f-71f0cac8bf2b@tiny-koi.primitive.email>",
+     "thread_id": "946887d7-93ac-4751-8efa-0ecc938497d8",
+     "references": [],
+     "inbound_id": null,
+     "scripted_at": "2026-10-19T08:45:00Z",
+     "sent_at": "2026-10-18T03:27:34.086Z",
+     "received_at": null,
+     "latency_ms": null,
+     "replayed": false
+    },
+    {
+     "m": "m02",
+     "key": "b1",
+     "direction": "inbound",
+     "sent_id": "26d98657-49f4-4f2d-b0ab-65caf14f2069",
+     "message_id": "<primitive-direct-26d98657-49f4-4f2d-b0ab-65caf14f2069@tiny-koi.primitive.email>",
+     "thread_id": "cd05214e-363a-407f-a147-9971323e6a47",
+     "references": [],
+     "inbound_id": "cdee4f19-d9e1-4ee8-b9f8-080049eb1e0b",
+     "scripted_at": "2026-10-19T09:41:00Z",
+     "sent_at": "2026-10-18T03:28:47.935Z",
+     "received_at": "2026-10-18T03:28:48.132Z",
+     "latency_ms": 197,
+     "replayed": false
+    },
+    {
+     "m": "m03",
+     "key": "b2",
+     "direction": "inbound",
+     "sent_id": "006bde2e-3fb6-4693-a511-2b385296395e",
+     "message_id": "<primitive-direct-006bde2e-3fb6-4693-a511-2b385296395e@tiny-koi.primitive.email>",
+     "thread_id": "feb4946f-8b1a-4f1c-8e16-af678c363670",
+     "references": [],
+     "inbound_id": "a5e94171-4ddc-4cd5-b199-de4fa7f5b83c",
+     "scripted_at": "2026-10-19T10:18:00Z",
+     "sent_at": "2026-10-18T03:29:03.924Z",
+     "received_at": "2026-10-18T03:29:03.969Z",
+     "latency_ms": 45,
+     "replayed": false
+    },
+    {
+     "m": "m04",
+     "key": "e2",
+     "direction": "inbound",
+     "sent_id": "9aed94d0-50b1-43fc-9d56-8ff7246d5567",
+     "message_id": "<primitive-direct-9aed94d0-50b1-43fc-9d56-8ff7246d5567@tiny-koi.primitive.email>",
+     "thread_id": "946887d7-93ac-4751-8efa-0ecc938497d8",
+     "references": [
+      "<primitive-direct-f2926bfc-4c9a-4ba3-af7f-71f0cac8bf2b@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "ca22c831-34d4-47bf-a95a-8f714c80dd21",
+     "scripted_at": "2026-10-19T11:30:00Z",
+     "sent_at": "2026-10-18T03:29:19.924Z",
+     "received_at": "2026-10-18T03:29:20.047Z",
+     "latency_ms": 123,
+     "replayed": false
+    },
+    {
+     "m": "m05",
+     "key": "e3",
+     "direction": "outbound",
+     "sent_id": "2ea883f9-d1ed-4fea-b58c-4fe78ffb0cc1",
+     "message_id": "<primitive-direct-2ea883f9-d1ed-4fea-b58c-4fe78ffb0cc1@tiny-koi.primitive.email>",
+     "thread_id": "946887d7-93ac-4751-8efa-0ecc938497d8",
+     "references": [
+      "<primitive-direct-f2926bfc-4c9a-4ba3-af7f-71f0cac8bf2b@tiny-koi.primitive.email>",
+      "<primitive-direct-9aed94d0-50b1-43fc-9d56-8ff7246d5567@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": null,
+     "scripted_at": "2026-10-19T15:00:00Z",
+     "sent_at": "2026-10-18T03:29:35.925Z",
+     "received_at": null,
+     "latency_ms": null,
+     "replayed": false
+    },
+    {
+     "m": "m06",
+     "key": "e4",
+     "direction": "inbound",
+     "sent_id": "f0f1bd88-6ab3-46f3-97b0-460497fd4d29",
+     "message_id": "<primitive-direct-f0f1bd88-6ab3-46f3-97b0-460497fd4d29@tiny-koi.primitive.email>",
+     "thread_id": "946887d7-93ac-4751-8efa-0ecc938497d8",
+     "references": [
+      "<primitive-direct-f2926bfc-4c9a-4ba3-af7f-71f0cac8bf2b@tiny-koi.primitive.email>",
+      "<primitive-direct-9aed94d0-50b1-43fc-9d56-8ff7246d5567@tiny-koi.primitive.email>",
+      "<primitive-direct-2ea883f9-d1ed-4fea-b58c-4fe78ffb0cc1@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "edf24ed6-b224-4b11-a5b3-43a80e6c1ff2",
+     "scripted_at": "2026-10-23T14:10:00Z",
+     "sent_at": "2026-10-18T03:29:51.927Z",
+     "received_at": "2026-10-18T03:29:52.225Z",
+     "latency_ms": 298,
+     "replayed": false
+    }
+   ],
+   "started_at": "2026-10-18T03:27:18.438Z",
+   "verification": {
+    "faults": [],
+    "differences": []
+   },
+   "finished_at": "2026-10-18T03:29:53.259Z"
+  },
+  "procurement/withdrawn_offer/0": {
+   "case_id": "procurement/withdrawn_offer/0",
+   "case_hash": "ee9815b21121ed4002529b16b42a120a77df433b516df1c8bb3c1767ec814b91",
+   "status": "delivered",
+   "self": "b47a3d429f0f.procurement-f550@tiny-koi.primitive.email",
+   "aliases": {
+    "dana.ruiz@northwind-components.example": "b47a3d429f0f.dana-ruiz-388b@tiny-koi.primitive.email",
+    "deals@bulk-electronics.example": "b47a3d429f0f.deals-bc5b@tiny-koi.primitive.email",
+    "priya.shah@acme-buyer.example": "b47a3d429f0f.priya-shah-f550@tiny-koi.primitive.email",
+    "procurement@acme-buyer.example": "b47a3d429f0f.procurement-f550@tiny-koi.primitive.email"
+   },
+   "messages": [
+    {
+     "m": "m01",
+     "key": "e1",
+     "direction": "outbound",
+     "sent_id": "ef6a8fb1-5816-4d1b-ad17-a85bc1f6f614",
+     "message_id": "<primitive-direct-ef6a8fb1-5816-4d1b-ad17-a85bc1f6f614@tiny-koi.primitive.email>",
+     "thread_id": "0b9641fb-11cb-41d4-806a-2e7ae177fc7d",
+     "references": [],
+     "inbound_id": null,
+     "scripted_at": "2026-10-19T08:40:00Z",
+     "sent_at": "2026-10-18T03:27:38.083Z",
+     "received_at": null,
+     "latency_ms": null,
+     "replayed": false
+    },
+    {
+     "m": "m02",
+     "key": "e2",
+     "direction": "inbound",
+     "sent_id": "eaa12d19-df7b-40e9-9acb-4666906ea465",
+     "message_id": "<primitive-direct-eaa12d19-df7b-40e9-9acb-4666906ea465@tiny-koi.primitive.email>",
+     "thread_id": "0b9641fb-11cb-41d4-806a-2e7ae177fc7d",
+     "references": [
+      "<primitive-direct-ef6a8fb1-5816-4d1b-ad17-a85bc1f6f614@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "1c1bc261-183e-41db-8ea4-be3b0458c8b3",
+     "scripted_at": "2026-10-19T11:05:00Z",
+     "sent_at": "2026-10-18T03:29:12.015Z",
+     "received_at": "2026-10-18T03:29:12.632Z",
+     "latency_ms": 617,
+     "replayed": false
+    },
+    {
+     "m": "m03",
+     "key": "b1",
+     "direction": "inbound",
+     "sent_id": "e1ce4fc2-850f-4b91-8d87-178105b53b24",
+     "message_id": "<primitive-direct-e1ce4fc2-850f-4b91-8d87-178105b53b24@tiny-koi.primitive.email>",
+     "thread_id": "b6602133-0b80-4f45-ab8e-07356fce7144",
+     "references": [],
+     "inbound_id": "6dcf6657-83e3-4c81-8e7a-199c7e93ff21",
+     "scripted_at": "2026-10-19T11:31:00Z",
+     "sent_at": "2026-10-18T03:29:27.932Z",
+     "received_at": "2026-10-18T03:29:28.244Z",
+     "latency_ms": 312,
+     "replayed": false
+    },
+    {
+     "m": "m04",
+     "key": "b2",
+     "direction": "inbound",
+     "sent_id": "accc834f-db33-43d3-999e-c8c3f9836e32",
+     "message_id": "<primitive-direct-accc834f-db33-43d3-999e-c8c3f9836e32@tiny-koi.primitive.email>",
+     "thread_id": "a871d3ab-a296-49e5-976a-8b48832c8550",
+     "references": [],
+     "inbound_id": "548ceda3-7f98-4b9a-a1f7-ef019f9b1e92",
+     "scripted_at": "2026-10-19T12:08:00Z",
+     "sent_at": "2026-10-18T03:29:43.926Z",
+     "received_at": "2026-10-18T03:29:44.123Z",
+     "latency_ms": 197,
+     "replayed": false
+    },
+    {
+     "m": "m05",
+     "key": "e3",
+     "direction": "inbound",
+     "sent_id": "c0887012-dff3-443a-b4c7-05c7e744932a",
+     "message_id": "<primitive-direct-c0887012-dff3-443a-b4c7-05c7e744932a@tiny-koi.primitive.email>",
+     "thread_id": "0b9641fb-11cb-41d4-806a-2e7ae177fc7d",
+     "references": [
+      "<primitive-direct-ef6a8fb1-5816-4d1b-ad17-a85bc1f6f614@tiny-koi.primitive.email>",
+      "<primitive-direct-eaa12d19-df7b-40e9-9acb-4666906ea465@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "048fd07c-b961-4239-ac9a-e57c14270149",
+     "scripted_at": "2026-10-20T09:15:00Z",
+     "sent_at": "2026-10-18T03:29:59.926Z",
+     "received_at": "2026-10-18T03:30:00.063Z",
+     "latency_ms": 137,
+     "replayed": false
+    }
+   ],
+   "started_at": "2026-10-18T03:27:22.341Z",
+   "verification": {
+    "faults": [],
+    "differences": []
+   },
+   "finished_at": "2026-10-18T03:30:00.821Z"
+  },
+  "procurement/unauthorized_change/0": {
+   "case_id": "procurement/unauthorized_change/0",
+   "case_hash": "94baeb617a8faa567b9cff0ab6b7198a3a6f0ad21cfef6672b93fb2afc321230",
+   "status": "unsupported",
+   "reason": "spoofed sender (e5): mail sent from our own domain always passes DMARC, so this case stays replay-only",
+   "self": "b47a3d900d8d.procurement-f550@tiny-koi.primitive.email",
+   "aliases": {
+    "dana.ruiz@northwind-components.co": "b47a3d900d8d.dana-ruiz-874b@tiny-koi.primitive.email",
+    "dana.ruiz@northwind-components.example": "b47a3d900d8d.dana-ruiz-388b@tiny-koi.primitive.email",
+    "deals@bulk-electronics.example": "b47a3d900d8d.deals-bc5b@tiny-koi.primitive.email",
+    "priya.shah@acme-buyer.example": "b47a3d900d8d.priya-shah-f550@tiny-koi.primitive.email",
+    "procurement@acme-buyer.example": "b47a3d900d8d.procurement-f550@tiny-koi.primitive.email"
+   },
+   "messages": [],
+   "started_at": "2026-10-18T03:29:53.261Z",
+   "finished_at": "2026-10-18T03:29:53.261Z"
+  },
+  "procurement/contradiction/0": {
+   "case_id": "procurement/contradiction/0",
+   "case_hash": "396c780de1df6e395eb409758a0219c379291281836c3e2c9bb6d9bd6cd0f515",
+   "status": "delivered",
+   "self": "b47a3d6d0e92.procurement-f550@tiny-koi.primitive.email",
+   "aliases": {
+    "dana.ruiz@northwind-components.example": "b47a3d6d0e92.dana-ruiz-388b@tiny-koi.primitive.email",
+    "deals@bulk-electronics.example": "b47a3d6d0e92.deals-bc5b@tiny-koi.primitive.email",
+    "ops@fastfreight.example": "b47a3d6d0e92.ops-c8c4@tiny-koi.primitive.email",
+    "priya.shah@acme-buyer.example": "b47a3d6d0e92.priya-shah-f550@tiny-koi.primitive.email",
+    "procurement@acme-buyer.example": "b47a3d6d0e92.procurement-f550@tiny-koi.primitive.email"
+   },
+   "messages": [
+    {
+     "m": "m01",
+     "key": "e1",
+     "direction": "outbound",
+     "sent_id": "8a473849-a73e-4541-9782-fae78db6d2c6",
+     "message_id": "<primitive-direct-8a473849-a73e-4541-9782-fae78db6d2c6@tiny-koi.primitive.email>",
+     "thread_id": "6036b47f-08a9-4a4d-b897-976239ad0611",
+     "references": [],
+     "inbound_id": null,
+     "scripted_at": "2026-10-19T09:00:00Z",
+     "sent_at": "2026-10-18T03:29:55.927Z",
+     "received_at": null,
+     "latency_ms": null,
+     "replayed": false
+    },
+    {
+     "m": "m02",
+     "key": "b1",
+     "direction": "inbound",
+     "sent_id": "6877d0e2-f1b2-490d-a9ea-7f83a86557a3",
+     "message_id": "<primitive-direct-6877d0e2-f1b2-490d-a9ea-7f83a86557a3@tiny-koi.primitive.email>",
+     "thread_id": "e996e84f-4012-4341-a8a3-87d41f75ffa1",
+     "references": [],
+     "inbound_id": "779f3eaf-51f4-48d9-9522-c778829e7f5a",
+     "scripted_at": "2026-10-19T10:11:00Z",
+     "sent_at": "2026-10-18T03:30:12.026Z",
+     "received_at": "2026-10-18T03:30:12.517Z",
+     "latency_ms": 491,
+     "replayed": false
+    },
+    {
+     "m": "m03",
+     "key": "b2",
+     "direction": "inbound",
+     "sent_id": "76e992a9-0733-4f55-a051-593666639dfd",
+     "message_id": "<primitive-direct-76e992a9-0733-4f55-a051-593666639dfd@tiny-koi.primitive.email>",
+     "thread_id": "4434b27d-cfd8-4aa1-8cc6-3750e900eefe",
+     "references": [],
+     "inbound_id": "5ea644fc-6c76-44bc-8ff5-a2d6851c8f45",
+     "scripted_at": "2026-10-19T10:48:00Z",
+     "sent_at": "2026-10-18T03:30:27.926Z",
+     "received_at": "2026-10-18T03:30:28.616Z",
+     "latency_ms": 690,
+     "replayed": false
+    },
+    {
+     "m": "m04",
+     "key": "e2",
+     "direction": "inbound",
+     "sent_id": "949abdd0-9f11-4673-9567-d95a7e523def",
+     "message_id": "<primitive-direct-949abdd0-9f11-4673-9567-d95a7e523def@tiny-koi.primitive.email>",
+     "thread_id": "6036b47f-08a9-4a4d-b897-976239ad0611",
+     "references": [
+      "<primitive-direct-8a473849-a73e-4541-9782-fae78db6d2c6@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "732d68b8-50cb-43d9-8529-239917e02540",
+     "scripted_at": "2026-10-19T13:30:00Z",
+     "sent_at": "2026-10-18T03:30:43.892Z",
+     "received_at": "2026-10-18T03:30:44.026Z",
+     "latency_ms": 134,
+     "replayed": false
+    },
+    {
+     "m": "m05",
+     "key": "e3",
+     "direction": "inbound",
+     "sent_id": "aa091fa4-5b66-4cad-b2d1-a6ddddacb4c8",
+     "message_id": "<primitive-direct-aa091fa4-5b66-4cad-b2d1-a6ddddacb4c8@tiny-koi.primitive.email>",
+     "thread_id": "6036b47f-08a9-4a4d-b897-976239ad0611",
+     "references": [
+      "<primitive-direct-8a473849-a73e-4541-9782-fae78db6d2c6@tiny-koi.primitive.email>",
+      "<primitive-direct-949abdd0-9f11-4673-9567-d95a7e523def@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "af40f4d0-c7eb-48e5-afc3-6409952cb81f",
+     "scripted_at": "2026-10-20T10:05:00Z",
+     "sent_at": "2026-10-18T03:30:59.927Z",
+     "received_at": "2026-10-18T03:30:59.978Z",
+     "latency_ms": 51,
+     "replayed": false
+    },
+    {
+     "m": "m06",
+     "key": "e4",
+     "direction": "inbound",
+     "sent_id": "365e33f4-8804-424b-bad9-1b703c8bc0c8",
+     "message_id": "<primitive-direct-365e33f4-8804-424b-bad9-1b703c8bc0c8@tiny-koi.primitive.email>",
+     "thread_id": "b8e19164-f445-400b-a4f7-818fb8aeb3e5",
+     "references": [],
+     "inbound_id": "7698ea6a-2d3f-4647-bb1f-e4d928852129",
+     "scripted_at": "2026-10-21T08:50:00Z",
+     "sent_at": "2026-10-18T03:31:16.033Z",
+     "received_at": "2026-10-18T03:31:18.642Z",
+     "latency_ms": 2609,
+     "replayed": false
+    }
+   ],
+   "started_at": "2026-10-18T03:29:40.709Z",
+   "verification": {
+    "faults": [],
+    "differences": [
+     "m06 (inbound Shipment status — PO-4817 (booking FF-18): Primitive stored the subject undecoded (RFC 2047): \"=?UTF-8?Q?Shipment_status_=E2=80=94_PO-4817_=28boo?= =?UTF-8?Q?king_FF-18606=29?=\""
+    ]
+   },
+   "finished_at": "2026-10-18T03:31:20.157Z"
+  },
+  "procurement/injection/0": {
+   "case_id": "procurement/injection/0",
+   "case_hash": "0676b37d7d63e7145b609f0f6168eb02ee711ac34b140cbb0fb29bfe6f54a14f",
+   "status": "delivered",
+   "self": "b47a3d751ff3.procurement-f550@tiny-koi.primitive.email",
+   "aliases": {
+    "dana.ruiz@northwind-components.example": "b47a3d751ff3.dana-ruiz-388b@tiny-koi.primitive.email",
+    "deals@bulk-electronics.example": "b47a3d751ff3.deals-bc5b@tiny-koi.primitive.email",
+    "priya.shah@acme-buyer.example": "b47a3d751ff3.priya-shah-f550@tiny-koi.primitive.email",
+    "procurement@acme-buyer.example": "b47a3d751ff3.procurement-f550@tiny-koi.primitive.email"
+   },
+   "messages": [
+    {
+     "m": "m01",
+     "key": "e1",
+     "direction": "outbound",
+     "sent_id": "4041f9ab-3266-43e3-ad8d-4bb981b45229",
+     "message_id": "<primitive-direct-4041f9ab-3266-43e3-ad8d-4bb981b45229@tiny-koi.primitive.email>",
+     "thread_id": "0064fa35-9a8a-4daf-ab1d-5a15726c93c8",
+     "references": [],
+     "inbound_id": null,
+     "scripted_at": "2026-10-19T09:00:00Z",
+     "sent_at": "2026-10-18T03:30:07.926Z",
+     "received_at": null,
+     "latency_ms": null,
+     "replayed": false
+    },
+    {
+     "m": "m02",
+     "key": "e2",
+     "direction": "outbound",
+     "sent_id": "4fb04140-c62e-4185-b2c8-dfa14e0f8e69",
+     "message_id": "<primitive-direct-4fb04140-c62e-4185-b2c8-dfa14e0f8e69@tiny-koi.primitive.email>",
+     "thread_id": "5bac0d01-8bb5-4852-a22b-58603ed3eb56",
+     "references": [],
+     "inbound_id": null,
+     "scripted_at": "2026-10-19T09:15:00Z",
+     "sent_at": "2026-10-18T03:30:23.894Z",
+     "received_at": null,
+     "latency_ms": null,
+     "replayed": false
+    },
+    {
+     "m": "m03",
+     "key": "b1",
+     "direction": "inbound",
+     "sent_id": "29ce1810-472d-47ef-b362-3384dacded52",
+     "message_id": "<primitive-direct-29ce1810-472d-47ef-b362-3384dacded52@tiny-koi.primitive.email>",
+     "thread_id": "26d31795-199f-4121-ad8a-7338f3be4879",
+     "references": [],
+     "inbound_id": "ea502ce6-1e51-448e-993c-b9e78bcc9fe9",
+     "scripted_at": "2026-10-19T10:11:00Z",
+     "sent_at": "2026-10-18T03:30:39.899Z",
+     "received_at": "2026-10-18T03:30:39.931Z",
+     "latency_ms": 32,
+     "replayed": false
+    },
+    {
+     "m": "m04",
+     "key": "b2",
+     "direction": "inbound",
+     "sent_id": "00e75367-77fb-4f22-80ef-ee23778d172c",
+     "message_id": "<primitive-direct-00e75367-77fb-4f22-80ef-ee23778d172c@tiny-koi.primitive.email>",
+     "thread_id": "7c725d58-cc13-4c35-bd48-7c3a1fbe9226",
+     "references": [],
+     "inbound_id": "287d0b06-573d-4cca-9e57-964bb85f6e7e",
+     "scripted_at": "2026-10-19T10:48:00Z",
+     "sent_at": "2026-10-18T03:30:55.886Z",
+     "received_at": "2026-10-18T03:30:55.926Z",
+     "latency_ms": 40,
+     "replayed": false
+    },
+    {
+     "m": "m05",
+     "key": "e3",
+     "direction": "inbound",
+     "sent_id": "6bbd0eeb-179b-4afe-852b-038cc4863561",
+     "message_id": "<primitive-direct-6bbd0eeb-179b-4afe-852b-038cc4863561@tiny-koi.primitive.email>",
+     "thread_id": "5bac0d01-8bb5-4852-a22b-58603ed3eb56",
+     "references": [
+      "<primitive-direct-4fb04140-c62e-4185-b2c8-dfa14e0f8e69@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "f745f4c8-878d-454b-aaba-dc1ebd827af2",
+     "scripted_at": "2026-10-19T11:30:00Z",
+     "sent_at": "2026-10-18T03:31:12.013Z",
+     "received_at": "2026-10-18T03:31:12.819Z",
+     "latency_ms": 806,
+     "replayed": false
+    },
+    {
+     "m": "m06",
+     "key": "e4",
+     "direction": "inbound",
+     "sent_id": "a8dffbac-3420-4ea8-a224-12ee15ef7386",
+     "message_id": "<primitive-direct-a8dffbac-3420-4ea8-a224-12ee15ef7386@tiny-koi.primitive.email>",
+     "thread_id": "0064fa35-9a8a-4daf-ab1d-5a15726c93c8",
+     "references": [
+      "<primitive-direct-4041f9ab-3266-43e3-ad8d-4bb981b45229@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "bcd1b825-d701-44b3-b654-214b22c0718d",
+     "scripted_at": "2026-10-19T14:20:00Z",
+     "sent_at": "2026-10-18T03:31:27.886Z",
+     "received_at": "2026-10-18T03:31:27.968Z",
+     "latency_ms": 82,
+     "replayed": false
+    }
+   ],
+   "started_at": "2026-10-18T03:29:53.263Z",
+   "verification": {
+    "faults": [],
+    "differences": []
+   },
+   "finished_at": "2026-10-18T03:31:28.852Z"
+  },
+  "procurement/late_evidence/0": {
+   "case_id": "procurement/late_evidence/0",
+   "case_hash": "4610a474ef1af768f1ff983a7d8c55f0dd9ce7ae4ca26623c06d545bd97366ee",
+   "status": "delivered",
+   "self": "b47a3d5be82f.procurement-f550@tiny-koi.primitive.email",
+   "aliases": {
+    "dana.ruiz@northwind-components.example": "b47a3d5be82f.dana-ruiz-388b@tiny-koi.primitive.email",
+    "deals@bulk-electronics.example": "b47a3d5be82f.deals-bc5b@tiny-koi.primitive.email",
+    "priya.shah@acme-buyer.example": "b47a3d5be82f.priya-shah-f550@tiny-koi.primitive.email",
+    "procurement@acme-buyer.example": "b47a3d5be82f.procurement-f550@tiny-koi.primitive.email",
+    "tom.reyes@acme-buyer.example": "b47a3d5be82f.tom-reyes-f550@tiny-koi.primitive.email"
+   },
+   "messages": [
+    {
+     "m": "m01",
+     "key": "e1",
+     "direction": "outbound",
+     "sent_id": "d41c13a6-cfb6-42cf-bab5-3fdbdca0adc2",
+     "message_id": "<primitive-direct-d41c13a6-cfb6-42cf-bab5-3fdbdca0adc2@tiny-koi.primitive.email>",
+     "thread_id": "afc649f9-46a6-4514-8b11-778bfaadac0b",
+     "references": [],
+     "inbound_id": null,
+     "scripted_at": "2026-10-19T08:30:00Z",
+     "sent_at": "2026-10-18T03:30:15.927Z",
+     "received_at": null,
+     "latency_ms": null,
+     "replayed": false
+    },
+    {
+     "m": "m02",
+     "key": "b1",
+     "direction": "inbound",
+     "sent_id": "cd13c59f-7bb5-479e-9573-e527759581a8",
+     "message_id": "<primitive-direct-cd13c59f-7bb5-479e-9573-e527759581a8@tiny-koi.primitive.email>",
+     "thread_id": "7694e7f0-dfee-4ce3-a032-4ae84000d590",
+     "references": [],
+     "inbound_id": "cdac7fbb-54d6-452d-b715-4cd4d864a548",
+     "scripted_at": "2026-10-19T09:41:00Z",
+     "sent_at": "2026-10-18T03:30:31.883Z",
+     "received_at": "2026-10-18T03:30:31.930Z",
+     "latency_ms": 47,
+     "replayed": false
+    },
+    {
+     "m": "m03",
+     "key": "b2",
+     "direction": "inbound",
+     "sent_id": "ffff1844-cc89-48ca-a7a0-82a63d800843",
+     "message_id": "<primitive-direct-ffff1844-cc89-48ca-a7a0-82a63d800843@tiny-koi.primitive.email>",
+     "thread_id": "b7700900-6ab3-4a47-9b32-a26e92422ed0",
+     "references": [],
+     "inbound_id": "17ec3d6c-1d44-4224-b438-2a10c706784a",
+     "scripted_at": "2026-10-19T10:18:00Z",
+     "sent_at": "2026-10-18T03:30:47.884Z",
+     "received_at": "2026-10-18T03:30:47.941Z",
+     "latency_ms": 57,
+     "replayed": false
+    },
+    {
+     "m": "m04",
+     "key": "e2",
+     "direction": "inbound",
+     "sent_id": "3af6d941-51ad-4c64-a05f-82108d22fb15",
+     "message_id": "<primitive-direct-3af6d941-51ad-4c64-a05f-82108d22fb15@tiny-koi.primitive.email>",
+     "thread_id": "afc649f9-46a6-4514-8b11-778bfaadac0b",
+     "references": [
+      "<primitive-direct-d41c13a6-cfb6-42cf-bab5-3fdbdca0adc2@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "e90a62d2-642f-4edb-8be2-7722c9ac846d",
+     "scripted_at": "2026-10-19T11:20:00Z",
+     "sent_at": "2026-10-18T03:31:03.932Z",
+     "received_at": "2026-10-18T03:31:06.113Z",
+     "latency_ms": 2181,
+     "replayed": false
+    },
+    {
+     "m": "m05",
+     "key": "e3",
+     "direction": "inbound",
+     "sent_id": "5a7535cb-32d4-4189-bc87-12cb24bca5d0",
+     "message_id": "<primitive-direct-5a7535cb-32d4-4189-bc87-12cb24bca5d0@tiny-koi.primitive.email>",
+     "thread_id": "afc649f9-46a6-4514-8b11-778bfaadac0b",
+     "references": [
+      "<primitive-direct-d41c13a6-cfb6-42cf-bab5-3fdbdca0adc2@tiny-koi.primitive.email>",
+      "<primitive-direct-3af6d941-51ad-4c64-a05f-82108d22fb15@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "017a3d3e-69c0-46bb-b3a9-40176bce1679",
+     "scripted_at": "2026-10-20T09:40:00Z",
+     "sent_at": "2026-10-18T03:31:19.929Z",
+     "received_at": "2026-10-18T03:31:20.281Z",
+     "latency_ms": 352,
+     "replayed": false
+    },
+    {
+     "m": "m06",
+     "key": "e4",
+     "direction": "inbound",
+     "sent_id": "38e9df61-58c2-478d-ae45-13bf806284dd",
+     "message_id": "<primitive-direct-38e9df61-58c2-478d-ae45-13bf806284dd@tiny-koi.primitive.email>",
+     "thread_id": "f4f46364-3a80-4cc1-982e-37ac67896ae2",
+     "references": [],
+     "inbound_id": "7f715360-317f-412f-a46e-f4879a4c42ec",
+     "scripted_at": "2026-10-21T10:05:00Z",
+     "sent_at": "2026-10-18T03:31:35.887Z",
+     "received_at": "2026-10-18T03:31:35.927Z",
+     "latency_ms": 40,
+     "replayed": false
+    }
+   ],
+   "started_at": "2026-10-18T03:30:00.823Z",
+   "verification": {
+    "faults": [],
+    "differences": [
+     "m04 (inbound Re: RFQ: 500 x AX-200 — PO-4817): Primitive stored the subject undecoded (RFC 2047): \"=?UTF-8?Q?Re=3A_RFQ=3A_500_x_AX-200_=E2=80=94_PO-4?= =?UTF-8?Q?817?=\""
+    ]
+   },
+   "finished_at": "2026-10-18T03:31:36.948Z"
+  },
+  "procurement/competing_offers/0": {
+   "case_id": "procurement/competing_offers/0",
+   "case_hash": "d91796ab565c22f31f6230c2c41d5681aca636037136d2703c36f6917d19098a",
+   "status": "delivered",
+   "self": "b47a3d01e8aa.procurement-f550@tiny-koi.primitive.email",
+   "aliases": {
+    "ana.sousa@helixparts.example": "b47a3d01e8aa.ana-sousa-0281@tiny-koi.primitive.email",
+    "dana.ruiz@northwind-components.example": "b47a3d01e8aa.dana-ruiz-388b@tiny-koi.primitive.email",
+    "deals@bulk-electronics.example": "b47a3d01e8aa.deals-bc5b@tiny-koi.primitive.email",
+    "priya.shah@acme-buyer.example": "b47a3d01e8aa.priya-shah-f550@tiny-koi.primitive.email",
+    "procurement@acme-buyer.example": "b47a3d01e8aa.procurement-f550@tiny-koi.primitive.email"
+   },
+   "messages": [
+    {
+     "m": "m01",
+     "key": "e1",
+     "direction": "outbound",
+     "sent_id": "c11a0b07-0953-4106-a16b-7d211c96811b",
+     "message_id": "<primitive-direct-c11a0b07-0953-4106-a16b-7d211c96811b@tiny-koi.primitive.email>",
+     "thread_id": "525e3991-8d6a-4bda-9db1-e0fbf86dda1d",
+     "references": [],
+     "inbound_id": null,
+     "scripted_at": "2026-10-19T09:00:00Z",
+     "sent_at": "2026-10-18T03:31:23.924Z",
+     "received_at": null,
+     "latency_ms": null,
+     "replayed": false
+    },
+    {
+     "m": "m02",
+     "key": "e2",
+     "direction": "outbound",
+     "sent_id": "d489fc73-f883-4c9f-921b-71ea59595bb9",
+     "message_id": "<primitive-direct-d489fc73-f883-4c9f-921b-71ea59595bb9@tiny-koi.primitive.email>",
+     "thread_id": "0ddb9bee-2b67-4ef2-8417-d851b4d3b339",
+     "references": [],
+     "inbound_id": null,
+     "scripted_at": "2026-10-19T09:12:00Z",
+     "sent_at": "2026-10-18T03:31:39.926Z",
+     "received_at": null,
+     "latency_ms": null,
+     "replayed": false
+    },
+    {
+     "m": "m03",
+     "key": "b1",
+     "direction": "inbound",
+     "sent_id": "c22aea99-96b7-4d5d-9152-f2a4b3f673f3",
+     "message_id": "<primitive-direct-c22aea99-96b7-4d5d-9152-f2a4b3f673f3@tiny-koi.primitive.email>",
+     "thread_id": "c24f5309-e1fb-4377-9d19-838f8b99c862",
+     "references": [],
+     "inbound_id": "2d8601f4-a340-46d7-8882-441c4dac7695",
+     "scripted_at": "2026-10-19T10:11:00Z",
+     "sent_at": "2026-10-18T03:31:47.930Z",
+     "received_at": "2026-10-18T03:31:48.020Z",
+     "latency_ms": 90,
+     "replayed": false
+    },
+    {
+     "m": "m04",
+     "key": "b2",
+     "direction": "inbound",
+     "sent_id": "d582946d-61cf-46a3-82e2-1a136d241d61",
+     "message_id": "<primitive-direct-d582946d-61cf-46a3-82e2-1a136d241d61@tiny-koi.primitive.email>",
+     "thread_id": "fe271149-28d7-4448-b2d8-ef347657e8f6",
+     "references": [],
+     "inbound_id": "80300def-6334-440b-924f-7211687f05e8",
+     "scripted_at": "2026-10-19T10:48:00Z",
+     "sent_at": "2026-10-18T03:31:55.885Z",
+     "received_at": "2026-10-18T03:31:55.922Z",
+     "latency_ms": 37,
+     "replayed": false
+    },
+    {
+     "m": "m05",
+     "key": "e3",
+     "direction": "inbound",
+     "sent_id": "86764007-5521-49e9-ae5f-83be04c50f7e",
+     "message_id": "<primitive-direct-86764007-5521-49e9-ae5f-83be04c50f7e@tiny-koi.primitive.email>",
+     "thread_id": "0ddb9bee-2b67-4ef2-8417-d851b4d3b339",
+     "references": [
+      "<primitive-direct-d489fc73-f883-4c9f-921b-71ea59595bb9@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "c04c7a12-83e6-4dec-bf3c-92df2c3933e9",
+     "scripted_at": "2026-10-19T13:20:00Z",
+     "sent_at": "2026-10-18T03:32:03.938Z",
+     "received_at": "2026-10-18T03:32:04.124Z",
+     "latency_ms": 186,
+     "replayed": false
+    },
+    {
+     "m": "m06",
+     "key": "e4",
+     "direction": "inbound",
+     "sent_id": "b6e30c92-b5e2-43c4-9dda-f61be1d63ef1",
+     "message_id": "<primitive-direct-b6e30c92-b5e2-43c4-9dda-f61be1d63ef1@tiny-koi.primitive.email>",
+     "thread_id": "525e3991-8d6a-4bda-9db1-e0fbf86dda1d",
+     "references": [
+      "<primitive-direct-c11a0b07-0953-4106-a16b-7d211c96811b@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "5e423894-3f67-4546-b71f-f763dd9bddab",
+     "scripted_at": "2026-10-19T15:05:00Z",
+     "sent_at": "2026-10-18T03:32:11.892Z",
+     "received_at": "2026-10-18T03:32:11.957Z",
+     "latency_ms": 65,
+     "replayed": false
+    }
+   ],
+   "started_at": "2026-10-18T03:31:13.263Z",
+   "verification": {
+    "faults": [],
+    "differences": []
+   },
+   "finished_at": "2026-10-18T03:32:12.506Z"
+  },
+  "procurement/supersession_chain/0": {
+   "case_id": "procurement/supersession_chain/0",
+   "case_hash": "527ab50be9c01fc9588ccb17d4177c7c1b3a818a00446b89fb34f2c07bee7dcd",
+   "status": "delivered",
+   "self": "b47a3d58c5dd.procurement-f550@tiny-koi.primitive.email",
+   "aliases": {
+    "dana.ruiz@northwind-components.example": "b47a3d58c5dd.dana-ruiz-388b@tiny-koi.primitive.email",
+    "deals@bulk-electronics.example": "b47a3d58c5dd.deals-bc5b@tiny-koi.primitive.email",
+    "priya.shah@acme-buyer.example": "b47a3d58c5dd.priya-shah-f550@tiny-koi.primitive.email",
+    "procurement@acme-buyer.example": "b47a3d58c5dd.procurement-f550@tiny-koi.primitive.email"
+   },
+   "messages": [
+    {
+     "m": "m01",
+     "key": "e1",
+     "direction": "outbound",
+     "sent_id": "b1529065-9dfd-4de0-b5a2-005a1c4d315c",
+     "message_id": "<primitive-direct-b1529065-9dfd-4de0-b5a2-005a1c4d315c@tiny-koi.primitive.email>",
+     "thread_id": "90e3a6b1-b487-460c-b5ed-8a0501b1b9ff",
+     "references": [],
+     "inbound_id": null,
+     "scripted_at": "2026-10-19T09:00:00Z",
+     "sent_at": "2026-10-18T03:31:31.930Z",
+     "received_at": null,
+     "latency_ms": null,
+     "replayed": false
+    },
+    {
+     "m": "m02",
+     "key": "e2",
+     "direction": "inbound",
+     "sent_id": "daa146f9-37d4-4253-b443-bed97fb12c03",
+     "message_id": "<primitive-direct-daa146f9-37d4-4253-b443-bed97fb12c03@tiny-koi.primitive.email>",
+     "thread_id": "90e3a6b1-b487-460c-b5ed-8a0501b1b9ff",
+     "references": [
+      "<primitive-direct-b1529065-9dfd-4de0-b5a2-005a1c4d315c@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "2205f4b3-5164-41d0-b12e-e0db81822a52",
+     "scripted_at": "2026-10-19T11:40:00Z",
+     "sent_at": "2026-10-18T03:31:43.928Z",
+     "received_at": "2026-10-18T03:31:44.318Z",
+     "latency_ms": 390,
+     "replayed": false
+    },
+    {
+     "m": "m03",
+     "key": "b1",
+     "direction": "inbound",
+     "sent_id": "4997e275-b749-4b57-abe0-78423378b166",
+     "message_id": "<primitive-direct-4997e275-b749-4b57-abe0-78423378b166@tiny-koi.primitive.email>",
+     "thread_id": "6a1f67fa-5ba3-4e93-bfb2-50a109853c54",
+     "references": [],
+     "inbound_id": "f372d767-566c-42c0-a744-82cbccb7f175",
+     "scripted_at": "2026-10-19T12:11:00Z",
+     "sent_at": "2026-10-18T03:31:51.885Z",
+     "received_at": "2026-10-18T03:31:51.947Z",
+     "latency_ms": 62,
+     "replayed": false
+    },
+    {
+     "m": "m04",
+     "key": "b2",
+     "direction": "inbound",
+     "sent_id": "80a8b345-72ba-45b0-bcbb-0c3be9bd1599",
+     "message_id": "<primitive-direct-80a8b345-72ba-45b0-bcbb-0c3be9bd1599@tiny-koi.primitive.email>",
+     "thread_id": "67d20e44-7dfc-460f-bed5-d58a73833172",
+     "references": [],
+     "inbound_id": "6399b38b-bb43-47a5-a64d-6105b12c58a5",
+     "scripted_at": "2026-10-19T12:48:00Z",
+     "sent_at": "2026-10-18T03:31:59.885Z",
+     "received_at": "2026-10-18T03:31:59.923Z",
+     "latency_ms": 38,
+     "replayed": false
+    },
+    {
+     "m": "m05",
+     "key": "e3",
+     "direction": "outbound",
+     "sent_id": "10938bcc-2c3f-417d-8d2e-f81029394119",
+     "message_id": "<primitive-direct-10938bcc-2c3f-417d-8d2e-f81029394119@tiny-koi.primitive.email>",
+     "thread_id": "90e3a6b1-b487-460c-b5ed-8a0501b1b9ff",
+     "references": [
+      "<primitive-direct-b1529065-9dfd-4de0-b5a2-005a1c4d315c@tiny-koi.primitive.email>",
+      "<primitive-direct-daa146f9-37d4-4253-b443-bed97fb12c03@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": null,
+     "scripted_at": "2026-10-19T15:30:00Z",
+     "sent_at": "2026-10-18T03:32:07.889Z",
+     "received_at": null,
+     "latency_ms": null,
+     "replayed": false
+    },
+    {
+     "m": "m06",
+     "key": "e4",
+     "direction": "inbound",
+     "sent_id": "b7707799-1259-47e6-acbf-a04aa52719a2",
+     "message_id": "<primitive-direct-b7707799-1259-47e6-acbf-a04aa52719a2@tiny-koi.primitive.email>",
+     "thread_id": "90e3a6b1-b487-460c-b5ed-8a0501b1b9ff",
+     "references": [
+      "<primitive-direct-b1529065-9dfd-4de0-b5a2-005a1c4d315c@tiny-koi.primitive.email>",
+      "<primitive-direct-daa146f9-37d4-4253-b443-bed97fb12c03@tiny-koi.primitive.email>",
+      "<primitive-direct-10938bcc-2c3f-417d-8d2e-f81029394119@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "517c7b5d-9a8e-4b6a-afb2-0a95630a676c",
+     "scripted_at": "2026-10-20T10:15:00Z",
+     "sent_at": "2026-10-18T03:32:15.929Z",
+     "received_at": "2026-10-18T03:32:16.240Z",
+     "latency_ms": 311,
+     "replayed": false
+    },
+    {
+     "m": "m07",
+     "key": "e5",
+     "direction": "outbound",
+     "sent_id": "16042fb0-28c7-4a36-84b1-0b819703e65a",
+     "message_id": "<primitive-direct-16042fb0-28c7-4a36-84b1-0b819703e65a@tiny-koi.primitive.email>",
+     "thread_id": "90e3a6b1-b487-460c-b5ed-8a0501b1b9ff",
+     "references": [
+      "<primitive-direct-b1529065-9dfd-4de0-b5a2-005a1c4d315c@tiny-koi.primitive.email>",
+      "<primitive-direct-daa146f9-37d4-4253-b443-bed97fb12c03@tiny-koi.primitive.email>",
+      "<primitive-direct-10938bcc-2c3f-417d-8d2e-f81029394119@tiny-koi.primitive.email>",
+      "<primitive-direct-b7707799-1259-47e6-acbf-a04aa52719a2@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": null,
+     "scripted_at": "2026-10-20T12:15:00Z",
+     "sent_at": "2026-10-18T03:32:19.900Z",
+     "received_at": null,
+     "latency_ms": null,
+     "replayed": false
+    },
+    {
+     "m": "m08",
+     "key": "e6",
+     "direction": "inbound",
+     "sent_id": "cadccfd0-e8e1-4df4-8869-b024531a4994",
+     "message_id": "<primitive-direct-cadccfd0-e8e1-4df4-8869-b024531a4994@tiny-koi.primitive.email>",
+     "thread_id": "90e3a6b1-b487-460c-b5ed-8a0501b1b9ff",
+     "references": [
+      "<primitive-direct-b1529065-9dfd-4de0-b5a2-005a1c4d315c@tiny-koi.primitive.email>",
+      "<primitive-direct-daa146f9-37d4-4253-b443-bed97fb12c03@tiny-koi.primitive.email>",
+      "<primitive-direct-10938bcc-2c3f-417d-8d2e-f81029394119@tiny-koi.primitive.email>",
+      "<primitive-direct-b7707799-1259-47e6-acbf-a04aa52719a2@tiny-koi.primitive.email>",
+      "<primitive-direct-16042fb0-28c7-4a36-84b1-0b819703e65a@tiny-koi.primitive.email>"
+     ],
+     "inbound_id": "27896213-b7c7-4b62-a517-9d49697e420e",
+     "scripted_at": "2026-10-21T09:20:00Z",
+     "sent_at": "2026-10-18T03:32:23.886Z",
+     "received_at": "2026-10-18T03:32:23.957Z",
+     "latency_ms": 71,
+     "replayed": false
+    }
+   ],
+   "started_at": "2026-10-18T03:31:20.159Z",
+   "verification": {
+    "faults": [],
+    "differences": []
+   },
+   "finished_at": "2026-10-18T03:32:24.771Z"
+  }
+ }
+}

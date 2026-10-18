@@ -1,0 +1,37 @@
+{
+ "name": "value-dev1",
+ "suite": "value",
+ "model": "claude-haiku-5-5",
+ "judge_model": "claude-haiku-5-5",
+ "effort": "medium",
+ "trials": 1,
+ "conditions": [
+  "primitive-native",
+  "full-history",
+  "continuity",
+  "oracle"
+ ],
+ "mock": false,
+ "cases": 21,
+ "archetypes": [
+  "value_chain_d1",
+  "value_chain_d2",
+  "value_chain_d4",
+  "value_chain_d6",
+  "value_fanout_t2",
+  "value_fanout_t5",
+  "value_fanout_t8"
+ ],
+ "variants": [
+  1,
+  2,
+  3
+ ],
+ "commit": "af69a536d5ff079be065dcb61f3271755e1cc7ea",
+ "dirty": true,
+ "extractor": {
+  "thinking": "off",
+  "route": "skip-empty,outbound-plain-rules"
+ },
+ "started_at": "2026-10-18T05:24:59.889Z"
+}

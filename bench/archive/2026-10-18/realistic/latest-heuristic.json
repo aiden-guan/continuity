@@ -1,0 +1,1749 @@
+{
+ "extractor": "heuristic-v2",
+ "generated_at": "2026-10-18T01:54:32.586Z",
+ "summary": {
+  "active_recall": {
+   "ok": 243,
+   "total": 473,
+   "rate": 0.5137420718816068
+  },
+  "active_precision": {
+   "ok": 243,
+   "total": 356,
+   "rate": 0.6825842696629213
+  },
+  "contested": {
+   "ok": 0,
+   "total": 8,
+   "rate": 0
+  },
+  "superseded": {
+   "ok": 56,
+   "total": 90,
+   "rate": 0.6222222222222222
+  },
+  "not_applied": {
+   "ok": 17,
+   "total": 24,
+   "rate": 0.7083333333333334
+  },
+  "obligation_found": {
+   "ok": 90,
+   "total": 165,
+   "rate": 0.5454545454545454
+  },
+  "obligation_status": {
+   "ok": 53,
+   "total": 90,
+   "rate": 0.5888888888888889
+  },
+  "documents": {
+   "ok": 64,
+   "total": 80,
+   "rate": 0.8
+  },
+  "checks": {
+   "ok": 187,
+   "total": 326,
+   "rate": 0.5736196319018405
+  },
+  "next_actor": {
+   "ok": 49,
+   "total": 87,
+   "rate": 0.5632183908045977
+  },
+  "joint": {
+   "ok": 7,
+   "total": 87,
+   "rate": 0.08045977011494253
+  },
+  "handoff": {
+   "ok": 12,
+   "total": 45,
+   "rate": 0.26666666666666666
+  }
+ },
+ "by_feature": {
+  "quoted_history": {
+   "joint": {
+    "ok": 7,
+    "total": 87
+   },
+   "recall": {
+    "ok": 243,
+    "total": 473
+   }
+  },
+  "buried_correction": {
+   "joint": {
+    "ok": 2,
+    "total": 11
+   },
+   "recall": {
+    "ok": 32,
+    "total": 60
+   }
+  },
+  "from_to_change": {
+   "joint": {
+    "ok": 3,
+    "total": 17
+   },
+   "recall": {
+    "ok": 64,
+    "total": 100
+   }
+  },
+  "distractor_numbers": {
+   "joint": {
+    "ok": 7,
+    "total": 87
+   },
+   "recall": {
+    "ok": 243,
+    "total": 473
+   }
+  },
+  "table": {
+   "joint": {
+    "ok": 2,
+    "total": 8
+   },
+   "recall": {
+    "ok": 34,
+    "total": 46
+   }
+  },
+  "terse_shorthand": {
+   "joint": {
+    "ok": 4,
+    "total": 61
+   },
+   "recall": {
+    "ok": 177,
+    "total": 343
+   }
+  },
+  "answered_question": {
+   "joint": {
+    "ok": 7,
+    "total": 72
+   },
+   "recall": {
+    "ok": 203,
+    "total": 394
+   }
+  },
+  "partial_update": {
+   "joint": {
+    "ok": 1,
+    "total": 12
+   },
+   "recall": {
+    "ok": 37,
+    "total": 72
+   }
+  },
+  "contested": {
+   "joint": {
+    "ok": 0,
+    "total": 6
+   },
+   "recall": {
+    "ok": 15,
+    "total": 27
+   }
+  },
+  "hedged": {
+   "joint": {
+    "ok": 0,
+    "total": 6
+   },
+   "recall": {
+    "ok": 10,
+    "total": 32
+   }
+  },
+  "document_versions": {
+   "joint": {
+    "ok": 1,
+    "total": 30
+   },
+   "recall": {
+    "ok": 95,
+    "total": 176
+   }
+  },
+  "acceptance": {
+   "joint": {
+    "ok": 5,
+    "total": 57
+   },
+   "recall": {
+    "ok": 166,
+    "total": 320
+   }
+  },
+  "not_authoritative": {
+   "joint": {
+    "ok": 2,
+    "total": 9
+   },
+   "recall": {
+    "ok": 21,
+    "total": 45
+   }
+  },
+  "late_forward": {
+   "joint": {
+    "ok": 0,
+    "total": 6
+   },
+   "recall": {
+    "ok": 18,
+    "total": 34
+   }
+  },
+  "promise_without_attachment": {
+   "joint": {
+    "ok": 0,
+    "total": 6
+   },
+   "recall": {
+    "ok": 18,
+    "total": 36
+   }
+  },
+  "unanswered_question": {
+   "joint": {
+    "ok": 0,
+    "total": 2
+   },
+   "recall": {
+    "ok": 2,
+    "total": 9
+   }
+  },
+  "noise_mail": {
+   "joint": {
+    "ok": 1,
+    "total": 10
+   },
+   "recall": {
+    "ok": 28,
+    "total": 50
+   }
+  },
+  "subject_drift": {
+   "joint": {
+    "ok": 2,
+    "total": 17
+   },
+   "recall": {
+    "ok": 36,
+    "total": 79
+   }
+  },
+  "withdrawal": {
+   "joint": {
+    "ok": 0,
+    "total": 5
+   },
+   "recall": {
+    "ok": 8,
+    "total": 19
+   }
+  },
+  "sensitive_change": {
+   "joint": {
+    "ok": 0,
+    "total": 6
+   },
+   "recall": {
+    "ok": 29,
+    "total": 39
+   }
+  },
+  "long_thread": {
+   "joint": {
+    "ok": 1,
+    "total": 9
+   },
+   "recall": {
+    "ok": 36,
+    "total": 55
+   }
+  },
+  "unauthenticated": {
+   "joint": {
+    "ok": 2,
+    "total": 3
+   },
+   "recall": {
+    "ok": 12,
+    "total": 13
+   }
+  }
+ },
+ "threads": [
+  {
+   "id": "P01",
+   "domain": "procurement",
+   "title": "Valve order: price changed with a from/to line buried above quoted history; old price keeps reappearing in quotes",
+   "checkpoints": [
+    {
+     "after": "m4",
+     "joint": true,
+     "misses": []
+    },
+    {
+     "after": "m6",
+     "joint": true,
+     "misses": []
+    }
+   ]
+  },
+  {
+   "id": "P02",
+   "domain": "procurement",
+   "title": "Stretch film order: second release slips in an Orig./Rev. table; gold schedule is the full resulting schedule, not just the moved lot",
+   "checkpoints": [
+    {
+     "after": "m4",
+     "joint": false,
+     "misses": [
+      "missing active supplier delivery.schedule=[{\"qty\":500,\"date\":\"2026-11-10\"},{\"qty\":400,\"date\":\"2026-11-13\"}]",
+      "missing active finance budget.max_unit_price=21.5",
+      "question owed by finance is open, expected answered (approve up to $21.50/roll)",
+      "check delivery_deadline is unknown, expected pass",
+      "check budget_approval is unknown, expected pass",
+      "handoff: action send, missing 20\\.75"
+     ]
+    },
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "missing active supplier delivery.schedule=[{\"qty\":500,\"date\":\"2026-11-10\"},{\"qty\":400,\"date\":\"2026-11-20\"}]",
+      "missing active finance budget.max_unit_price=21.5",
+      "document Polaris-Quote-PQ-21907.pdf is current, expected partially_stale",
+      "check delivery_deadline is unknown, expected fail",
+      "check budget_approval is unknown, expected pass",
+      "handoff: action send, missing (nov(ember)?\\.? ?18|11/18|18th) / 400"
+     ]
+    },
+    {
+     "after": "m8",
+     "joint": false,
+     "misses": [
+      "missing active supplier delivery.schedule=[{\"qty\":500,\"date\":\"2026-11-10\"},{\"qty\":400,\"date\":\"2026-11-18\"}]",
+      "missing active finance budget.max_unit_price=21.5",
+      "document Polaris-Quote-PQ-21907.pdf is current, expected partially_stale",
+      "check delivery_deadline is unknown, expected pass",
+      "check budget_approval is unknown, expected pass",
+      "handoff: action send, missing 11/18|nov(ember)?\\.? ?18|18th"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P03",
+   "domain": "procurement",
+   "title": "LED driver order: sales rep and logistics coordinator give different delivery dates; contested until the coordinator corrects himself",
+   "checkpoints": [
+    {
+     "after": "m5",
+     "joint": false,
+     "misses": [
+      "missing active supplier order.quantity=2000",
+      "not contested supplier delivery.schedule=[{\"qty\":2000,\"date\":\"2026-12-03\"}]",
+      "not contested supplier logistics delivery.schedule=[{\"qty\":2000,\"date\":\"2026-12-09\"}]",
+      "check quantity is unknown, expected pass",
+      "handoff: action send, missing (dec(ember)?\\.? ?3\\b|12/3) / (dec(ember)?\\.? ?9\\b|12/9)"
+     ]
+    },
+    {
+     "after": "m7",
+     "joint": false,
+     "misses": [
+      "missing active supplier order.quantity=2000",
+      "not contested supplier delivery.schedule=[{\"qty\":2000,\"date\":\"2026-12-03\"}]",
+      "not contested supplier logistics delivery.schedule=[{\"qty\":2000,\"date\":\"2026-12-09\"}]",
+      "no question owed by supplier (which delivery date is right, Dec 3 or 12/9)",
+      "check quantity is unknown, expected pass",
+      "next actor us, expected them"
+     ]
+    },
+    {
+     "after": "m8",
+     "joint": false,
+     "misses": [
+      "missing active supplier order.quantity=2000",
+      "missing active supplier delivery.schedule=[{\"qty\":2000,\"date\":\"2026-12-03\"}]",
+      "missing active supplier logistics delivery.schedule=[{\"qty\":2000,\"date\":\"2026-12-03\"}]",
+      "no question owed by supplier (which delivery date is right, Dec 3 or 12/9)",
+      "check delivery_deadline is unknown, expected pass",
+      "check quantity is unknown, expected pass",
+      "handoff: action send, missing (dec(ember)?\\.? ?3\\b|12/3)"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P04",
+   "domain": "procurement",
+   "title": "Cap screw order: \"should be able to do $11.20, need mgr sign-off\" is tentative until the firm quote arrives",
+   "checkpoints": [
+    {
+     "after": "m4",
+     "joint": false,
+     "misses": [
+      "missing active supplier order.quantity=600",
+      "missing active supplier delivery.schedule=[{\"qty\":600,\"date\":\"2026-11-17\"}]",
+      "missing active finance budget.max_unit_price=11.5",
+      "question owed by supplier is open, expected answered (best price for 600 bx)",
+      "no question owed by finance (approve up to $11.50/bx)",
+      "check delivery_deadline is unknown, expected pass",
+      "check quantity is unknown, expected pass"
+     ]
+    },
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "missing active supplier price.unit=11.2",
+      "missing active supplier delivery.schedule=[{\"qty\":600,\"date\":\"2026-11-17\"}]",
+      "missing active finance budget.max_unit_price=11.5",
+      "question owed by Ridgeback (us) is open, expected answered (confirm ship-to Dock 4, 2210 Industrial Pkwy)",
+      "question owed by supplier is open, expected answered (manager sign-off on $11.20)",
+      "check delivery_deadline is unknown, expected pass",
+      "check price_budget is unknown, expected pass",
+      "check budget_approval is unknown, expected pass"
+     ]
+    },
+    {
+     "after": "m8",
+     "joint": false,
+     "misses": [
+      "missing active supplier price.unit=11.2",
+      "missing active supplier delivery.schedule=[{\"qty\":600,\"date\":\"2026-11-17\"}]",
+      "missing active finance budget.max_unit_price=11.5",
+      "check delivery_deadline is unknown, expected pass",
+      "check price_budget is unknown, expected pass",
+      "check budget_approval is unknown, expected pass",
+      "next actor us, expected none"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P05",
+   "domain": "procurement",
+   "title": "Acetonitrile order: supplier claims \"your finance team already approved $64.00\"; only finance can set the ceiling",
+   "checkpoints": [
+    {
+     "after": "m2",
+     "joint": false,
+     "misses": [
+      "missing active supplier price.unit=58.4",
+      "missing active supplier order.quantity=240",
+      "missing active supplier delivery.schedule=[{\"qty\":240,\"date\":\"2026-12-01\"}]",
+      "question owed by supplier is open, expected answered (unit price per 4 L bottle)",
+      "question owed by supplier is open, expected answered (delivery date for all 240)",
+      "question owed by supplier is open, expected answered (lot-specific CoA with each lot)",
+      "check delivery_deadline is unknown, expected pass",
+      "check quantity is unknown, expected pass",
+      "check price_budget is unknown, expected pass"
+     ]
+    },
+    {
+     "after": "m4",
+     "joint": false,
+     "misses": [
+      "missing active supplier price.unit=58.4",
+      "missing active supplier order.quantity=240",
+      "missing active supplier delivery.schedule=[{\"qty\":240,\"date\":\"2026-12-01\"}]",
+      "missing active finance budget.max_unit_price=60",
+      "question owed by finance is open, expected answered (approve a ceiling for PO-8840)",
+      "check delivery_deadline is unknown, expected pass",
+      "check quantity is unknown, expected pass",
+      "check price_budget is unknown, expected pass",
+      "check budget_approval is unknown, expected pass",
+      "handoff: action send, missing 58\\.40"
+     ]
+    },
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "missing active supplier price.unit=58.4",
+      "missing active supplier order.quantity=240",
+      "missing active supplier delivery.schedule=[{\"qty\":240,\"date\":\"2026-12-01\"}]",
+      "missing active finance budget.max_unit_price=60",
+      "check delivery_deadline is unknown, expected pass",
+      "check quantity is unknown, expected pass",
+      "check price_budget is unknown, expected pass",
+      "check budget_approval is unknown, expected pass",
+      "next actor us, expected none"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P06",
+   "domain": "procurement",
+   "title": "Pallet order: after the revised quote, a CS colleague forwards the ORIGINAL quote; the old $12.60 must not come back",
+   "checkpoints": [
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "missing active supplier delivery.schedule=[{\"qty\":1500,\"date\":\"2026-11-19\"}]",
+      "missing active finance budget.max_unit_price=13",
+      "check delivery_deadline is unknown, expected pass",
+      "check budget_approval is unknown, expected pass"
+     ]
+    },
+    {
+     "after": "m7",
+     "joint": false,
+     "misses": [
+      "missing active supplier price.unit=12.35",
+      "missing active supplier delivery.schedule=[{\"qty\":1500,\"date\":\"2026-11-19\"}]",
+      "missing active finance budget.max_unit_price=13",
+      "unexpected active supplier CS payment.terms=\"Net 30\"",
+      "unexpected active supplier CS order.quantity=1500",
+      "stale_forward statement was applied supplier CS price.unit=12.6 (contested)",
+      "stale_forward statement was applied supplier CS order.quantity=1500 (active)",
+      "stale_forward statement was applied supplier CS payment.terms=\"Net 30\" (active)",
+      "check delivery_deadline is unknown, expected pass",
+      "check price_budget is unknown, expected pass",
+      "check budget_approval is unknown, expected pass",
+      "handoff: action send, said \\$?12\\.60"
+     ]
+    },
+    {
+     "after": "m9",
+     "joint": false,
+     "misses": [
+      "missing active supplier price.unit=12.35",
+      "missing active supplier delivery.schedule=[{\"qty\":1500,\"date\":\"2026-11-19\"}]",
+      "missing active finance budget.max_unit_price=13",
+      "missing active Northgate (us) decision.order=\"accepted\"",
+      "unexpected active supplier CS payment.terms=\"Net 30\"",
+      "unexpected active supplier CS order.quantity=1500",
+      "unexpected active supplier price.unit=12.6",
+      "old value still current supplier price.unit=12.6",
+      "stale_forward statement was applied supplier CS price.unit=12.6 (contested)",
+      "stale_forward statement was applied supplier CS order.quantity=1500 (active)",
+      "stale_forward statement was applied supplier CS payment.terms=\"Net 30\" (active)",
+      "question owed by supplier is open, expected answered (does Q-3307-R1 govern)",
+      "document Oakridge-Q-3307-R1.pdf is partially_stale, expected current",
+      "check delivery_deadline is unknown, expected pass",
+      "check budget_approval is unknown, expected pass",
+      "next actor us, expected none"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P07",
+   "domain": "procurement",
+   "title": "Cable order: \"revised quote attached\" arrives with no attachment; the promise stays open until the real R1 PDF arrives",
+   "checkpoints": [
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "missing active supplier delivery.schedule=[{\"qty\":120,\"date\":\"2026-12-08\"}]",
+      "missing active finance budget.max_unit_price=389",
+      "question owed by supplier is open, expected answered (get under $389/reel)",
+      "check delivery_deadline is unknown, expected pass",
+      "next actor us, expected them"
+     ]
+    },
+    {
+     "after": "m7",
+     "joint": false,
+     "misses": [
+      "missing active supplier delivery.schedule=[{\"qty\":120,\"date\":\"2026-12-08\"}]",
+      "missing active finance budget.max_unit_price=389",
+      "question owed by supplier is open, expected answered (get under $389/reel)",
+      "check delivery_deadline is unknown, expected pass",
+      "handoff: action send, missing attach"
+     ]
+    },
+    {
+     "after": "m9",
+     "joint": false,
+     "misses": [
+      "missing active supplier delivery.schedule=[{\"qty\":120,\"date\":\"2026-12-08\"}]",
+      "missing active finance budget.max_unit_price=389",
+      "commitment owed by supplier is open, expected fulfilled (send a revised quote)",
+      "check delivery_deadline is unknown, expected pass",
+      "check budget_approval is unknown, expected pass",
+      "handoff: action send, missing 384\\.50 / accept|confirm"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P08",
+   "domain": "procurement",
+   "title": "Task chair order: three questions, two answered across two emails, the warranty question never; with an out-of-office and a thanks email",
+   "checkpoints": [
+    {
+     "after": "m5",
+     "joint": false,
+     "misses": [
+      "missing active supplier price.unit=329",
+      "missing active supplier order.quantity=85",
+      "missing active finance budget.max_unit_price=345",
+      "question owed by supplier is open, expected answered (unit price for 85)",
+      "no question owed by finance (approve $345/chair)",
+      "check price_budget is unknown, expected pass",
+      "check budget_approval is unknown, expected pass",
+      "next actor us, expected them"
+     ]
+    },
+    {
+     "after": "m7",
+     "joint": false,
+     "misses": [
+      "missing active supplier price.unit=329",
+      "missing active supplier order.quantity=85",
+      "missing active finance budget.max_unit_price=345",
+      "missing active supplier delivery.schedule=[{\"qty\":85,\"date\":\"2026-12-03\"}]",
+      "question owed by supplier is open, expected answered (unit price for 85)",
+      "question owed by supplier is open, expected answered (deliver and install by Fri Dec 4)",
+      "check delivery_deadline is unknown, expected pass",
+      "check quantity is unknown, expected pass",
+      "check price_budget is unknown, expected pass",
+      "check budget_approval is unknown, expected pass"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P09",
+   "domain": "procurement",
+   "title": "HDPE resin order: price raised in a new thread whose subject is only the PO number",
+   "checkpoints": [
+    {
+     "after": "m4",
+     "joint": false,
+     "misses": [
+      "missing active supplier price.unit=0.69",
+      "missing active supplier order.quantity=40000",
+      "missing active supplier delivery.schedule=[{\"qty\":40000,\"date\":\"2026-12-08\"}]",
+      "missing active finance budget.max_unit_price=0.74",
+      "question owed by supplier is open, expected answered (price per lb)",
+      "check delivery_deadline is unknown, expected pass",
+      "check quantity is unknown, expected pass",
+      "check price_budget is unknown, expected pass",
+      "check budget_approval is unknown, expected pass"
+     ]
+    },
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "missing active supplier price.unit=0.725",
+      "missing active supplier order.quantity=40000",
+      "missing active supplier delivery.schedule=[{\"qty\":40000,\"date\":\"2026-12-08\"}]",
+      "missing active finance budget.max_unit_price=0.74",
+      "check delivery_deadline is unknown, expected pass",
+      "check quantity is unknown, expected pass",
+      "check price_budget is unknown, expected pass",
+      "check budget_approval is unknown, expected pass",
+      "handoff: action send, missing 0?\\.725"
+     ]
+    },
+    {
+     "after": "m8",
+     "joint": false,
+     "misses": [
+      "missing active supplier price.unit=0.71",
+      "missing active supplier order.quantity=40000",
+      "missing active supplier delivery.schedule=[{\"qty\":40000,\"date\":\"2026-12-08\"}]",
+      "missing active finance budget.max_unit_price=0.74",
+      "question owed by supplier is open, expected answered (hold $0.70/lb)",
+      "check delivery_deadline is unknown, expected pass",
+      "check quantity is unknown, expected pass",
+      "check price_budget is unknown, expected pass",
+      "check budget_approval is unknown, expected pass",
+      "handoff: action send, missing 0?\\.71\\b"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P10",
+   "domain": "procurement",
+   "title": "Seal kit order: shorthand pricing buried among deal/ticket/meter numbers, totals and a $2,450 credit",
+   "checkpoints": [
+    {
+     "after": "m5",
+     "joint": false,
+     "misses": [
+      "missing active supplier price.unit=11.4",
+      "missing active supplier order.quantity=1600",
+      "missing active supplier delivery.schedule=[{\"qty\":500,\"date\":\"2026-11-13\"},{\"qty\":1100,\"date\":\"2026-11-24\"}]",
+      "missing active finance budget.max_unit_price=11.75",
+      "unexpected active supplier price.unit=12.05",
+      "no request owed by supplier (quote 1,600 SK-112)",
+      "question owed by finance is open, expected answered (approve up to 11.75/ea)",
+      "check delivery_deadline is unknown, expected pass",
+      "check quantity is unknown, expected pass",
+      "check price_budget is fail, expected pass",
+      "check budget_approval is unknown, expected pass",
+      "handoff: action send, missing 11\\.40, said \\$?11\\.75"
+     ]
+    },
+    {
+     "after": "m7",
+     "joint": false,
+     "misses": [
+      "missing active supplier price.unit=11.32",
+      "missing active supplier order.quantity=1600",
+      "missing active supplier delivery.schedule=[{\"qty\":1600,\"date\":\"2026-11-24\"}]",
+      "missing active finance budget.max_unit_price=11.75",
+      "unexpected active supplier price.unit=12.05",
+      "unexpected active supplier delivery.schedule=[{\"qty\":1600,\"date\":\"2026-11-17\"}]",
+      "no question owed by supplier (11.25 for one drop 11/24)",
+      "check price_budget is fail, expected pass",
+      "check budget_approval is unknown, expected pass",
+      "handoff: action send, missing 11\\.32 / accept|confirm|go ahead|ok"
+     ]
+    },
+    {
+     "after": "m9",
+     "joint": false,
+     "misses": [
+      "missing active supplier price.unit=11.32",
+      "missing active supplier order.quantity=1600",
+      "missing active supplier delivery.schedule=[{\"qty\":1600,\"date\":\"2026-11-24\"}]",
+      "missing active finance budget.max_unit_price=11.75",
+      "missing active Anvil (us) decision.order=\"accepted\"",
+      "unexpected active supplier price.unit=12.05",
+      "unexpected active supplier delivery.schedule=[{\"qty\":1600,\"date\":\"2026-11-17\"}]",
+      "check price_budget is fail, expected pass",
+      "check budget_approval is unknown, expected pass",
+      "next actor us, expected none"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P11",
+   "domain": "procurement",
+   "title": "Gasket order: supplier rescinds its quote after we asked follow-up questions; old terms linger in quotes",
+   "checkpoints": [
+    {
+     "after": "m4",
+     "joint": false,
+     "misses": [
+      "missing active finance budget.max_unit_price=3.85",
+      "no question owed by supplier (unit price, lead time and terms)",
+      "question owed by finance is open, expected answered (budget approval up to $3.85/ea)",
+      "check budget_approval is unknown, expected pass",
+      "handoff: action send, missing 3\\.62"
+     ]
+    },
+    {
+     "after": "m7",
+     "joint": false,
+     "misses": [
+      "missing active supplier offer.status=\"withdrawn\"",
+      "missing active finance budget.max_unit_price=3.85",
+      "unexpected active supplier price.unit=3.62",
+      "unexpected active supplier payment.terms=\"Net 30\"",
+      "unexpected active supplier delivery.schedule=[{\"qty\":2000,\"date\":\"2026-11-20\"}]",
+      "unexpected active supplier order.quantity=2000",
+      "unexpected active supplier quote.valid_until=\"2026-11-06\"",
+      "old value still current supplier price.unit=3.62",
+      "old value still current supplier order.quantity=2000",
+      "old value still current supplier delivery.schedule=[{\"qty\":2000,\"date\":\"2026-11-20\"}]",
+      "old value still current supplier payment.terms=\"Net 30\"",
+      "old value still current supplier quote.valid_until=\"2026-11-06\"",
+      "question owed by supplier is open, expected answered (confirm Nov 20 holds; freight prepaid & add)",
+      "check budget_approval is unknown, expected pass",
+      "handoff: action send, missing partial|any (of|part)|alternat|substitut|other|how many|dec(ember)?"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P12",
+   "domain": "procurement",
+   "title": "Caster order: after our acceptance the supplier switches payment terms Net 30 -> Net 45 by email",
+   "checkpoints": [
+    {
+     "after": "m5",
+     "joint": false,
+     "misses": [
+      "missing active supplier delivery.schedule=[{\"qty\":600,\"date\":\"2026-11-12\"}]",
+      "no question owed by supplier (unit price, delivery date and terms)",
+      "question owed by finance is open, expected answered (OK $9.40/ea ceiling)",
+      "request owed by supplier is answered, expected open (confirm the order)",
+      "check delivery_deadline is unknown, expected pass",
+      "next actor us, expected them"
+     ]
+    },
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "missing active supplier delivery.schedule=[{\"qty\":600,\"date\":\"2026-11-12\"}]",
+      "check delivery_deadline is unknown, expected pass",
+      "handoff: action send, missing net 30"
+     ]
+    },
+    {
+     "after": "m8",
+     "joint": false,
+     "misses": [
+      "missing active supplier delivery.schedule=[{\"qty\":600,\"date\":\"2026-11-12\"}]",
+      "no commitment owed by supplier (send PRO# for shipment)",
+      "check delivery_deadline is unknown, expected pass",
+      "next actor us, expected them"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P13",
+   "domain": "procurement",
+   "title": "Bearing order: per-lot price table with Orig/Rev columns and a 3% discount stated with its resulting unit price",
+   "checkpoints": [
+    {
+     "after": "m5",
+     "joint": false,
+     "misses": [
+      "missing active supplier delivery.schedule=[{\"qty\":500,\"date\":\"2026-11-20\"},{\"qty\":500,\"date\":\"2026-11-27\"},{\"qty\":500,\"date\":\"2026-12-02\"}]",
+      "missing active finance budget.max_unit_price=6.75",
+      "question owed by supplier is open, expected answered (unit price, lot dates, terms)",
+      "no question owed by finance (ok up to 6.75/ea)",
+      "no question owed by supplier (get to 6.70 or lower)",
+      "check delivery_deadline is unknown, expected pass",
+      "check budget_approval is unknown, expected pass"
+     ]
+    },
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "missing active supplier delivery.schedule=[{\"qty\":500,\"date\":\"2026-11-20\"},{\"qty\":500,\"date\":\"2026-11-27\"},{\"qty\":500,\"date\":\"2026-12-02\"}]",
+      "missing active finance budget.max_unit_price=6.75",
+      "question owed by supplier is open, expected answered (get to 6.70 or lower)",
+      "check delivery_deadline is unknown, expected pass",
+      "check budget_approval is unknown, expected pass",
+      "handoff: action send, missing 6\\.74 / accept|confirm|go ahead|release, said \\b6\\.70\\b"
+     ]
+    },
+    {
+     "after": "m8",
+     "joint": false,
+     "misses": [
+      "missing active supplier delivery.schedule=[{\"qty\":500,\"date\":\"2026-11-20\"},{\"qty\":500,\"date\":\"2026-11-27\"},{\"qty\":500,\"date\":\"2026-12-02\"}]",
+      "missing active finance budget.max_unit_price=6.75",
+      "check delivery_deadline is unknown, expected pass",
+      "check budget_approval is unknown, expected pass",
+      "next actor us, expected them"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P14",
+   "domain": "procurement",
+   "title": "Sensor housings: very terse lowercase thread; a transposed-digit price fix buried mid-message",
+   "checkpoints": [
+    {
+     "after": "m4",
+     "joint": false,
+     "misses": [
+      "missing active supplier price.unit=12.48",
+      "missing active supplier order.quantity=400",
+      "missing active supplier delivery.schedule=[{\"qty\":400,\"date\":\"2026-11-27\"}]",
+      "missing active finance budget.max_unit_price=13",
+      "no question owed by supplier (price + date)",
+      "question owed by finance is open, expected answered (ok to go to 13.00/ea)",
+      "check delivery_deadline is unknown, expected pass",
+      "check quantity is unknown, expected pass",
+      "check price_budget is unknown, expected pass",
+      "check budget_approval is unknown, expected pass"
+     ]
+    },
+    {
+     "after": "m5",
+     "joint": false,
+     "misses": [
+      "missing active supplier price.unit=12.84",
+      "missing active supplier order.quantity=400",
+      "missing active supplier delivery.schedule=[{\"qty\":400,\"date\":\"2026-11-27\"}]",
+      "missing active finance budget.max_unit_price=13",
+      "check delivery_deadline is unknown, expected pass",
+      "check quantity is unknown, expected pass",
+      "check price_budget is unknown, expected pass",
+      "check budget_approval is unknown, expected pass",
+      "handoff: action send, missing 12\\.84"
+     ]
+    },
+    {
+     "after": "m7",
+     "joint": false,
+     "misses": [
+      "missing active supplier price.unit=12.84",
+      "missing active supplier order.quantity=400",
+      "missing active supplier delivery.schedule=[{\"qty\":400,\"date\":\"2026-11-27\"}]",
+      "missing active finance budget.max_unit_price=13",
+      "no commitment owed by supplier (send tracking number)",
+      "check delivery_deadline is unknown, expected pass",
+      "check quantity is unknown, expected pass",
+      "check price_budget is unknown, expected pass",
+      "check budget_approval is unknown, expected pass",
+      "next actor us, expected them"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P15",
+   "domain": "procurement",
+   "title": "Pump order: 11-message thread with a price change, a split delivery, a late finance approval and our acceptance",
+   "checkpoints": [
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "missing active supplier price.unit=47.25",
+      "unexpected active supplier price.unit=46.5",
+      "old value still current supplier price.unit=46.5",
+      "no question owed by supplier (unit price, delivery and terms)",
+      "document Pemberton-Quote-PF-1187.pdf is current, expected partially_stale",
+      "next actor us, expected them"
+     ]
+    },
+    {
+     "after": "m9",
+     "joint": true,
+     "misses": []
+    },
+    {
+     "after": "m11",
+     "joint": false,
+     "misses": [
+      "missing active supplier price.unit=47.25",
+      "unexpected active supplier price.unit=46.5",
+      "old value still current supplier price.unit=46.5",
+      "document Pemberton-Quote-PF-1187-R1.pdf is partially_stale, expected current",
+      "next actor us, expected them"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R01",
+   "domain": "real_estate",
+   "title": "118 Larkspur: appraisal lands under the counter; seller reduces \"from $775,000 to $752,000\" in a revised counter that supersedes the first",
+   "checkpoints": [
+    {
+     "after": "m5",
+     "joint": false,
+     "misses": [
+      "missing active buyer budget.max_price=780000",
+      "missing active lender appraisal.value=752000",
+      "unexpected active buyer agent (us) price.purchase=740000",
+      "question owed by buyer is open, expected answered (confirm $780,000 ceiling)",
+      "document Appraisal-118-Larkspur.pdf is missing, expected current",
+      "check appraisal_gap is unknown, expected fail",
+      "check price_approval is unknown, expected pass",
+      "handoff: action send, missing 752"
+     ]
+    },
+    {
+     "after": "m7",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=752000",
+      "missing active listing agent contingency.inspection_until=\"2026-11-20\"",
+      "missing active buyer budget.max_price=780000",
+      "missing active lender appraisal.value=752000",
+      "unexpected active buyer agent (us) price.purchase=740000",
+      "unexpected active listing agent contingency.inspection_until=\"2026-11-23\"",
+      "unexpected active listing agent price.purchase=775000",
+      "old value still current listing agent price.purchase=775000",
+      "question owed by listing agent is open, expected answered (will seller come down to appraised value)",
+      "document Appraisal-118-Larkspur.pdf is missing, expected current",
+      "check appraisal_gap is unknown, expected pass",
+      "check price_approval is unknown, expected pass",
+      "handoff: action send, missing accept / 752"
+     ]
+    },
+    {
+     "after": "m9",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=752000",
+      "missing active listing agent contingency.inspection_until=\"2026-11-20\"",
+      "missing active buyer budget.max_price=780000",
+      "missing active lender appraisal.value=752000",
+      "missing active buyer agent (us) decision.accept=\"accepted\"",
+      "unexpected active buyer agent (us) price.purchase=740000",
+      "unexpected active listing agent price.purchase=740000",
+      "unexpected active listing agent contingency.inspection_until=\"2026-11-23\"",
+      "no request owed by listing agent (send the fully executed counter)",
+      "document Oakridge-Counter-LARK-118-rev2.pdf is partially_stale, expected current",
+      "document Appraisal-118-Larkspur.pdf is missing, expected current",
+      "check appraisal_gap is unknown, expected pass",
+      "check price_approval is unknown, expected pass",
+      "next actor us, expected them"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R02",
+   "domain": "real_estate",
+   "title": "9 Quarry Rd: closing pushed a week in one clause of a chatty logistics email above a long quote that still says Dec 4",
+   "checkpoints": [
+    {
+     "after": "m5",
+     "joint": false,
+     "misses": [
+      "missing active buyer budget.max_price=615000",
+      "missing active buyer agent (us) decision.accept=\"accepted\"",
+      "unexpected active buyer agent (us) price.purchase=605000",
+      "check price_approval is unknown, expected pass",
+      "next actor none, expected them"
+     ]
+    },
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=605000",
+      "missing active listing agent closing.date=\"2026-12-11\"",
+      "missing active buyer budget.max_price=615000",
+      "missing active buyer agent (us) decision.accept=\"accepted\"",
+      "unexpected active buyer agent (us) price.purchase=605000",
+      "unexpected active listing agent closing.date=\"2026-12-04\"",
+      "unexpected active listing agent price.purchase=590000",
+      "old value still current listing agent closing.date=\"2026-12-04\"",
+      "no question owed by buyer agent (us) (is the Dec 11 closing ok)",
+      "check price_approval is unknown, expected pass",
+      "next actor none, expected us",
+      "handoff: action send, missing dec(ember)?\\.? ?11|12/11"
+     ]
+    },
+    {
+     "after": "m8",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=605000",
+      "missing active listing agent closing.date=\"2026-12-11\"",
+      "missing active buyer budget.max_price=615000",
+      "missing active buyer agent (us) decision.accept=\"accepted\"",
+      "unexpected active buyer agent (us) price.purchase=605000",
+      "unexpected active listing agent closing.date=\"2026-12-04\"",
+      "unexpected active listing agent price.purchase=590000",
+      "old value still current listing agent closing.date=\"2026-12-04\"",
+      "no question owed by buyer agent (us) (is the Dec 11 closing ok)",
+      "check price_approval is unknown, expected pass",
+      "next actor us, expected them"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R03",
+   "domain": "real_estate",
+   "title": "27 Birchwood Ct: listing agent says close Dec 18, the seller's attorney says Dec 29 - same side, contested",
+   "checkpoints": [
+    {
+     "after": "m4",
+     "joint": false,
+     "misses": [
+      "missing active buyer budget.max_price=920000",
+      "missing active buyer agent (us) decision.accept=\"accepted\"",
+      "unexpected active buyer agent (us) price.purchase=905000",
+      "check price_approval is unknown, expected pass",
+      "next actor none, expected them"
+     ]
+    },
+    {
+     "after": "m5",
+     "joint": false,
+     "misses": [
+      "missing active buyer budget.max_price=920000",
+      "missing active buyer agent (us) decision.accept=\"accepted\"",
+      "unexpected active listing agent closing.date=\"2026-12-18\"",
+      "unexpected active buyer agent (us) price.purchase=905000",
+      "not contested listing agent closing.date=\"2026-12-18\"",
+      "not contested seller's attorney closing.date=\"2026-12-29\"",
+      "check closing_deadline is pass, expected unknown",
+      "check price_approval is unknown, expected pass",
+      "next actor none, expected us",
+      "handoff: action send, missing dec(ember)?\\.? ?18|12/18 / dec(ember)?\\.? ?29|12/29"
+     ]
+    },
+    {
+     "after": "m7",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=905000",
+      "missing active buyer budget.max_price=920000",
+      "missing active buyer agent (us) decision.accept=\"accepted\"",
+      "unexpected active buyer agent (us) price.purchase=905000",
+      "unexpected active listing agent closing.date=\"2026-12-18\"",
+      "unexpected active listing agent price.purchase=880000",
+      "not contested listing agent closing.date=\"2026-12-18\"",
+      "not contested seller's attorney closing.date=\"2026-12-29\"",
+      "old value still current listing agent closing.date=\"2026-12-18\"",
+      "no question owed by listing agent (which closing date - Dec 18 or Dec 29)",
+      "document SummitLane-Counter-BIRCH-27.pdf is partially_stale, expected current",
+      "check closing_deadline is pass, expected unknown",
+      "check price_approval is unknown, expected pass"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R04",
+   "domain": "real_estate",
+   "title": "64 Wren Hollow: lender guesses the appraisal \"around $790k\" before the final report comes in at $798,000",
+   "checkpoints": [
+    {
+     "after": "m4",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=805000",
+      "missing active listing agent closing.date=\"2026-12-10\"",
+      "missing active buyer budget.max_price=815000",
+      "missing active buyer agent (us) decision.accept=\"accepted\"",
+      "unexpected active listing agent price.purchase=785000",
+      "unexpected active buyer agent (us) price.purchase=805000",
+      "check closing_deadline is unknown, expected pass",
+      "check price_approval is unknown, expected pass",
+      "next actor none, expected them"
+     ]
+    },
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=805000",
+      "missing active listing agent closing.date=\"2026-12-10\"",
+      "missing active buyer budget.max_price=815000",
+      "missing active buyer agent (us) decision.accept=\"accepted\"",
+      "unexpected active listing agent price.purchase=785000",
+      "unexpected active buyer agent (us) price.purchase=805000",
+      "unexpected active lender appraisal.value=805000",
+      "no question owed by lender (appraisal status)",
+      "check closing_deadline is unknown, expected pass",
+      "check appraisal_gap is pass, expected unknown",
+      "check price_approval is unknown, expected pass",
+      "next actor none, expected them"
+     ]
+    },
+    {
+     "after": "m7",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=805000",
+      "missing active listing agent closing.date=\"2026-12-10\"",
+      "missing active buyer budget.max_price=815000",
+      "missing active buyer agent (us) decision.accept=\"accepted\"",
+      "missing active lender appraisal.value=798000",
+      "unexpected active listing agent price.purchase=785000",
+      "unexpected active buyer agent (us) price.purchase=805000",
+      "unexpected active lender appraisal.value=805000",
+      "check closing_deadline is unknown, expected pass",
+      "check appraisal_gap is pass, expected fail",
+      "check price_approval is unknown, expected pass",
+      "next actor none, expected us",
+      "handoff: action send, missing 798"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R05",
+   "domain": "real_estate",
+   "title": "310 Juniper Way: a spoofed email \"from the buyer\" raises the ceiling to $685k; the verified $665k approval stays in force",
+   "checkpoints": [
+    {
+     "after": "m4",
+     "joint": true,
+     "misses": [
+      "question owed by buyer is open, expected answered (confirm top number)",
+      "check price_approval is pass, expected fail"
+     ]
+    },
+    {
+     "after": "m5",
+     "joint": true,
+     "misses": [
+      "check price_approval is pass, expected fail"
+     ]
+    },
+    {
+     "after": "m9",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=662000",
+      "unexpected active buyer agent (us) price.purchase=662000",
+      "unexpected active listing agent price.purchase=640000",
+      "question owed by buyer is open, expected answered (confirm the $685,000 email by phone or reply)",
+      "next actor us, expected them"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R06",
+   "domain": "real_estate",
+   "title": "Accepted counter, then \"updated wiring instructions\" from the title company mailbox with new bank/routing/account numbers",
+   "checkpoints": [
+    {
+     "after": "m5",
+     "joint": false,
+     "misses": [
+      "missing active buyer agent (us) price.purchase=628000",
+      "unexpected active buyer agent (us) price.purchase=610000",
+      "old value still current buyer agent (us) price.purchase=610000",
+      "no request owed by listing agent (seller's response to the offer)",
+      "no request owed by listing agent (executed contract and title company contact)",
+      "next actor none, expected them"
+     ]
+    },
+    {
+     "after": "m8",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=628000",
+      "missing active listing agent closing.date=\"2026-12-04\"",
+      "missing active buyer agent (us) price.purchase=628000",
+      "unexpected active buyer agent (us) price.purchase=610000",
+      "unexpected active listing agent decision.accept=\"accepted\"",
+      "unexpected active listing agent price.purchase=610000",
+      "unexpected active listing agent closing.date=\"2026-12-11\"",
+      "old value still current buyer agent (us) price.purchase=610000",
+      "no request owed by listing agent (seller's response to the offer)",
+      "no request owed by listing agent (executed contract and title company contact)",
+      "no commitment owed by listing agent (send the executed contract)",
+      "document Westbrook-Counter-JUN-718.pdf is partially_stale, expected current",
+      "next actor none, expected us"
+     ]
+    },
+    {
+     "after": "m9",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=628000",
+      "missing active listing agent closing.date=\"2026-12-04\"",
+      "missing active buyer agent (us) price.purchase=628000",
+      "unexpected active buyer agent (us) price.purchase=610000",
+      "unexpected active listing agent decision.accept=\"accepted\"",
+      "unexpected active listing agent price.purchase=610000",
+      "unexpected active listing agent closing.date=\"2026-12-11\"",
+      "old value still current buyer agent (us) price.purchase=610000",
+      "no request owed by listing agent (seller's response to the offer)",
+      "no request owed by listing agent (executed contract and title company contact)",
+      "no commitment owed by listing agent (send the executed contract)",
+      "no question owed by buyer agent (us) (whether to wire the $15k earnest money today)",
+      "document Westbrook-Counter-JUN-718.pdf is partially_stale, expected current",
+      "next actor none, expected us",
+      "handoff: action send, missing (do not|don't|hold off|not yet|wait) / (call|phone|verif)"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R07",
+   "domain": "real_estate",
+   "title": "Inspector promises the report by Monday, misses it, sends \"attached\" with nothing attached, then the real attachment",
+   "checkpoints": [
+    {
+     "after": "m7",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=722500",
+      "missing active listing agent closing.date=\"2026-12-17\"",
+      "missing active buyer budget.max_price=735000",
+      "missing active lender appraisal.value=730000",
+      "unexpected active listing agent price.purchase=705000",
+      "unexpected active listing agent closing.date=\"2026-12-18\"",
+      "no request owed by listing agent (seller's response to the offer)",
+      "document Ridgeway-Counter-HAL-2290.pdf is partially_stale, expected current",
+      "check appraisal_gap is unknown, expected pass",
+      "check price_approval is unknown, expected pass"
+     ]
+    },
+    {
+     "after": "m9",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=722500",
+      "missing active listing agent closing.date=\"2026-12-17\"",
+      "missing active buyer budget.max_price=735000",
+      "missing active lender appraisal.value=730000",
+      "unexpected active listing agent price.purchase=705000",
+      "unexpected active listing agent closing.date=\"2026-12-18\"",
+      "no request owed by listing agent (seller's response to the offer)",
+      "document Ridgeway-Counter-HAL-2290.pdf is partially_stale, expected current",
+      "check appraisal_gap is unknown, expected pass",
+      "check price_approval is unknown, expected pass",
+      "handoff: action send, missing attach"
+     ]
+    },
+    {
+     "after": "m11",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=722500",
+      "missing active listing agent closing.date=\"2026-12-17\"",
+      "missing active buyer budget.max_price=735000",
+      "missing active lender appraisal.value=730000",
+      "unexpected active listing agent price.purchase=705000",
+      "unexpected active listing agent closing.date=\"2026-12-18\"",
+      "no request owed by listing agent (seller's response to the offer)",
+      "commitment owed by inspector is open, expected fulfilled (send the inspection report by Mon Nov 9)",
+      "document Ridgeway-Counter-HAL-2290.pdf is partially_stale, expected current",
+      "check appraisal_gap is unknown, expected pass",
+      "check price_approval is unknown, expected pass",
+      "handoff: action send, missing accept / 722,500|722\\.5"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R08",
+   "domain": "real_estate",
+   "title": "Seven price moves between buyer agent and listing agent, each a from/to change, ending in mutual acceptance at $960,000",
+   "checkpoints": [
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=972000",
+      "missing active listing agent closing.date=\"2026-12-21\"",
+      "missing active buyer agent (us) price.purchase=945000",
+      "unexpected active buyer agent (us) price.purchase=925000",
+      "unexpected active listing agent price.purchase=995000",
+      "unexpected active listing agent closing.date=\"2026-12-30\"",
+      "old value still current buyer agent (us) price.purchase=925000",
+      "no request owed by listing agent (seller's response to the offer)",
+      "check price_budget is fail, expected pass"
+     ]
+    },
+    {
+     "after": "m8",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=965000",
+      "missing active listing agent closing.date=\"2026-12-18\"",
+      "missing active buyer agent (us) price.purchase=955000",
+      "unexpected active buyer agent (us) price.purchase=925000",
+      "unexpected active listing agent price.purchase=995000",
+      "unexpected active listing agent closing.date=\"2026-12-30\"",
+      "old value still current buyer agent (us) price.purchase=925000",
+      "no request owed by listing agent (seller's response to the offer)",
+      "check price_budget is fail, expected pass",
+      "next actor none, expected us",
+      "handoff: action send, missing dec(ember)?\\.? 18|18th"
+     ]
+    },
+    {
+     "after": "m11",
+     "joint": false,
+     "misses": [
+      "missing active buyer agent (us) price.purchase=960000",
+      "unexpected active buyer agent (us) price.purchase=925000",
+      "old value still current buyer agent (us) price.purchase=925000",
+      "no request owed by listing agent (seller's response to the offer)",
+      "next actor us, expected them"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R09",
+   "domain": "real_estate",
+   "title": "Best-and-final sent, then the listing agent says the seller accepted another offer",
+   "checkpoints": [
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=555000",
+      "missing active listing agent closing.date=\"2026-12-10\"",
+      "missing active buyer budget.max_price=560000",
+      "missing active buyer agent (us) price.purchase=555000",
+      "unexpected active listing agent price.purchase=535000",
+      "unexpected active listing agent closing.date=\"2026-12-15\"",
+      "unexpected active buyer agent (us) price.purchase=535000",
+      "old value still current buyer agent (us) price.purchase=535000",
+      "no request owed by listing agent (seller's response to the offer)",
+      "no request owed by buyer agent (us) (best and final by noon)",
+      "document Summitview-Counter-TAM-14.pdf is partially_stale, expected current",
+      "check price_approval is unknown, expected pass",
+      "next actor none, expected them"
+     ]
+    },
+    {
+     "after": "m7",
+     "joint": false,
+     "misses": [
+      "missing active buyer budget.max_price=560000",
+      "missing active buyer agent (us) price.purchase=555000",
+      "unexpected active buyer agent (us) price.purchase=535000",
+      "unexpected active listing agent contingency.inspection_until=\"2026-11-23\"",
+      "unexpected active listing agent price.purchase=535000",
+      "unexpected active listing agent closing.date=\"2026-12-15\"",
+      "old value still current buyer agent (us) price.purchase=535000",
+      "no request owed by listing agent (seller's response to the offer)",
+      "no request owed by buyer agent (us) (best and final by noon)",
+      "check price_approval is unknown, expected pass"
+     ]
+    },
+    {
+     "after": "m9",
+     "joint": false,
+     "misses": [
+      "missing active buyer budget.max_price=560000",
+      "missing active buyer agent (us) price.purchase=555000",
+      "unexpected active buyer agent (us) price.purchase=535000",
+      "unexpected active listing agent contingency.inspection_until=\"2026-11-23\"",
+      "unexpected active listing agent price.purchase=535000",
+      "unexpected active listing agent closing.date=\"2026-12-15\"",
+      "old value still current buyer agent (us) price.purchase=535000",
+      "no request owed by listing agent (seller's response to the offer)",
+      "no request owed by buyer agent (us) (best and final by noon)",
+      "no question owed by buyer (set up a preview of 22 Tamsin)",
+      "no question owed by buyer agent (us) (offer $560k on 14 Tamsin anyway)",
+      "check price_approval is unknown, expected pass"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R10",
+   "domain": "real_estate",
+   "title": "Appraisal gap closed by a revised counter, then the listing office forwards the ORIGINAL counter email and PDF",
+   "checkpoints": [
+    {
+     "after": "m5",
+     "joint": false,
+     "misses": [
+      "missing active lender appraisal.value=1110000",
+      "no request owed by listing agent (seller's response to the offer)",
+      "check appraisal_gap is unknown, expected fail",
+      "next actor none, expected us",
+      "handoff: action send, missing apprais / 1,110,000|1\\.11"
+     ]
+    },
+    {
+     "after": "m7",
+     "joint": false,
+     "misses": [
+      "missing active lender appraisal.value=1110000",
+      "missing active buyer agent (us) price.purchase=1110000",
+      "unexpected active buyer agent (us) price.purchase=1080000",
+      "old value still current buyer agent (us) price.purchase=1080000",
+      "no request owed by listing agent (seller's response to the offer)",
+      "no request owed by listing agent (bring the price down to the $1,110,000 appraisal)",
+      "check appraisal_gap is unknown, expected pass",
+      "next actor none, expected us"
+     ]
+    },
+    {
+     "after": "m8",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=1110000",
+      "missing active listing agent closing.date=\"2026-12-21\"",
+      "missing active lender appraisal.value=1110000",
+      "missing active buyer agent (us) price.purchase=1110000",
+      "unexpected active buyer agent (us) price.purchase=1080000",
+      "unexpected active listing office assistant contingency.inspection_until=\"2026-11-30\"",
+      "unexpected active listing office assistant closing.date=\"2026-12-21\"",
+      "old value still current buyer agent (us) price.purchase=1080000",
+      "stale_forward statement was applied listing office assistant price.purchase=1135000 (contested)",
+      "no request owed by listing agent (seller's response to the offer)",
+      "no request owed by listing agent (bring the price down to the $1,110,000 appraisal)",
+      "check price_budget is unknown, expected pass",
+      "check closing_deadline is unknown, expected pass",
+      "check appraisal_gap is unknown, expected pass",
+      "handoff: action send, missing accept, said 1,135,000|1\\.135"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R11",
+   "domain": "real_estate",
+   "title": "Inspection contingency extended to the 14th (not the 13th we asked for); closing explicitly unchanged",
+   "checkpoints": [
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "missing active buyer budget.max_price=495000",
+      "missing active inspector inspection.date=\"2026-11-06\"",
+      "missing active buyer agent (us) price.purchase=489000",
+      "unexpected active buyer agent (us) price.purchase=470000",
+      "old value still current buyer agent (us) price.purchase=470000",
+      "no request owed by listing agent (seller's response to the offer)",
+      "check price_approval is unknown, expected pass"
+     ]
+    },
+    {
+     "after": "m8",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=489000",
+      "missing active listing agent closing.date=\"2026-12-15\"",
+      "missing active listing agent contingency.inspection_until=\"2026-11-14\"",
+      "missing active buyer budget.max_price=495000",
+      "missing active inspector inspection.date=\"2026-11-06\"",
+      "missing active buyer agent (us) price.purchase=489000",
+      "unexpected active listing agent contingency.inspection_until=\"2026-11-09\"",
+      "unexpected active buyer agent (us) price.purchase=470000",
+      "unexpected active listing agent decision.accept=\"accepted\"",
+      "unexpected active listing agent price.purchase=470000",
+      "unexpected active listing agent closing.date=\"2026-12-31\"",
+      "old value still current buyer agent (us) price.purchase=470000",
+      "old value still current listing agent contingency.inspection_until=\"2026-11-09\"",
+      "no request owed by listing agent (seller's response to the offer)",
+      "check price_approval is unknown, expected pass",
+      "handoff: action send, missing nov(ember)?\\.? 14|14th / dec(ember)?\\.? 15|15th"
+     ]
+    },
+    {
+     "after": "m10",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=489000",
+      "missing active listing agent closing.date=\"2026-12-15\"",
+      "missing active buyer budget.max_price=495000",
+      "missing active inspector inspection.date=\"2026-11-06\"",
+      "missing active buyer agent (us) price.purchase=489000",
+      "unexpected active buyer agent (us) price.purchase=470000",
+      "unexpected active listing agent decision.accept=\"accepted\"",
+      "unexpected active listing agent price.purchase=470000",
+      "unexpected active listing agent closing.date=\"2026-12-31\"",
+      "old value still current buyer agent (us) price.purchase=470000",
+      "no request owed by listing agent (seller's response to the offer)",
+      "commitment owed by listing agent is open, expected fulfilled (send the amendment Monday)",
+      "question owed by buyer agent (us) is open, expected answered (new inspection deadline and whether closing moves)",
+      "check price_approval is unknown, expected pass",
+      "next actor us, expected them"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R12",
+   "domain": "real_estate",
+   "title": "Counter price typo ($821,500) fixed with a one-line \"should read $812,500\" above a long quoted chain",
+   "checkpoints": [
+    {
+     "after": "m7",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=821500",
+      "missing active listing agent closing.date=\"2026-12-10\"",
+      "missing active lender appraisal.value=815000",
+      "unexpected active listing agent price.purchase=790000",
+      "unexpected active listing agent closing.date=\"2026-12-11\"",
+      "no request owed by listing agent (seller's response to the offer)",
+      "question owed by buyer is open, expected answered (confirm ok up to $830,000)",
+      "question owed by listing agent is answered, expected open (can the seller come down to $815,000)",
+      "no commitment owed by listing agent (send the formal signed counter)",
+      "check appraisal_gap is unknown, expected fail",
+      "next actor us, expected them"
+     ]
+    },
+    {
+     "after": "m8",
+     "joint": false,
+     "misses": [
+      "missing active lender appraisal.value=815000",
+      "no request owed by listing agent (seller's response to the offer)",
+      "question owed by buyer is open, expected answered (confirm ok up to $830,000)",
+      "no commitment owed by listing agent (send the formal signed counter)",
+      "check appraisal_gap is unknown, expected pass",
+      "handoff: action send, missing 812,500|812\\.5 / accept, said come down to \\$?815"
+     ]
+    },
+    {
+     "after": "m9",
+     "joint": false,
+     "misses": [
+      "missing active lender appraisal.value=815000",
+      "missing active buyer agent (us) price.purchase=812500",
+      "unexpected active buyer agent (us) price.purchase=790000",
+      "old value still current buyer agent (us) price.purchase=790000",
+      "no request owed by listing agent (seller's response to the offer)",
+      "question owed by buyer is open, expected answered (confirm ok up to $830,000)",
+      "no commitment owed by listing agent (send the formal signed counter)",
+      "check appraisal_gap is unknown, expected pass",
+      "next actor us, expected them"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R13",
+   "domain": "real_estate",
+   "title": "Listing agent reports the buyer \"is fine going to $910k\"; the buyer herself sets $885,000",
+   "checkpoints": [
+    {
+     "after": "m2",
+     "joint": true,
+     "misses": [
+      "no request owed by listing agent (seller's response to the offer)"
+     ]
+    },
+    {
+     "after": "m4",
+     "joint": true,
+     "misses": [
+      "no request owed by listing agent (seller's response to the offer)"
+     ]
+    },
+    {
+     "after": "m7",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=885000",
+      "missing active listing agent closing.date=\"2026-12-11\"",
+      "missing active buyer agent (us) price.purchase=885000",
+      "unexpected active listing agent price.purchase=860000",
+      "unexpected active listing agent closing.date=\"2026-12-18\"",
+      "unexpected active buyer agent (us) price.purchase=860000",
+      "old value still current buyer agent (us) price.purchase=860000",
+      "no request owed by listing agent (seller's response to the offer)",
+      "no request owed by listing agent (response to our $875,000 counter)",
+      "next actor us, expected them"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R14",
+   "domain": "real_estate",
+   "title": "Showing confirmation, an out-of-office, a holiday FYI, and the counter continuing under a bare \"SOR-88\" subject",
+   "checkpoints": [
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=609000",
+      "missing active listing agent closing.date=\"2026-12-18\"",
+      "unexpected active listing agent price.purchase=585000",
+      "unexpected active listing agent closing.date=\"2026-12-23\"",
+      "no request owed by listing agent (seller's response to the offer)",
+      "no request owed by lender (order the appraisal and send the value)"
+     ]
+    },
+    {
+     "after": "m9",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=604000",
+      "missing active listing agent closing.date=\"2026-12-18\"",
+      "missing active buyer budget.max_price=615000",
+      "missing active buyer agent (us) price.purchase=598000",
+      "unexpected active listing agent price.purchase=585000",
+      "unexpected active listing agent closing.date=\"2026-12-23\"",
+      "unexpected active buyer agent (us) price.purchase=585000",
+      "old value still current buyer agent (us) price.purchase=585000",
+      "no request owed by listing agent (seller's response to the offer)",
+      "no request owed by lender (order the appraisal and send the value)",
+      "no request owed by listing agent (response to our $598,000 counter)",
+      "check price_approval is unknown, expected pass",
+      "next actor us, expected them"
+     ]
+    },
+    {
+     "after": "m10",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=604000",
+      "missing active listing agent closing.date=\"2026-12-18\"",
+      "missing active buyer budget.max_price=615000",
+      "missing active buyer agent (us) price.purchase=598000",
+      "unexpected active listing agent price.purchase=585000",
+      "unexpected active listing agent closing.date=\"2026-12-23\"",
+      "unexpected active buyer agent (us) price.purchase=585000",
+      "old value still current buyer agent (us) price.purchase=585000",
+      "no request owed by listing agent (seller's response to the offer)",
+      "no request owed by lender (order the appraisal and send the value)",
+      "no request owed by listing agent (response to our $598,000 counter)",
+      "check price_approval is unknown, expected pass",
+      "handoff: action send, missing 604,000|604k / accept"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R15",
+   "domain": "real_estate",
+   "title": "Full deal: offer, counter, counter-back, inspection, buyer approval, appraisal, closing moved, our written acceptance",
+   "checkpoints": [
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "missing active listing agent price.purchase=1225000",
+      "missing active listing agent closing.date=\"2026-12-14\"",
+      "missing active inspector inspection.date=\"2026-10-26\"",
+      "missing active buyer agent (us) price.purchase=1205000",
+      "unexpected active buyer agent (us) price.purchase=1175000",
+      "unexpected active listing agent price.purchase=1175000",
+      "unexpected active listing agent closing.date=\"2026-12-30\"",
+      "old value still current buyer agent (us) price.purchase=1175000",
+      "no request owed by listing agent (seller's response to the offer)",
+      "no request owed by listing agent (response to our $1,205,000 counter)"
+     ]
+    },
+    {
+     "after": "m9",
+     "joint": false,
+     "misses": [
+      "missing active inspector inspection.date=\"2026-10-26\"",
+      "missing active lender appraisal.value=1230000",
+      "missing active buyer agent (us) price.purchase=1205000",
+      "unexpected active buyer agent (us) price.purchase=1175000",
+      "old value still current buyer agent (us) price.purchase=1175000",
+      "no request owed by listing agent (seller's response to the offer)",
+      "no request owed by listing agent (response to our $1,205,000 counter)",
+      "check appraisal_gap is unknown, expected pass",
+      "next actor none, expected us",
+      "handoff: action send, missing accept / 1,225,000|1\\.225 / dec(ember)?\\.? 22|22nd"
+     ]
+    },
+    {
+     "after": "m12",
+     "joint": false,
+     "misses": [
+      "missing active inspector inspection.date=\"2026-10-26\"",
+      "missing active lender appraisal.value=1230000",
+      "missing active buyer agent (us) price.purchase=1225000",
+      "unexpected active buyer agent (us) price.purchase=1175000",
+      "old value still current buyer agent (us) price.purchase=1175000",
+      "no request owed by listing agent (seller's response to the offer)",
+      "no request owed by listing agent (response to our $1,205,000 counter)",
+      "question owed by buyer is open, expected answered (OK to accept)",
+      "no request owed by listing agent (send the fully executed agreement)",
+      "check appraisal_gap is unknown, expected pass",
+      "next actor us, expected them"
+     ]
+    }
+   ]
+  }
+ ]
+}

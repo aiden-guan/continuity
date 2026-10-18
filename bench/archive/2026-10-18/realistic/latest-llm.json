@@ -1,0 +1,1183 @@
+{
+ "extractor": "llm:claude-haiku-5-5",
+ "generated_at": "2026-10-18T06:00:53.714Z",
+ "summary": {
+  "active_recall": {
+   "ok": 504,
+   "total": 539,
+   "rate": 0.935064935064935
+  },
+  "active_precision": {
+   "ok": 504,
+   "total": 528,
+   "rate": 0.9545454545454546
+  },
+  "contested": {
+   "ok": 4,
+   "total": 8,
+   "rate": 0.5
+  },
+  "superseded": {
+   "ok": 115,
+   "total": 117,
+   "rate": 0.9829059829059829
+  },
+  "not_applied": {
+   "ok": 24,
+   "total": 24,
+   "rate": 1
+  },
+  "obligation_found": {
+   "ok": 118,
+   "total": 165,
+   "rate": 0.7151515151515152
+  },
+  "obligation_status": {
+   "ok": 97,
+   "total": 118,
+   "rate": 0.8220338983050848
+  },
+  "documents": {
+   "ok": 80,
+   "total": 80,
+   "rate": 1
+  },
+  "checks": {
+   "ok": 312,
+   "total": 326,
+   "rate": 0.9570552147239264
+  },
+  "next_actor": {
+   "ok": 67,
+   "total": 87,
+   "rate": 0.7701149425287356
+  },
+  "joint": {
+   "ok": 43,
+   "total": 87,
+   "rate": 0.4942528735632184
+  },
+  "handoff": {
+   "ok": 30,
+   "total": 45,
+   "rate": 0.6666666666666666
+  }
+ },
+ "by_feature": {
+  "quoted_history": {
+   "joint": {
+    "ok": 43,
+    "total": 87
+   },
+   "recall": {
+    "ok": 504,
+    "total": 539
+   }
+  },
+  "buried_correction": {
+   "joint": {
+    "ok": 4,
+    "total": 11
+   },
+   "recall": {
+    "ok": 61,
+    "total": 69
+   }
+  },
+  "from_to_change": {
+   "joint": {
+    "ok": 9,
+    "total": 17
+   },
+   "recall": {
+    "ok": 104,
+    "total": 112
+   }
+  },
+  "distractor_numbers": {
+   "joint": {
+    "ok": 43,
+    "total": 87
+   },
+   "recall": {
+    "ok": 504,
+    "total": 539
+   }
+  },
+  "table": {
+   "joint": {
+    "ok": 5,
+    "total": 8
+   },
+   "recall": {
+    "ok": 40,
+    "total": 46
+   }
+  },
+  "terse_shorthand": {
+   "joint": {
+    "ok": 30,
+    "total": 61
+   },
+   "recall": {
+    "ok": 358,
+    "total": 382
+   }
+  },
+  "answered_question": {
+   "joint": {
+    "ok": 34,
+    "total": 72
+   },
+   "recall": {
+    "ok": 407,
+    "total": 442
+   }
+  },
+  "partial_update": {
+   "joint": {
+    "ok": 8,
+    "total": 12
+   },
+   "recall": {
+    "ok": 75,
+    "total": 75
+   }
+  },
+  "contested": {
+   "joint": {
+    "ok": 2,
+    "total": 6
+   },
+   "recall": {
+    "ok": 30,
+    "total": 36
+   }
+  },
+  "hedged": {
+   "joint": {
+    "ok": 2,
+    "total": 6
+   },
+   "recall": {
+    "ok": 34,
+    "total": 38
+   }
+  },
+  "document_versions": {
+   "joint": {
+    "ok": 19,
+    "total": 30
+   },
+   "recall": {
+    "ok": 185,
+    "total": 194
+   }
+  },
+  "acceptance": {
+   "joint": {
+    "ok": 24,
+    "total": 57
+   },
+   "recall": {
+    "ok": 347,
+    "total": 374
+   }
+  },
+  "not_authoritative": {
+   "joint": {
+    "ok": 4,
+    "total": 9
+   },
+   "recall": {
+    "ok": 50,
+    "total": 54
+   }
+  },
+  "late_forward": {
+   "joint": {
+    "ok": 5,
+    "total": 6
+   },
+   "recall": {
+    "ok": 37,
+    "total": 37
+   }
+  },
+  "promise_without_attachment": {
+   "joint": {
+    "ok": 6,
+    "total": 6
+   },
+   "recall": {
+    "ok": 39,
+    "total": 39
+   }
+  },
+  "unanswered_question": {
+   "joint": {
+    "ok": 0,
+    "total": 2
+   },
+   "recall": {
+    "ok": 7,
+    "total": 9
+   }
+  },
+  "noise_mail": {
+   "joint": {
+    "ok": 5,
+    "total": 10
+   },
+   "recall": {
+    "ok": 51,
+    "total": 53
+   }
+  },
+  "subject_drift": {
+   "joint": {
+    "ok": 7,
+    "total": 17
+   },
+   "recall": {
+    "ok": 93,
+    "total": 103
+   }
+  },
+  "withdrawal": {
+   "joint": {
+    "ok": 2,
+    "total": 5
+   },
+   "recall": {
+    "ok": 22,
+    "total": 22
+   }
+  },
+  "sensitive_change": {
+   "joint": {
+    "ok": 1,
+    "total": 6
+   },
+   "recall": {
+    "ok": 45,
+    "total": 45
+   }
+  },
+  "long_thread": {
+   "joint": {
+    "ok": 4,
+    "total": 9
+   },
+   "recall": {
+    "ok": 59,
+    "total": 61
+   }
+  },
+  "unauthenticated": {
+   "joint": {
+    "ok": 0,
+    "total": 3
+   },
+   "recall": {
+    "ok": 14,
+    "total": 19
+   }
+  }
+ },
+ "threads": [
+  {
+   "id": "P01",
+   "domain": "procurement",
+   "title": "Valve order: price changed with a from/to line buried above quoted history; old price keeps reappearing in quotes",
+   "checkpoints": [
+    {
+     "after": "m4",
+     "joint": true,
+     "misses": [
+      "no question owed by finance (approve budget)"
+     ]
+    },
+    {
+     "after": "m6",
+     "joint": true,
+     "misses": []
+    }
+   ]
+  },
+  {
+   "id": "P02",
+   "domain": "procurement",
+   "title": "Stretch film order: second release slips in an Orig./Rev. table; gold schedule is the full resulting schedule, not just the moved lot",
+   "checkpoints": [
+    {
+     "after": "m4",
+     "joint": true,
+     "misses": [
+      "no question owed by finance (approve up to $21.50/roll)"
+     ]
+    },
+    {
+     "after": "m6",
+     "joint": true,
+     "misses": []
+    },
+    {
+     "after": "m8",
+     "joint": true,
+     "misses": []
+    }
+   ]
+  },
+  {
+   "id": "P03",
+   "domain": "procurement",
+   "title": "LED driver order: sales rep and logistics coordinator give different delivery dates; contested until the coordinator corrects himself",
+   "checkpoints": [
+    {
+     "after": "m5",
+     "joint": false,
+     "misses": [
+      "missing active supplier order.quantity=2000",
+      "unexpected active supplier logistics delivery.schedule=[{\"qty\":2000,\"date\":\"2026-12-09\"}]",
+      "not contested supplier delivery.schedule=[{\"qty\":2000,\"date\":\"2026-12-03\"}]",
+      "not contested supplier logistics delivery.schedule=[{\"qty\":2000,\"date\":\"2026-12-09\"}]",
+      "check quantity is unknown, expected pass",
+      "handoff: action send, missing (dec(ember)?\\.? ?3\\b|12/3) / (dec(ember)?\\.? ?9\\b|12/9)"
+     ]
+    },
+    {
+     "after": "m7",
+     "joint": false,
+     "misses": [
+      "missing active supplier order.quantity=2000",
+      "unexpected active supplier logistics delivery.schedule=[{\"qty\":2000,\"date\":\"2026-12-09\"}]",
+      "not contested supplier delivery.schedule=[{\"qty\":2000,\"date\":\"2026-12-03\"}]",
+      "not contested supplier logistics delivery.schedule=[{\"qty\":2000,\"date\":\"2026-12-09\"}]",
+      "question owed by supplier is open, expected answered (which delivery date is right, Dec 3 or 12/9)",
+      "check quantity is unknown, expected pass",
+      "next actor us, expected them"
+     ]
+    },
+    {
+     "after": "m8",
+     "joint": false,
+     "misses": [
+      "missing active supplier order.quantity=2000",
+      "missing active supplier delivery.schedule=[{\"qty\":2000,\"date\":\"2026-12-03\"}]",
+      "missing active supplier logistics delivery.schedule=[{\"qty\":2000,\"date\":\"2026-12-03\"}]",
+      "unexpected active supplier logistics delivery.schedule=[{\"qty\":2000,\"date\":\"2026-12-09\"}]",
+      "old value still current supplier logistics delivery.schedule=[{\"qty\":2000,\"date\":\"2026-12-09\"}]",
+      "question owed by supplier is open, expected answered (which delivery date is right, Dec 3 or 12/9)",
+      "check delivery_deadline is unknown, expected pass",
+      "check quantity is unknown, expected pass",
+      "handoff: action send, missing (dec(ember)?\\.? ?3\\b|12/3) / accept|confirm|go ahead|proceed"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P04",
+   "domain": "procurement",
+   "title": "Cap screw order: \"should be able to do $11.20, need mgr sign-off\" is tentative until the firm quote arrives",
+   "checkpoints": [
+    {
+     "after": "m4",
+     "joint": false,
+     "misses": [
+      "missing active supplier order.quantity=600",
+      "no question owed by supplier (best price for 600 bx)",
+      "no question owed by finance (approve up to $11.50/bx)",
+      "handoff: action send, missing 11\\.20"
+     ]
+    },
+    {
+     "after": "m6",
+     "joint": true,
+     "misses": [
+      "no question owed by supplier (manager sign-off on $11.20)"
+     ]
+    },
+    {
+     "after": "m8",
+     "joint": true,
+     "misses": []
+    }
+   ]
+  },
+  {
+   "id": "P05",
+   "domain": "procurement",
+   "title": "Acetonitrile order: supplier claims \"your finance team already approved $64.00\"; only finance can set the ceiling",
+   "checkpoints": [
+    {
+     "after": "m2",
+     "joint": true,
+     "misses": []
+    },
+    {
+     "after": "m4",
+     "joint": true,
+     "misses": [
+      "no question owed by finance (approve a ceiling for PO-8840)",
+      "check budget_approval is fail, expected pass",
+      "handoff: action send, missing accept|confirm"
+     ]
+    },
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "check budget_approval is fail, expected pass",
+      "next actor us, expected none"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P06",
+   "domain": "procurement",
+   "title": "Pallet order: after the revised quote, a CS colleague forwards the ORIGINAL quote; the old $12.60 must not come back",
+   "checkpoints": [
+    {
+     "after": "m6",
+     "joint": true,
+     "misses": []
+    },
+    {
+     "after": "m7",
+     "joint": true,
+     "misses": [
+      "handoff: action send, missing accept|confirm"
+     ]
+    },
+    {
+     "after": "m9",
+     "joint": false,
+     "misses": [
+      "unexpected active Northgate (us) delivery.schedule=[{\"qty\":1500,\"date\":\"2026-11-19\"}]",
+      "next actor them, expected none"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P07",
+   "domain": "procurement",
+   "title": "Cable order: \"revised quote attached\" arrives with no attachment; the promise stays open until the real R1 PDF arrives",
+   "checkpoints": [
+    {
+     "after": "m6",
+     "joint": true,
+     "misses": [
+      "no question owed by supplier (get under $389/reel)"
+     ]
+    },
+    {
+     "after": "m7",
+     "joint": true,
+     "misses": [
+      "no question owed by supplier (get under $389/reel)"
+     ]
+    },
+    {
+     "after": "m9",
+     "joint": true,
+     "misses": [
+      "question owed by supplier is open, expected answered (get under $389/reel)",
+      "commitment owed by supplier is open, expected fulfilled (send a revised quote)"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P08",
+   "domain": "procurement",
+   "title": "Task chair order: three questions, two answered across two emails, the warranty question never; with an out-of-office and a thanks email",
+   "checkpoints": [
+    {
+     "after": "m5",
+     "joint": false,
+     "misses": [
+      "missing active supplier order.quantity=85",
+      "no question owed by finance (approve $345/chair)",
+      "next actor us, expected them"
+     ]
+    },
+    {
+     "after": "m7",
+     "joint": false,
+     "misses": [
+      "missing active supplier order.quantity=85",
+      "handoff: action send, missing warrant"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P09",
+   "domain": "procurement",
+   "title": "HDPE resin order: price raised in a new thread whose subject is only the PO number",
+   "checkpoints": [
+    {
+     "after": "m4",
+     "joint": true,
+     "misses": []
+    },
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "missing active supplier price.unit=0.725",
+      "unexpected active Talon (us) decision.order=\"accepted\"",
+      "unexpected active supplier price.unit=0.73",
+      "handoff: action send, missing 0?\\.725"
+     ]
+    },
+    {
+     "after": "m8",
+     "joint": false,
+     "misses": [
+      "unexpected active Talon (us) decision.order=\"accepted\"",
+      "handoff: action send, missing 0?\\.71\\b / accept|confirm|agree|go ahead"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P10",
+   "domain": "procurement",
+   "title": "Seal kit order: shorthand pricing buried among deal/ticket/meter numbers, totals and a $2,450 credit",
+   "checkpoints": [
+    {
+     "after": "m5",
+     "joint": true,
+     "misses": [
+      "request owed by supplier is open, expected answered (quote 1,600 SK-112)"
+     ]
+    },
+    {
+     "after": "m7",
+     "joint": true,
+     "misses": [
+      "no question owed by supplier (11.25 for one drop 11/24)"
+     ]
+    },
+    {
+     "after": "m9",
+     "joint": false,
+     "misses": [
+      "next actor them, expected none"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P11",
+   "domain": "procurement",
+   "title": "Gasket order: supplier rescinds its quote after we asked follow-up questions; old terms linger in quotes",
+   "checkpoints": [
+    {
+     "after": "m4",
+     "joint": true,
+     "misses": [
+      "no question owed by supplier (unit price, lead time and terms)"
+     ]
+    },
+    {
+     "after": "m7",
+     "joint": true,
+     "misses": [
+      "question owed by supplier is declined, expected answered (confirm Nov 20 holds; freight prepaid & add)",
+      "no question owed by Halden (us) (status of HX-12 gaskets for line 3)",
+      "handoff: action wait, missing partial|any (of|part)|alternat|substitut|other|how many|dec(ember)?"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P12",
+   "domain": "procurement",
+   "title": "Caster order: after our acceptance the supplier switches payment terms Net 30 -> Net 45 by email",
+   "checkpoints": [
+    {
+     "after": "m5",
+     "joint": false,
+     "misses": [
+      "no question owed by supplier (unit price, delivery date and terms)",
+      "no question owed by finance (OK $9.40/ea ceiling)",
+      "request owed by supplier is answered, expected open (confirm the order)",
+      "next actor none, expected them"
+     ]
+    },
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "next actor human, expected us",
+      "handoff: action wait, missing net 30"
+     ]
+    },
+    {
+     "after": "m8",
+     "joint": false,
+     "misses": [
+      "unexpected active Quillon (us) payment.terms=\"Net 30\"",
+      "no commitment owed by supplier (send PRO# for shipment)",
+      "next actor human, expected them"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P13",
+   "domain": "procurement",
+   "title": "Bearing order: per-lot price table with Orig/Rev columns and a 3% discount stated with its resulting unit price",
+   "checkpoints": [
+    {
+     "after": "m5",
+     "joint": false,
+     "misses": [
+      "missing active supplier delivery.schedule=[{\"qty\":500,\"date\":\"2026-11-20\"},{\"qty\":500,\"date\":\"2026-11-27\"},{\"qty\":500,\"date\":\"2026-12-02\"}]",
+      "missing active finance budget.max_unit_price=6.75",
+      "question owed by supplier is open, expected answered (unit price, lot dates, terms)",
+      "no question owed by finance (ok up to 6.75/ea)",
+      "no question owed by supplier (get to 6.70 or lower)",
+      "check delivery_deadline is unknown, expected pass",
+      "check budget_approval is unknown, expected pass"
+     ]
+    },
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "missing active supplier delivery.schedule=[{\"qty\":500,\"date\":\"2026-11-20\"},{\"qty\":500,\"date\":\"2026-11-27\"},{\"qty\":500,\"date\":\"2026-12-02\"}]",
+      "missing active finance budget.max_unit_price=6.75",
+      "question owed by supplier is open, expected answered (get to 6.70 or lower)",
+      "check delivery_deadline is unknown, expected pass",
+      "check budget_approval is unknown, expected pass",
+      "handoff: action send, missing accept|confirm|go ahead|release"
+     ]
+    },
+    {
+     "after": "m8",
+     "joint": false,
+     "misses": [
+      "missing active supplier delivery.schedule=[{\"qty\":500,\"date\":\"2026-11-20\"},{\"qty\":500,\"date\":\"2026-11-27\"},{\"qty\":500,\"date\":\"2026-12-02\"}]",
+      "missing active finance budget.max_unit_price=6.75",
+      "check delivery_deadline is unknown, expected pass",
+      "check budget_approval is unknown, expected pass"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P14",
+   "domain": "procurement",
+   "title": "Sensor housings: very terse lowercase thread; a transposed-digit price fix buried mid-message",
+   "checkpoints": [
+    {
+     "after": "m4",
+     "joint": true,
+     "misses": []
+    },
+    {
+     "after": "m5",
+     "joint": true,
+     "misses": []
+    },
+    {
+     "after": "m7",
+     "joint": false,
+     "misses": [
+      "missing active Ardent (us) decision.order=\"accepted\"",
+      "no commitment owed by supplier (send tracking number)",
+      "next actor us, expected them"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P15",
+   "domain": "procurement",
+   "title": "Pump order: 11-message thread with a price change, a split delivery, a late finance approval and our acceptance",
+   "checkpoints": [
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "no question owed by supplier (unit price, delivery and terms)",
+      "next actor us, expected them"
+     ]
+    },
+    {
+     "after": "m9",
+     "joint": true,
+     "misses": []
+    },
+    {
+     "after": "m11",
+     "joint": false,
+     "misses": [
+      "unexpected active Corvane (us) price.unit=47.25",
+      "unexpected active Corvane (us) order.quantity=250",
+      "unexpected active Corvane (us) delivery.schedule=[{\"qty\":150,\"date\":\"2026-12-04\"},{\"qty\":100,\"date\":\"2026-12-09\"}]",
+      "unexpected active Corvane (us) payment.terms=\"Net 30\"",
+      "next actor us, expected them"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R01",
+   "domain": "real_estate",
+   "title": "118 Larkspur: appraisal lands under the counter; seller reduces \"from $775,000 to $752,000\" in a revised counter that supersedes the first",
+   "checkpoints": [
+    {
+     "after": "m5",
+     "joint": true,
+     "misses": []
+    },
+    {
+     "after": "m7",
+     "joint": true,
+     "misses": []
+    },
+    {
+     "after": "m9",
+     "joint": true,
+     "misses": []
+    }
+   ]
+  },
+  {
+   "id": "R02",
+   "domain": "real_estate",
+   "title": "9 Quarry Rd: closing pushed a week in one clause of a chatty logistics email above a long quote that still says Dec 4",
+   "checkpoints": [
+    {
+     "after": "m5",
+     "joint": false,
+     "misses": [
+      "missing active buyer agent (us) decision.accept=\"accepted\"",
+      "next actor none, expected them"
+     ]
+    },
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "missing active buyer agent (us) decision.accept=\"accepted\"",
+      "no question owed by buyer agent (us) (is the Dec 11 closing ok)"
+     ]
+    },
+    {
+     "after": "m8",
+     "joint": false,
+     "misses": [
+      "missing active buyer agent (us) decision.accept=\"accepted\"",
+      "no question owed by buyer agent (us) (is the Dec 11 closing ok)",
+      "next actor none, expected them"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R03",
+   "domain": "real_estate",
+   "title": "27 Birchwood Ct: listing agent says close Dec 18, the seller's attorney says Dec 29 - same side, contested",
+   "checkpoints": [
+    {
+     "after": "m4",
+     "joint": true,
+     "misses": []
+    },
+    {
+     "after": "m5",
+     "joint": true,
+     "misses": []
+    },
+    {
+     "after": "m7",
+     "joint": false,
+     "misses": [
+      "missing active buyer agent (us) closing.date=\"2026-12-18\"",
+      "unexpected active buyer agent (us) closing.date=\"2026-12-22\"",
+      "old value still current listing agent closing.date=\"2026-12-18\""
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R04",
+   "domain": "real_estate",
+   "title": "64 Wren Hollow: lender guesses the appraisal \"around $790k\" before the final report comes in at $798,000",
+   "checkpoints": [
+    {
+     "after": "m4",
+     "joint": false,
+     "misses": [
+      "missing active buyer agent (us) closing.date=\"2026-12-10\""
+     ]
+    },
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "missing active buyer agent (us) closing.date=\"2026-12-10\""
+     ]
+    },
+    {
+     "after": "m7",
+     "joint": false,
+     "misses": [
+      "missing active buyer agent (us) closing.date=\"2026-12-10\""
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R05",
+   "domain": "real_estate",
+   "title": "310 Juniper Way: a spoofed email \"from the buyer\" raises the ceiling to $685k; the verified $665k approval stays in force",
+   "checkpoints": [
+    {
+     "after": "m4",
+     "joint": false,
+     "misses": [
+      "missing active buyer agent (us) price.purchase=640000",
+      "missing active buyer agent (us) closing.date=\"2026-12-17\"",
+      "check price_approval is pass, expected fail"
+     ]
+    },
+    {
+     "after": "m5",
+     "joint": false,
+     "misses": [
+      "missing active buyer agent (us) price.purchase=640000",
+      "missing active buyer agent (us) closing.date=\"2026-12-17\"",
+      "check price_approval is pass, expected fail"
+     ]
+    },
+    {
+     "after": "m9",
+     "joint": false,
+     "misses": [
+      "missing active buyer agent (us) closing.date=\"2026-12-17\"",
+      "next actor us, expected them"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R06",
+   "domain": "real_estate",
+   "title": "Accepted counter, then \"updated wiring instructions\" from the title company mailbox with new bank/routing/account numbers",
+   "checkpoints": [
+    {
+     "after": "m5",
+     "joint": true,
+     "misses": [
+      "request owed by listing agent is open, expected answered (seller's response to the offer)"
+     ]
+    },
+    {
+     "after": "m8",
+     "joint": false,
+     "misses": [
+      "unexpected active listing agent decision.accept=\"accepted\"",
+      "request owed by listing agent is open, expected answered (seller's response to the offer)",
+      "request owed by listing agent is open, expected answered (executed contract and title company contact)"
+     ]
+    },
+    {
+     "after": "m9",
+     "joint": false,
+     "misses": [
+      "unexpected active listing agent decision.accept=\"accepted\"",
+      "request owed by listing agent is open, expected answered (seller's response to the offer)",
+      "request owed by listing agent is open, expected answered (executed contract and title company contact)",
+      "handoff: action send, missing (do not|don't|hold off|not yet|wait) / (call|phone|verif)"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R07",
+   "domain": "real_estate",
+   "title": "Inspector promises the report by Monday, misses it, sends \"attached\" with nothing attached, then the real attachment",
+   "checkpoints": [
+    {
+     "after": "m7",
+     "joint": true,
+     "misses": [
+      "no question owed by inspector (book the inspection and when the report will come)"
+     ]
+    },
+    {
+     "after": "m9",
+     "joint": true,
+     "misses": [
+      "no question owed by inspector (book the inspection and when the report will come)"
+     ]
+    },
+    {
+     "after": "m11",
+     "joint": true,
+     "misses": [
+      "no question owed by inspector (book the inspection and when the report will come)"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R08",
+   "domain": "real_estate",
+   "title": "Seven price moves between buyer agent and listing agent, each a from/to change, ending in mutual acceptance at $960,000",
+   "checkpoints": [
+    {
+     "after": "m6",
+     "joint": true,
+     "misses": []
+    },
+    {
+     "after": "m8",
+     "joint": true,
+     "misses": []
+    },
+    {
+     "after": "m11",
+     "joint": true,
+     "misses": []
+    }
+   ]
+  },
+  {
+   "id": "R09",
+   "domain": "real_estate",
+   "title": "Best-and-final sent, then the listing agent says the seller accepted another offer",
+   "checkpoints": [
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "no request owed by listing agent (seller's response to the offer)",
+      "request owed by buyer agent (us) is open, expected answered (best and final by noon)",
+      "next actor us, expected them"
+     ]
+    },
+    {
+     "after": "m7",
+     "joint": false,
+     "misses": [
+      "no request owed by listing agent (seller's response to the offer)",
+      "request owed by buyer agent (us) is open, expected answered (best and final by noon)",
+      "next actor us, expected none",
+      "handoff: action send"
+     ]
+    },
+    {
+     "after": "m9",
+     "joint": false,
+     "misses": [
+      "no request owed by listing agent (seller's response to the offer)",
+      "request owed by buyer agent (us) is open, expected answered (best and final by noon)",
+      "no question owed by buyer (set up a preview of 22 Tamsin)",
+      "no question owed by buyer agent (us) (offer $560k on 14 Tamsin anyway)",
+      "next actor us, expected none"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R10",
+   "domain": "real_estate",
+   "title": "Appraisal gap closed by a revised counter, then the listing office forwards the ORIGINAL counter email and PDF",
+   "checkpoints": [
+    {
+     "after": "m5",
+     "joint": true,
+     "misses": []
+    },
+    {
+     "after": "m7",
+     "joint": true,
+     "misses": []
+    },
+    {
+     "after": "m8",
+     "joint": true,
+     "misses": [
+      "handoff: action send, missing accept"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R11",
+   "domain": "real_estate",
+   "title": "Inspection contingency extended to the 14th (not the 13th we asked for); closing explicitly unchanged",
+   "checkpoints": [
+    {
+     "after": "m6",
+     "joint": true,
+     "misses": [
+      "no question owed by listing agent (extend the inspection contingency to Fri Nov 13)"
+     ]
+    },
+    {
+     "after": "m8",
+     "joint": true,
+     "misses": [
+      "no question owed by listing agent (extend the inspection contingency to Fri Nov 13)",
+      "handoff: action send, missing nov(ember)?\\.? 14|14th / dec(ember)?\\.? 15|15th"
+     ]
+    },
+    {
+     "after": "m10",
+     "joint": false,
+     "misses": [
+      "no question owed by listing agent (extend the inspection contingency to Fri Nov 13)",
+      "next actor us, expected them"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R12",
+   "domain": "real_estate",
+   "title": "Counter price typo ($821,500) fixed with a one-line \"should read $812,500\" above a long quoted chain",
+   "checkpoints": [
+    {
+     "after": "m7",
+     "joint": false,
+     "misses": [
+      "missing active buyer agent (us) price.purchase=790000",
+      "missing active buyer agent (us) closing.date=\"2026-12-11\"",
+      "unexpected active buyer agent (us) closing.date=\"2026-12-10\"",
+      "unexpected active buyer agent (us) price.purchase=815000",
+      "request owed by listing agent is open, expected answered (seller's response to the offer)",
+      "no question owed by buyer (confirm ok up to $830,000)",
+      "no question owed by listing agent (can the seller come down to $815,000)"
+     ]
+    },
+    {
+     "after": "m8",
+     "joint": false,
+     "misses": [
+      "missing active buyer agent (us) price.purchase=790000",
+      "missing active buyer agent (us) closing.date=\"2026-12-11\"",
+      "unexpected active buyer agent (us) closing.date=\"2026-12-10\"",
+      "unexpected active buyer agent (us) price.purchase=815000",
+      "unexpected active listing agent decision.accept=\"accepted\"",
+      "no question owed by buyer (confirm ok up to $830,000)",
+      "no question owed by listing agent (can the seller come down to $815,000)"
+     ]
+    },
+    {
+     "after": "m9",
+     "joint": false,
+     "misses": [
+      "unexpected active listing agent decision.accept=\"accepted\"",
+      "no question owed by buyer (confirm ok up to $830,000)",
+      "no question owed by listing agent (can the seller come down to $815,000)"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R13",
+   "domain": "real_estate",
+   "title": "Listing agent reports the buyer \"is fine going to $910k\"; the buyer herself sets $885,000",
+   "checkpoints": [
+    {
+     "after": "m2",
+     "joint": true,
+     "misses": []
+    },
+    {
+     "after": "m4",
+     "joint": false,
+     "misses": [
+      "missing active buyer agent (us) price.purchase=860000",
+      "unexpected active buyer agent (us) price.purchase=905000"
+     ]
+    },
+    {
+     "after": "m7",
+     "joint": true,
+     "misses": [
+      "no request owed by listing agent (response to our $875,000 counter)"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R14",
+   "domain": "real_estate",
+   "title": "Showing confirmation, an out-of-office, a holiday FYI, and the counter continuing under a bare \"SOR-88\" subject",
+   "checkpoints": [
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "no request owed by listing agent (seller's response to the offer)",
+      "next actor them, expected us"
+     ]
+    },
+    {
+     "after": "m9",
+     "joint": true,
+     "misses": [
+      "no request owed by listing agent (seller's response to the offer)",
+      "no request owed by listing agent (response to our $598,000 counter)"
+     ]
+    },
+    {
+     "after": "m10",
+     "joint": true,
+     "misses": [
+      "no request owed by listing agent (seller's response to the offer)",
+      "request owed by lender is open, expected answered (order the appraisal and send the value)",
+      "no request owed by listing agent (response to our $598,000 counter)"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R15",
+   "domain": "real_estate",
+   "title": "Full deal: offer, counter, counter-back, inspection, buyer approval, appraisal, closing moved, our written acceptance",
+   "checkpoints": [
+    {
+     "after": "m6",
+     "joint": false,
+     "misses": [
+      "missing active buyer agent (us) closing.date=\"2026-12-30\"",
+      "unexpected active buyer agent (us) closing.date=\"2026-12-14\"",
+      "no request owed by listing agent (response to our $1,205,000 counter)"
+     ]
+    },
+    {
+     "after": "m9",
+     "joint": false,
+     "misses": [
+      "missing active buyer agent (us) closing.date=\"2026-12-30\"",
+      "unexpected active buyer agent (us) closing.date=\"2026-12-14\"",
+      "no request owed by listing agent (response to our $1,205,000 counter)"
+     ]
+    },
+    {
+     "after": "m12",
+     "joint": false,
+     "misses": [
+      "request owed by listing agent is open, expected answered (response to our $1,205,000 counter)",
+      "question owed by buyer is open, expected answered (OK to accept)",
+      "no request owed by listing agent (send the fully executed agreement)",
+      "next actor us, expected them"
+     ]
+    }
+   ]
+  }
+ ]
+}

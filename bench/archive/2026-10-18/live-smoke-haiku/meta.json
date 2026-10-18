@@ -1,0 +1,23 @@
+{
+ "name": "live-smoke-haiku",
+ "model": "claude-haiku-5-5",
+ "judge_model": "claude-haiku-5-5",
+ "effort": "medium",
+ "trials": 1,
+ "splits": "golden",
+ "conditions": [
+  "primitive-native",
+  "continuity"
+ ],
+ "backlog": "0",
+ "mess": "0",
+ "mock": false,
+ "started_at": "2026-10-18T03:41:34.441Z",
+ "cases": 13,
+ "live": {
+  "name": "smoke",
+  "run_tag": "47a3d",
+  "domain": "tiny-koi.primitive.email",
+  "fake": false
+ }
+}

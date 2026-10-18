@@ -1,0 +1,46 @@
+{
+ "name": "value-history",
+ "kind": "history",
+ "model": "claude-haiku-5-5",
+ "trials": 2,
+ "cases": [
+  "procurement/value_chain_d4/11",
+  "procurement/value_chain_d4/12",
+  "procurement/value_chain_d4/13",
+  "procurement/value_chain_d4/14",
+  "procurement/value_chain_d4/15",
+  "procurement/value_chain_d4/16",
+  "procurement/value_chain_d4/17",
+  "procurement/value_chain_d4/18",
+  "procurement/value_chain_d4/19",
+  "procurement/value_chain_d4/20",
+  "procurement/value_chain_d4/21",
+  "procurement/value_chain_d4/22",
+  "procurement/value_chain_d6/11",
+  "procurement/value_chain_d6/12",
+  "procurement/value_chain_d6/13",
+  "procurement/value_chain_d6/14",
+  "procurement/value_chain_d6/15",
+  "procurement/value_chain_d6/16",
+  "procurement/value_chain_d6/17",
+  "procurement/value_chain_d6/18",
+  "procurement/value_chain_d6/19",
+  "procurement/value_chain_d6/20",
+  "procurement/value_chain_d6/21",
+  "procurement/value_chain_d6/22"
+ ],
+ "conditions": [
+  "full-history",
+  "rolling-summary",
+  "agent-notes",
+  "continuity-briefing",
+  "continuity-history"
+ ],
+ "commit": "9fdf8cfc0436043668be1235a2ab5974d27d7142",
+ "dirty": false,
+ "extractor": {
+  "thinking": "off",
+  "route": "skip-empty,outbound-plain-rules"
+ },
+ "started_at": "2026-10-18T06:36:45.974Z"
+}

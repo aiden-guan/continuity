@@ -1,0 +1,28 @@
+{
+ "name": "value-history-dev",
+ "kind": "history",
+ "model": "claude-haiku-5-5",
+ "trials": 1,
+ "cases": [
+  "procurement/value_chain_d4/1",
+  "procurement/value_chain_d4/2",
+  "procurement/value_chain_d4/3",
+  "procurement/value_chain_d6/1",
+  "procurement/value_chain_d6/2",
+  "procurement/value_chain_d6/3"
+ ],
+ "conditions": [
+  "full-history",
+  "rolling-summary",
+  "agent-notes",
+  "continuity-briefing",
+  "continuity-history"
+ ],
+ "commit": "da21ea7d5cf83216824a57bf9975dc2e7a48863d",
+ "dirty": false,
+ "extractor": {
+  "thinking": "off",
+  "route": "skip-empty,outbound-plain-rules"
+ },
+ "started_at": "2026-10-18T05:42:10.440Z"
+}

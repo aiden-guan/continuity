@@ -1,0 +1,17 @@
+{
+ "name": "opt-v3-dev-all",
+ "model": "claude-haiku-5-5",
+ "judge_model": "claude-haiku-5-5",
+ "effort": "medium",
+ "trials": 1,
+ "splits": "dev",
+ "conditions": [
+  "primitive-native",
+  "continuity"
+ ],
+ "backlog": "0",
+ "mess": "0",
+ "mock": false,
+ "started_at": "2026-10-18T06:01:34.846Z",
+ "cases": 650
+}

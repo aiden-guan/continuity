@@ -1,0 +1,17 @@
+{
+ "name": "opt-final-eval-all",
+ "model": "claude-haiku-5-5",
+ "judge_model": "claude-haiku-5-5",
+ "effort": "medium",
+ "trials": 1,
+ "splits": "eval",
+ "conditions": [
+  "primitive-native",
+  "continuity"
+ ],
+ "backlog": "0",
+ "mess": "0",
+ "mock": false,
+ "started_at": "2026-10-18T06:14:02.534Z",
+ "cases": 650
+}

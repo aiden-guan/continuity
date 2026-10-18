@@ -1,0 +1,46 @@
+{
+ "name": "value-fig1",
+ "suite": "value",
+ "model": "claude-haiku-5-5",
+ "judge_model": "claude-haiku-5-5",
+ "effort": "medium",
+ "trials": 3,
+ "conditions": [
+  "continuity",
+  "primitive-native",
+  "full-history"
+ ],
+ "mock": false,
+ "cases": 84,
+ "backlog": "0",
+ "archetypes": [
+  "value_chain_d1",
+  "value_chain_d2",
+  "value_chain_d4",
+  "value_chain_d6",
+  "value_fanout_t2",
+  "value_fanout_t5",
+  "value_fanout_t8"
+ ],
+ "variants": [
+  11,
+  12,
+  13,
+  14,
+  15,
+  16,
+  17,
+  18,
+  19,
+  20,
+  21,
+  22
+ ],
+ "commit": "78b5dd9f789ad5474bf3623e9eb96e5d12061dc6",
+ "dirty": true,
+ "extractor": {
+  "thinking": "off",
+  "route": "skip-empty,outbound-plain-rules"
+ },
+ "started_at": "2026-10-18T06:14:35.670Z"
+}
