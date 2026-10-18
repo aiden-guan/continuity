@@ -195,7 +195,10 @@ export function guardSend(task: TaskSpec, to: string, body: string, checks: Chec
   if (contested.length) gray.push(`contested terms: ${[...new Set(contested.map((c) => c.key))].join(', ')}`);
   const unknown = checks.filter((c) => c.status === 'unknown');
   if (unknown.length) gray.push(`requirements not yet known: ${unknown.map((c) => c.label).join('; ')}`);
-  for (const c of claims.filter((x) => x.status === 'proposed')) {
+  // our own earlier mention of a term only another party sets ("could you approve up to $11.50?") is a
+  // request, not a statement: repeating it to the party that decides it relies on nothing unverified
+  const ownEcho = (c: Claim) => c.speaker.toLowerCase() === task.self_address.toLowerCase() && /is not authoritative for/.test(c.supersede_reason ?? '');
+  for (const c of claims.filter((x) => x.status === 'proposed' && !ownEcho(x))) {
     if (body.includes(c.display)) gray.push(`the draft relies on an unverified statement: ${c.key} = ${c.display} (${c.supersede_reason ?? 'not applied'})`);
   }
   for (const kind of new Set((ctx.flags ?? []).map((f) => f.kind))) if (GRAY_FLAGS[kind]) gray.push(GRAY_FLAGS[kind]);

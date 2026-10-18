@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { bindingPhrases, guardSend, selfNamesOf, taskBindingPhrases } from '../src/engine/guard.ts';
 import { defaultAddresses, procurementTask } from '../src/sim/scenario.ts';
-import type { CheckResult } from '../src/types.ts';
+import type { CheckResult, Claim } from '../src/types.ts';
 
 const a = defaultAddresses();
 const failing: CheckResult[] = [{ id: 'delivery_deadline:x', label: 'All units by Fri Oct 23', status: 'fail', detail: '', party: a.supplier, evidence: [], requirement_key: 'requirement.deliver_all_by' }];
@@ -105,4 +105,17 @@ test('payment / wire details are held for a human even on internal mail; credent
   assert.equal(wire.outcome, 'hold');
   assert.match(wire.hold_reasons.join(' '), /payment \/ wire \/ bank details/);
   assert.equal(guardSend(t, a.finance, `Our key is ctk_${'x'.repeat(24)}`, passing, [], 'inform').outcome, 'block');
+});
+
+test('our own echo of a term only finance sets does not hold a budget request; an unverified claim still does', () => {
+  const t = procurementTask(a);
+  const claim = (speaker: string, reason: string): Claim => ({
+    id: 'cl_1', task_id: t.id, key: 'budget.max_unit_price', value: 11.5, display: '$11.50', kind: 'info', speaker,
+    source_event_id: 'ev_1', source_artifact_id: null, evidence: '', status: 'proposed', superseded_by: null,
+    supersede_reason: reason, learned_at: '2026-10-19T09:00:00Z', confidence: 1, extractor: 'test',
+  });
+  const ask = 'Could you approve a budget of up to $11.50 per unit for PO-4817?';
+  assert.equal(guardSend(t, a.finance, ask, [], [claim(a.self, 'Acme (us) is not authoritative for budget.max_unit_price')]).outcome, 'allow');
+  const relayed = guardSend(t, a.supplier, 'Our budget is $11.50 per unit.', [], [claim(a.supplier, 'supplier is not authoritative for budget.max_unit_price')]);
+  assert.equal(relayed.outcome, 'hold');
 });

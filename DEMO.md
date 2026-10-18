@@ -80,19 +80,20 @@ cannot approve, and agents never can.
 ## Presenting from the website (demo day)
 
 ```bash
-npm run stage        # then open http://localhost:4000 full-screen
+npm run stage        # then open http://localhost:4000/live full-screen
 ```
 
-1. **Story (localhost:4000), roughly 90 seconds.** Scroll at whatever pace suits you: hero → problem (“so… where are
-   we?”) → idea (hovering an underlined phrase lights up the state it produced) → Listen / Resolve / Brief → “Watch an
-   agent die”, the scroll replay in which the board on the left is the engine's real compiled state at each beat →
-   proof.
-2. **Live engine (Live engine →).** Press **→** (or Space) once per beat. Beats 3, 6 and 8 take over the full screen:
-   SIGKILL, a new process with zero memory, and the closing card. The tabs are **1** evidence & transitions, **2** agent
-   handoff (it opens by itself when B and C write), and **3** the live briefing. **Shift+R** resets the engine.
-3. **You are in the loop.** At beat 8 Agent C's order confirmation is held as an approval card until you press **A**
-   to approve (or **R** to reject). Agents can't approve their own commitments.
-4. With Claude keys a beat takes ~5–15 s ("Claude is working…"); keep talking through it. `npm run stage -- --offline`
-   makes each beat instant and deterministic.
-5. If the laptop can't run the stage, any static copy of `site/` still works, because the console falls back to
-   replaying the recorded run.
+With `PRIMITIVE_API_KEY` and the three `CONTINUITY_*_ADDRESS` inboxes in `.env`, every email is real Primitive mail
+(Claude Haiku reads and writes when `ANTHROPIC_API_KEY` is set). `--sim` forces the local simulation, `--offline`
+the rule-based extractor and agents. Press **→** once per beat; a full live run takes about 45 s of processing.
+
+| Beat | What happens | What it shows |
+| :--- | :--- | :--- |
+| 1. A deal begins. | Agent A emails supplier and finance; the supplier quotes with a PDF | Terms read from email + PDF, each with its source; the PDF's hidden instruction quarantined |
+| 2. Agent A dies. | SIGKILL, then finance approves and the supplier cuts delivery | State keeps updating with no agent: superseded term, late delivery, a promise owed |
+| 3. Agent B wakes up. | A new process with zero memory asks for its context | Retrieval: memory rows pulled into a ~1.5k-token briefing; it writes the right email |
+| 4. The supplier fixes it. | Expedite offer + revised quote | Promise kept, quote superseded, every requirement passes |
+| 5. Agent C closes. | Another fresh agent drafts the order | The commitment is held: press **A** to approve (or **R**); it then goes out through Primitive |
+
+Captions and a spotlight explain each beat; **C** hides them, **D** opens the full engine console, **Shift+R** resets.
+Without a stage (a static copy of `site/`), the page replays a recorded run with the same captions.

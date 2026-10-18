@@ -1,12 +1,15 @@
 // Demo-day stage: hosts the website (site/) and lets the browser step through the cold-handoff story.
 //
 //   npm run stage                 # http://localhost:4000  (landing)  ·  /live  (engine console)
+//   npm run stage -- --sim        # local mail simulation even when Primitive keys are configured
 //   npm run stage -- --offline    # rule-based extractor + policy agents even if ANTHROPIC_API_KEY is set
 //
-// Under the hood a real Continuity server runs as a child process (local Primitive simulation, its own
-// DB), and its API is proxied on the same origin so the site can read state directly. The beats match
-// scripts/demo.ts: every agent is its own OS process, Agent A really gets SIGKILLed, and B and C start
-// with no memory at all. Child output and process lifecycle are pushed to the site over SSE.
+// Under the hood a real Continuity server runs as a child process (its own DB), and its API is proxied on
+// the same origin so the site can read state directly. With PRIMITIVE_API_KEY and the three
+// CONTINUITY_*_ADDRESS inboxes in .env, every email is real Primitive mail: the agents send through
+// Primitive, the scripted supplier and finance reply in-thread from their own inboxes, and a receiver
+// feeds the agent's inbox to Continuity. Otherwise the story runs on the local Primitive simulation.
+// Every agent is its own OS process, Agent A really gets SIGKILLed, and B and C start with no memory.
 //
 // A person is in the loop: Agent C's order confirmation is held as an approval card until someone
 // approves or rejects it from the page (A / R).
@@ -16,13 +19,18 @@ import { existsSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { createPrimitiveClient, type ReplyInput } from '@primitivedotdev/sdk';
+import { getEmail } from '@primitivedotdev/sdk/api';
 import { counterparty, defaultAddresses, procurementTask, type SimEmail } from '../src/sim/scenario.ts';
+import { openBackend } from '../src/store/index.ts';
+import { APPROVER_SCOPES, mintToken } from '../src/auth.ts';
 
 const { values: opts } = parseArgs({
   options: {
     port: { type: 'string', default: process.env.STAGE_PORT || '4000' },
     'engine-port': { type: 'string', default: '4101' },
     offline: { type: 'boolean', default: false },
+    sim: { type: 'boolean', default: false },
     db: { type: 'string', default: 'data/stage.db' },
   },
 });
@@ -32,18 +40,21 @@ const DB_PATH = opts.db!;
 const REPO = fileURLToPath(new URL('..', import.meta.url));
 const SITE_DIR = join(REPO, 'site');
 
-// The stage always runs on the local simulation, so it sticks to the scenario's fictional parties
-// (they read cleanly on screen) even if live addresses are configured.
-for (const name of ['CONTINUITY_SELF_ADDRESS', 'CONTINUITY_SUPPLIER_ADDRESS', 'CONTINUITY_FINANCE_ADDRESS']) delete process.env[name];
+const ADDRESS_VARS = ['CONTINUITY_SELF_ADDRESS', 'CONTINUITY_SUPPLIER_ADDRESS', 'CONTINUITY_FINANCE_ADDRESS'];
+const LIVE = !opts.sim && Boolean(process.env.PRIMITIVE_API_KEY) && ADDRESS_VARS.every((name) => process.env[name]);
+// on the simulation the stage sticks to the scenario's fictional parties (they read cleanly on screen)
+if (!LIVE) for (const name of ADDRESS_VARS) delete process.env[name];
 const parties = defaultAddresses();
 const task = procurementTask(parties);
 const taskPath = encodeURIComponent(task.id);
 
-const baseEnv: Record<string, string | undefined> = { ...process.env, CONTINUITY_TRANSPORT: 'sim' };
+const baseEnv: Record<string, string | undefined> = { ...process.env };
+if (!LIVE) baseEnv.CONTINUITY_TRANSPORT = 'sim';
 if (opts.offline) {
   delete baseEnv.ANTHROPIC_API_KEY;
   baseEnv.CONTINUITY_EXTRACTOR = 'heuristic';
 }
+const primitive = LIVE ? createPrimitiveClient({ apiKey: process.env.PRIMITIVE_API_KEY! }) : null;
 
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -74,6 +85,7 @@ interface Proc {
 }
 const processes = new Map<string, Proc>();
 let engineChild: ChildProcess | null = null;
+let receiver: ChildProcess | null = null;
 
 /** Mirror each non-blank output line to our stdout and to the SSE stream. */
 function forwardLines(label: string, pid: number | undefined) {
@@ -109,14 +121,36 @@ function exitCode(proc: Proc): Promise<number | null> {
 }
 
 function startAgent(name: string, mode: '--once' | '--watch') {
-  return launch(name, 'src/agent/run.ts', ['--task', task.alias, '--agent', name, mode, '--api', ENGINE_URL]);
+  return launch(name, 'src/agent/run.ts', ['--task', task.alias, '--agent', name, mode, '--api', ENGINE_URL], { ...baseEnv, CONTINUITY_TOKEN: tokens[name] ?? '' });
 }
+
+// ---------------------------------------------------------------- tokens (live mail only)
+// The engine never serves live Primitive mail without authentication: the stage, the receiver, each
+// agent and the person at the page get their own token. On the simulation the engine runs with auth off.
+const tokens: Record<string, string> = {};
+const APPROVER = 'the procurement lead';
+
+async function mintStageTokens() {
+  for (const key of Object.keys(tokens)) delete tokens[key];
+  if (!LIVE) return;
+  const org = process.env.CONTINUITY_ORG || 'org_local';
+  const backend = await openBackend({ mode: 'sqlite', path: join(REPO, DB_PATH), explicit: 'stage' });
+  tokens.operator = (await mintToken(backend, { org, kind: 'operator', label: 'stage' })).token;
+  tokens.ingest = (await mintToken(backend, { org, kind: 'ingest', label: 'stage receiver' })).token;
+  tokens.approver = (await mintToken(backend, { org, kind: 'operator', scopes: APPROVER_SCOPES, label: `stage approver (${APPROVER})` })).token;
+  for (const name of ['agent-a', 'agent-b', 'agent-c']) {
+    tokens[name] = (await mintToken(backend, { org, kind: 'agent', agent_id: name, task_ids: [task.id], label: `stage ${name}` })).token;
+  }
+  await backend.close();
+}
+
+const authHeader = (token = tokens.operator): Record<string, string> => (token ? { authorization: `Bearer ${token}` } : {});
 
 // ---------------------------------------------------------------- Continuity API
 async function call<R>(method: string, path: string, body?: unknown): Promise<R> {
   const res = await fetch(`${ENGINE_URL}${path}`, {
     method,
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', ...authHeader() },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const payload = await res.json();
@@ -126,17 +160,14 @@ async function call<R>(method: string, path: string, body?: unknown): Promise<R>
 
 type Delivered = { result: { event_id: string; link_reason: string; linked: boolean }; message_id: string };
 type SentMail = { messageId: string; subject: string; references: string[]; to: string; body: string };
+type TimelineEvent = { id: string; direction: string; from: string; extractions?: unknown[] };
 
-const setClock = (iso: string) => call('POST', '/sim/clock', { now: iso });
+// the simulation has its own clock; live mail runs on real time
+const setClock = (iso: string) => (LIVE ? Promise.resolve() : call('POST', '/sim/clock', { now: iso }));
 
 function deliver(email: SimEmail) {
   const attachments = (email.attachments ?? []).map((att) => ({ filename: att.filename, content_type: att.content_type, base64: att.bytes.toString('base64') }));
   return call<Delivered>('POST', '/sim/deliver', { ...email, attachments });
-}
-
-async function mailSentTo(address: string) {
-  const sent = await call<SentMail[]>('GET', '/sim/sent');
-  return sent.filter((m) => m.to === address);
 }
 
 async function agentRunCount() {
@@ -144,47 +175,111 @@ async function agentRunCount() {
   return runs.length;
 }
 
-async function untilAgentRuns(n: number, timeoutMs = 120000) {
+/** Poll until `probe` yields something; gives up on timeout, or when the story is reset underneath it. */
+async function waitUntil<X>(label: string, probe: () => Promise<X | null | undefined | false>, timeoutMs = 180_000): Promise<X> {
+  const myEpoch = epoch;
   const began = Date.now();
-  while (Date.now() - began < timeoutMs) {
-    if ((await agentRunCount()) >= n) return;
-    await wait(200);
+  for (;;) {
+    if (myEpoch !== epoch) throw new Error('reset');
+    const value = await probe().catch(() => null);
+    if (value) return value as X;
+    if (Date.now() - began > timeoutMs) throw new Error(`timed out waiting for ${label}`);
+    await wait(LIVE ? 700 : 200);
   }
-  throw new Error(`timed out waiting for agent run #${n}`);
 }
+
+const untilAgentRuns = (n: number) => waitUntil(`agent run #${n}`, async () => (await agentRunCount()) >= n);
+
+/** Resolves once Continuity has read the n-th inbound email from `from` and applied it to state. */
+const ingestedFrom = (from: string, n: number, label: string) => waitUntil(label, async () => {
+  const { events } = await call<{ events: TimelineEvent[] }>('GET', `/tasks/${taskPath}/timeline`);
+  const nth = events.filter((e) => e.direction === 'inbound' && e.from === from.toLowerCase())[n - 1];
+  return nth && (nth.extractions?.length ?? 0) > 0 ? nth : null;
+});
 
 const narrate = (text: string) => emit({ type: 'say', text });
 
+// ---------------------------------------------------------------- the counterparties' mail
+// Supplier and finance are scripted, but they answer the emails the agents actually wrote. Live, they
+// read their own Primitive inboxes and reply in-thread; on the simulation they read the sim's sent mail.
+type Inbound = {
+  id: string; from: string; to: string; subject: string | null; receivedAt: string;
+  reply: (i: ReplyInput, o?: { idempotencyKey?: string }) => Promise<{ id: string; status: string; idempotentReplay: boolean }>;
+};
+interface AgentMail { ref: { messageId: string | null; subject: string; references: string[] }; body: () => Promise<string>; inbound: Inbound | null }
+
+const STARTED = Date.now();
+let runStarted = new Date().toISOString();
+const seen: Inbound[] = [];
+if (primitive) {
+  (async () => {
+    for await (const email of primitive.inbox.stream({ waitSeconds: 10 })) {
+      if (Date.parse(email.receivedAt) >= STARTED - 60_000) seen.push(email as unknown as Inbound);
+    }
+  })().catch((err) => narrate(`counterparty mail watcher stopped: ${(err as Error).message}`));
+}
+
+const lower = (s: string) => s.toLowerCase();
+const liveMailTo = (to: string) => seen.filter((m) => lower(m.to) === lower(to) && lower(m.from) === lower(parties.self) && Date.parse(m.receivedAt) >= Date.parse(runStarted) - 2000);
+
+async function agentMailCount(to: string) {
+  if (LIVE) return liveMailTo(to).length;
+  return (await call<SentMail[]>('GET', '/sim/sent')).filter((m) => m.to === to).length;
+}
+
+/** The n-th email (0-based) our agents sent to `to` in this run, once it has arrived. */
+async function agentMail(to: string, n: number, label: string): Promise<AgentMail> {
+  if (!LIVE) {
+    const m = await waitUntil(label, async () => (await call<SentMail[]>('GET', '/sim/sent')).filter((x) => x.to === to)[n]);
+    return { ref: { messageId: m.messageId, subject: m.subject, references: m.references }, body: async () => m.body, inbound: null };
+  }
+  const m = await waitUntil(label, async () => liveMailTo(to)[n]);
+  return {
+    ref: { messageId: null, subject: m.subject ?? '', references: [] },
+    inbound: m,
+    body: async () => {
+      const detail = await getEmail({ client: primitive!.client, path: { id: m.id } });
+      return (detail.data as { data?: { body_text?: string } } | undefined)?.data?.body_text ?? '';
+    },
+  };
+}
+
+/** A counterparty answers `to` with `mail` (its body and attachments); returns the new Message-ID on the sim. */
+async function answer(stage: string, to: AgentMail, mail: SimEmail): Promise<string | null> {
+  if (!LIVE) {
+    const d = await deliver(mail);
+    narrate(`ingested ${d.result.event_id} (${d.result.link_reason})`);
+    return d.message_id;
+  }
+  const attachments = (mail.attachments ?? []).map((att) => ({ filename: att.filename, content_type: att.content_type, content_base64: att.bytes.toString('base64') }));
+  const sent = await to.inbound!.reply({ text: mail.body, ...(attachments.length ? { attachments } : {}) }, { idempotencyKey: `stage:${runStarted}:${stage}` });
+  if (sent.idempotentReplay) throw new Error(`${stage}: Primitive treated the reply as a replay; nothing was sent`);
+  narrate(`${mail.fromName} replied in-thread via Primitive (${sent.status})`);
+  return null;
+}
+
 // ---------------------------------------------------------------- the story
 interface Beat { title: string; caption: string; run: () => Promise<void> }
-const memo: { offerMsg?: string } = {};
+const memo: { offerMsg?: string | null; fromB?: AgentMail } = {};
 
 const beats: Beat[] = [
   {
-    title: 'Agent A opens the deal.',
-    caption: 'Two emails. Two threads.',
+    title: 'A deal begins.',
+    caption: 'Agent A emails the supplier and finance.',
     run: async () => {
       startAgent('agent-a', '--watch');
-      await untilAgentRuns(1);
-    },
-  },
-  {
-    title: 'The supplier says yes.',
-    caption: '500 by Friday at $11.40. Quote attached.',
-    run: async () => {
+      const rfq = await agentMail(parties.supplier, 0, 'the RFQ to reach the supplier');
+      await agentMail(parties.finance, 0, 'the budget request to reach finance');
+      const runs = await agentRunCount();
       await setClock('2026-10-19T11:20:00Z');
-      const rfq = (await mailSentTo(parties.supplier))[0];
-      const offer = await deliver(counterparty.supplierOffer(parties, { messageId: rfq.messageId, subject: rfq.subject }));
-      memo.offerMsg = offer.message_id;
-      narrate(`ingested ${offer.result.event_id} (${offer.result.link_reason})`);
-      await untilAgentRuns(2);
-      const promo = await deliver(counterparty.strayPromo(parties));
-      narrate(`unrelated promo ${promo.result.event_id}: linked=${promo.result.linked}`);
+      memo.offerMsg = await answer('supplier-offer', rfq, counterparty.supplierOffer(parties, rfq.ref));
+      await ingestedFrom(parties.supplier, 1, 'Continuity to read the offer');
+      await untilAgentRuns(runs + 1);
     },
   },
   {
-    title: 'Agent A is killed.',
-    caption: 'No warning. No handoff notes.',
+    title: 'Agent A dies.',
+    caption: 'The deal keeps moving without it.',
     run: async () => {
       const victim = processes.get('agent-a');
       if (victim && victim.state === 'running') {
@@ -193,49 +288,41 @@ const beats: Beat[] = [
         await exitCode(victim);
       }
       narrate(`agent-a pid ${victim?.pid} killed — no agent is running`);
-    },
-  },
-  {
-    title: 'Finance approves.',
-    caption: 'Nobody is awake to read it. Continuity is.',
-    run: async () => {
+      await wait(2200); // let the kill land on screen before the mail does
+      const budget = await agentMail(parties.finance, 0, 'the budget request');
+      const rfq = await agentMail(parties.supplier, 0, 'the RFQ');
       await setClock('2026-10-19T15:05:00Z');
-      const request = (await mailSentTo(parties.finance))[0];
-      const approval = await deliver(counterparty.financeApproval(parties, { messageId: request.messageId, subject: request.subject }));
-      narrate(`ingested ${approval.result.event_id} (${approval.result.link_reason})`);
-    },
-  },
-  {
-    title: 'The supplier changes the deal.',
-    caption: 'Only 300 can arrive Friday.',
-    run: async () => {
+      await answer('finance-approval', budget, counterparty.financeApproval(parties, budget.ref));
+      await ingestedFrom(parties.finance, 1, 'Continuity to read the approval');
       await setClock('2026-10-20T10:12:00Z');
-      const rfq = (await mailSentTo(parties.supplier))[0];
-      const correction = await deliver(counterparty.supplierCorrection(parties, { messageId: memo.offerMsg ?? null, subject: `Re: ${rfq.subject}`, references: [rfq.messageId] }));
-      narrate(`ingested ${correction.result.event_id} (${correction.result.link_reason})`);
+      const replyTo = { messageId: memo.offerMsg ?? null, subject: `Re: ${rfq.ref.subject}`, references: rfq.ref.messageId ? [rfq.ref.messageId] : [] };
+      await answer('supplier-correction', rfq, counterparty.supplierCorrection(parties, replyTo));
+      await ingestedFrom(parties.supplier, 2, 'Continuity to read the correction');
     },
   },
   {
-    title: 'Agent B wakes up with zero memory.',
-    caption: 'One call to Continuity. Then it writes.',
+    title: 'Agent B wakes up.',
+    caption: 'Brand-new process. Zero memory.',
     run: async () => {
+      const before = await agentMailCount(parties.supplier);
       const b = startAgent('agent-b', '--once');
       if ((await exitCode(b)) !== 0) throw new Error('agent-b failed');
+      memo.fromB = await agentMail(parties.supplier, before, "agent B's email to reach the supplier");
     },
   },
   {
     title: 'The supplier fixes it.',
-    caption: 'All 500 by Friday, with a revised quote.',
+    caption: 'All 500 by Friday. Revised quote attached.',
     run: async () => {
+      const fromB = memo.fromB ?? await agentMail(parties.supplier, (await agentMailCount(parties.supplier)) - 1, "agent B's email");
       await setClock('2026-10-21T09:30:00Z');
-      const fromB = (await mailSentTo(parties.supplier)).at(-1)!;
-      const resolution = await deliver(counterparty.supplierResolution(parties, { messageId: fromB.messageId, subject: fromB.subject, references: fromB.references }, fromB.body));
-      narrate(`ingested ${resolution.result.event_id} (${resolution.result.link_reason})`);
+      await answer('supplier-resolution', fromB, counterparty.supplierResolution(parties, fromB.ref, await fromB.body()));
+      await ingestedFrom(parties.supplier, 3, 'Continuity to read the revised quote');
     },
   },
   {
-    title: 'Agent C closes the deal.',
-    caption: 'Every check passes. Committing money still needs you.',
+    title: 'Agent C closes.',
+    caption: 'Agents propose. You decide.',
     run: async () => {
       const c = startAgent('agent-c', '--once');
       if ((await exitCode(c)) !== 0) throw new Error('agent-c failed');
@@ -261,12 +348,17 @@ async function bootEngine() {
     old.kill();
     await new Promise((resolve) => old.on('exit', resolve));
   }
+  receiver?.kill();
+  receiver = null;
   for (const suffix of ['', '-wal', '-shm']) rmSync(`${join(REPO, DB_PATH)}${suffix}`, { force: true });
+  runStarted = new Date().toISOString();
+  for (const key of Object.keys(memo)) delete memo[key as keyof typeof memo];
+  await mintStageTokens();
 
   const child = spawn(process.execPath, ['src/server.ts'], {
     cwd: REPO,
     // pinned so a .env with CONTINUITY_AUTH=required or SUPABASE_DB_URL doesn't change the stage's local engine
-    env: { ...baseEnv, CONTINUITY_STORE: 'sqlite', CONTINUITY_DB: DB_PATH, CONTINUITY_AUTH: 'off', PORT: opts['engine-port'] } as NodeJS.ProcessEnv,
+    env: { ...baseEnv, CONTINUITY_STORE: 'sqlite', CONTINUITY_DB: DB_PATH, CONTINUITY_AUTH: LIVE ? 'required' : 'off', PORT: opts['engine-port'] } as NodeJS.ProcessEnv,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   engineChild = child;
@@ -290,7 +382,23 @@ async function bootEngine() {
     }
   }
   await setClock('2026-10-19T08:55:00Z');
-  await call('POST', '/tasks', task);
+  if (!LIVE) {
+    await call('POST', '/tasks', task);
+    return;
+  }
+  // Live: the agent's inbox reaches Continuity through the receiver (Primitive long-poll → /ingest).
+  // Supplier and finance reply from inboxes on your own Primitive domain; until mail between them has been
+  // seen to authenticate, an *unknown* sender verdict from them is accepted and flagged (a failing one never is).
+  const demoAuth = process.env.CONTINUITY_DEMO_SENDER_AUTH === 'enforce' ? 'enforce' : 'flag';
+  await call('POST', '/tasks', { ...task, participants: task.participants.map((p) => (p.address === parties.supplier || p.address === parties.finance ? { ...p, sender_auth: demoAuth } : p)) });
+  receiver = spawn(process.execPath, ['scripts/primitive-receive.ts'], {
+    cwd: REPO,
+    env: { ...baseEnv, CONTINUITY_URL: ENGINE_URL, RECEIVE_SINCE: runStarted, CONTINUITY_TOKEN: tokens.ingest } as NodeJS.ProcessEnv,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const forwardReceiver = forwardLines('receive', receiver.pid);
+  receiver.stdout!.on('data', forwardReceiver);
+  receiver.stderr!.on('data', forwardReceiver);
 }
 
 async function reset() {
@@ -336,6 +444,7 @@ function snapshot() {
     busy: running,
     error: failure,
     offline: !!opts.offline,
+    live: LIVE,
     beats: beats.map((b, index) => ({ index, title: b.title, caption: b.caption, done: index < nextBeat })),
     procs: [...processes.values()].map((p) => ({ name: p.name, pid: p.pid, state: p.state, code: p.code, started: p.started })),
   };
@@ -377,7 +486,8 @@ async function forwardToEngine(req: IncomingMessage, res: ServerResponse, url: U
   const body = hasBody ? await readBody(req) : undefined;
   const upstream = await fetch(`${ENGINE_URL}${url.pathname}${url.search}`, {
     method: req.method,
-    headers: { 'content-type': req.headers['content-type'] ?? 'application/json' },
+    // live, the engine requires a token: the page reads as the stage, and decides as the person at it
+    headers: { 'content-type': req.headers['content-type'] ?? 'application/json', ...authHeader(/\/decide$/.test(url.pathname) ? tokens.approver : tokens.operator) },
     body: body ? new Uint8Array(body) : undefined,
   });
   res.writeHead(upstream.status, { 'content-type': upstream.headers.get('content-type') ?? 'application/json' });
@@ -433,6 +543,7 @@ const server = createServer(async (req, res) => {
 process.on('exit', () => {
   for (const proc of processes.values()) if (proc.state === 'running') proc.child.kill();
   engineChild?.kill();
+  receiver?.kill();
 });
 process.on('SIGINT', () => process.exit(0));
 process.on('SIGTERM', () => process.exit(0));
@@ -442,5 +553,6 @@ server.listen(STAGE_PORT, () => {
   const brains = opts.offline || !process.env.ANTHROPIC_API_KEY ? 'offline rules + policy agents' : 'Claude extractor + Claude agents';
   console.log(`\n  Continuity stage   http://localhost:${STAGE_PORT}        (landing)`);
   console.log(`                     http://localhost:${STAGE_PORT}/live   (engine console)`);
-  console.log(`  engine: ${ENGINE_URL}  ·  mail: local Primitive simulation  ·  ${brains}\n`);
+  const mail = LIVE ? `live Primitive mail (${parties.self})` : 'local Primitive simulation';
+  console.log(`  engine: ${ENGINE_URL}  ·  mail: ${mail}  ·  ${brains}\n`);
 });

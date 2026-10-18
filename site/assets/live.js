@@ -49,15 +49,56 @@ const MODE_LABEL = { stage: 'live · stage', engine: 'live · read-only', replay
 
 // the recorded run, beat by beat: what to reveal and which processes exist at that point
 const REPLAY_SCRIPT = [
-  { title: 'Agent A opens the deal.', caption: 'Two emails. Two threads.', at: 'ev_2', procs: { 'agent-a': 'running' }, runs: 1 },
-  { title: 'The supplier says yes.', caption: '500 by Friday at $11.40. Quote attached.', at: 'ev_3', procs: { 'agent-a': 'running' }, runs: 2, unlinked: true },
-  { title: 'Agent A is killed.', caption: 'No warning. No handoff notes.', at: 'ev_3', procs: { 'agent-a': 'killed' }, runs: 2, unlinked: true, moment: 'kill' },
-  { title: 'Finance approves.', caption: 'Nobody is awake to read it. Continuity is.', at: 'ev_5', procs: { 'agent-a': 'killed' }, runs: 2, unlinked: true },
-  { title: 'The supplier changes the deal.', caption: 'Only 300 can arrive Friday.', at: 'ev_6', procs: { 'agent-a': 'killed' }, runs: 2, unlinked: true },
-  { title: 'Agent B wakes up with zero memory.', caption: 'One call to Continuity. Then it writes.', at: 'ev_7', procs: { 'agent-a': 'killed', 'agent-b': 'exited' }, runs: 3, unlinked: true, moment: 'agent-b' },
-  { title: 'The supplier fixes it.', caption: 'All 500 by Friday, with a revised quote.', at: 'ev_8', procs: { 'agent-a': 'killed', 'agent-b': 'exited' }, runs: 3, unlinked: true },
-  { title: 'Agent C closes the deal.', caption: 'Another fresh agent. Every check passes.', at: 'ev_9', procs: { 'agent-a': 'killed', 'agent-b': 'exited', 'agent-c': 'exited' }, runs: 4, unlinked: true, moment: 'agent-c' },
+  { title: 'A deal begins.', caption: 'Agent A emails the supplier and finance.', at: 'ev_3', procs: { 'agent-a': 'running' }, runs: 2 },
+  { title: 'Agent A dies.', caption: 'The deal keeps moving without it.', at: 'ev_6', procs: { 'agent-a': 'killed' }, runs: 2 },
+  { title: 'Agent B wakes up.', caption: 'Brand-new process. Zero memory.', at: 'ev_7', procs: { 'agent-a': 'killed', 'agent-b': 'exited' }, runs: 3, moment: 'agent-b' },
+  { title: 'The supplier fixes it.', caption: 'All 500 by Friday. Revised quote attached.', at: 'ev_8', procs: { 'agent-a': 'killed', 'agent-b': 'exited' }, runs: 3 },
+  { title: 'Agent C closes.', caption: 'Agents propose. You decide.', at: 'ev_9', procs: { 'agent-a': 'killed', 'agent-b': 'exited', 'agent-c': 'exited' }, runs: 4, moment: 'agent-c' },
 ];
+
+// Captions and a spotlight, beat by beat: what to say while it runs, then what to point at once it lands.
+// Each cue is [selector, text]; a cue whose element is missing still shows its caption.
+const tok = () => (app.briefingTokens ? `~${(Math.round(app.briefingTokens / 100) / 10).toFixed(1)}k tokens` : 'a short briefing');
+const CUES = [
+  {
+    running: () => `Agent A emails the supplier and finance.${app.health?.transport === 'primitive' ? ' Real mail.' : ''}`,
+    done: [
+      ['#mail-open', 'The supplier quotes. PDF attached.'],
+      ['#en-mem .mem', 'Continuity reads it into memory, with sources.'],
+      ['#en-mem [data-k="flags"]', 'A hidden instruction in the PDF. Quarantined.'],
+    ],
+  },
+  {
+    running: 'Agent A is killed. Its memory is gone.',
+    done: [
+      ['#mail', 'Mail keeps coming. Nobody is reading.'],
+      ['#en-mem [data-k="delivery.schedule"]', 'Delivery changed. The old value is kept, struck out.'],
+      ['#en-mem [data-k="owed"]', 'The supplier now owes a revised quote.'],
+    ],
+  },
+  {
+    running: 'Agent B starts. Zero messages in memory.',
+    retrieve: 'One call: Continuity hands it the state.',
+    done: [
+      ['#en-now', () => `It reads ${tok()} of state, not the inbox.`],
+      ['#mail-open', 'Then writes the right email. Never saw the thread.'],
+    ],
+  },
+  {
+    running: 'The supplier answers Agent B.',
+    done: [
+      ['#en-mem [data-k="owed"]', 'Promise kept. The loop closes itself.'],
+      ['#en-mem [data-k="checks"]', 'Every requirement passes.'],
+    ],
+  },
+  {
+    running: 'Agent C, another fresh process, drafts the order.',
+    human: ['#en-now', 'Committing money waits for a human.'],
+    answered: ['#mail-list .mrow.open', () => (app.health?.transport === 'primitive' ? 'Approved. Sent through Primitive.' : 'Approved. Sent.')],
+    done: [],
+  },
+];
+
 
 // the pipeline strip, left to right
 const PIPELINE = [
@@ -139,21 +180,40 @@ const STREAM_HANDLERS = {
     renderBeats();
     renderProcs();
     renderPipeBusy();
-    if (!e.busy) refresh();
+    if (!e.busy) {
+      const landed = app.cueDone;
+      app.cueDone = null;
+      refresh().then(() => { if (landed != null) playCues(landed); });
+    }
   },
   beat(e) {
     app.running = e.status === 'running' ? e.index : null;
     if (e.status === 'running' && !e.replay) app.freshMail = new Set();
+    if (!e.replay && e.status === 'running') cue(CUES[e.index]?.running);
+    if (!e.replay && e.status === 'done') app.cueDone = e.index;
     if (app.stage) app.stage.busy = e.status === 'running';
     if (e.status === 'error') log('stage', `beat ${e.index + 1} failed: ${e.error}`, 'l-kill');
     else if (!e.replay) log('stage', `${e.status === 'running' ? '▶' : '✓'} ${e.index + 1}. ${e.title}`);
-    if (e.status === 'done' && !e.replay && app.stage && e.index === app.stage.beats.length - 1) setTimeout(finale, 2600);
+    if (e.status === 'done' && !e.replay && app.stage && e.index === app.stage.beats.length - 1) {
+      app.finaleDue = true;
+      setTimeout(maybeFinale, 2600);
+    }
     renderBeats();
     renderPipeBusy();
   },
   log(e) {
     log(e.proc, e.line);
-    if (!e.replay && /compiled context v/.test(e.line)) flow(STAGE.STATE, STAGE.AGENT, false);
+    if (!e.replay && /compiled context v/.test(e.line)) {
+      flow(STAGE.STATE, STAGE.AGENT, false);
+      if (e.proc !== 'agent-a') {
+        // the "new process" moment covers the page for a beat; show the retrieval once it lifts
+        const beat = app.running;
+        pause(el('#flashover').classList.contains('on') ? 1700 : 0).then(() => {
+          cue(CUES[beat]?.retrieve, '#en-mem');
+          retrieveSweep();
+        });
+      }
+    }
   },
   say(e) {
     log('stage', e.text);
@@ -183,6 +243,9 @@ const STREAM_HANDLERS = {
     app.openMail = null;
     app.killFeedLen = null;
     app.answered = null;
+    askedFor = null;
+    app.finaleDue = false;
+    cue(null);
     shownRows.clear();
     app.waitCtl?.abort();
     el('#term').innerHTML = '';
@@ -255,6 +318,11 @@ function onKey(e) {
       break;
     case 'R':
       if (e.shiftKey) restart();
+      break;
+    case 'c':
+    case 'C':
+      document.body.classList.toggle('no-cap');
+      placeSpot();
       break;
     case 'd':
     case 'D':
@@ -841,7 +909,7 @@ function nowCard(feed) {
 
   const last = focusItem(feed);
   if (!last) {
-    return { cls: 'quiet', html: head('Waiting') + line('quiet', 'No mail yet. Continuity starts empty.', 0) };
+    return { cls: 'empty', html: '' };
   }
 
   if (last.stray) {
@@ -940,6 +1008,14 @@ async function answerHuman(id, option) {
     });
     app.answered = { id, kind: req.kind, option, label, asker: req.asked_by, feedLen };
     log('stage', `you answered ${req.asked_by}: ${label}`);
+    if (option === 'approve') {
+      const [selector, text] = CUES.find((c) => c.answered)?.answered ?? [];
+      // the email shows up in the inbox once the engine has sent it
+      setTimeout(() => cue(text, selector), 900);
+      setTimeout(maybeFinale, 4200);
+    } else {
+      cue(null);
+    }
   } catch (err) {
     log('stage', `answer failed: ${err.message}`, 'l-kill');
   } finally {
@@ -970,51 +1046,98 @@ function renderEngine(feed) {
   const { cls, html } = nowCard(feed);
   setCard(el('#en-now'), html, cls);
 
-  const k = (label, right = '') => `<div class="nk"><span>${label}</span><b>${right}</b></div>`;
-  if (!c) {
-    for (const id of ['#en-next', '#en-checks', '#en-terms', '#en-loops']) setCard(el(id), '');
-    return;
-  }
+  renderMemory(c);
+}
 
-  const why = c.next_actor === 'human'
-    ? 'An agent is paused until you decide.'
-    : String(c.next_actor_reason ?? '').replace(/^Waiting on: (\w+) \((.*)\)$/, 'Waiting on $1.').replace(/^We need to act: /, '');
-  setCard(el('#en-next'), `${k('Next move')}<div class="actor ${esc(c.next_actor ?? '')}">${actorWord(c.next_actor)}</div><div class="why">${esc(why)}</div>`);
-
-  const checks = c.checks ?? [];
-  const passing = checks.filter((x) => x.status === 'pass').length;
-  const lights = checks.map((x) => `<div class="light ${esc(x.status)}"><i></i>${esc(presenterCheck(x.check))}</div>`).join('')
-    || '<div class="light"><i></i>no offer yet</div>';
-  setCard(el('#en-checks'), `${k('Requirements', checks.length ? `${passing}/${checks.length} pass` : '')}<div class="lights">${lights}</div>`,
-    checks.some((x) => x.status === 'fail') ? 'bad' : '');
-
+/**
+ * What Continuity remembers, as one ledger: each row is a current fact with the email it came from.
+ * Superseded values stay visible (struck through); a row that changed this beat flashes.
+ */
+const memPrev = new Map();
+function memoryRows(c) {
   const terms = c.current_terms ?? [];
   const term = (key) => terms.find((t) => t.term === key);
-  const superseded = (key) => (c.superseded_terms_do_not_use ?? []).filter((s) => s.term === key).at(-1);
-  const late = (c.conflicts ?? []).length > 0;
+  const src = (t) => t?.stated_in?.at(-1) ?? '';
   const rows = [];
-  for (const key of ['price.unit', 'delivery.schedule', 'order.quantity', 'budget.max_unit_price']) {
-    const now = term(key);
-    if (!now) continue;
-    const old = superseded(key);
-    const flag = key === 'delivery.schedule' && late ? ' <span class="tag fail">late</span>' : '';
-    rows.push(`<div><dt>${esc(TERM_NAMES[key])}</dt><dd>${old ? `<s>${esc(old.old_value)}</s> → ` : ''}${esc(now.value)}${flag}</dd></div>`);
+  const order = term('decision.order');
+  if (order) rows.push({ k: 'order', label: 'Order', html: '<span class="tag ok">accepted</span>', src: src(order) });
+  const price = term('price.unit');
+  if (price) {
+    const old = (c.superseded_terms_do_not_use ?? []).filter((x) => x.term === 'price.unit').at(-1);
+    rows.push({ k: 'price.unit', label: 'Price', html: `${old ? `<s>${esc(old.old_value)}</s> → ` : ''}${esc(price.value)}`, src: old?.changed_in ?? src(price), via: price.documents?.length ? 'email + PDF' : 'email' });
   }
-  const doc = (c.documents ?? []).filter((d) => d.kind === 'quote').at(-1);
+  const delivery = term('delivery.schedule');
+  if (delivery) {
+    const old = (c.superseded_terms_do_not_use ?? []).filter((x) => x.term === 'delivery.schedule').at(-1);
+    const late = (c.conflicts ?? []).length > 0;
+    rows.push({
+      k: 'delivery.schedule', label: 'Delivery', bad: late,
+      html: `${old ? `<s>${esc(old.old_value)}</s> → ` : ''}${esc(delivery.value)}${late ? ' <span class="tag fail">late</span>' : ''}`,
+      src: old?.changed_in ?? src(delivery),
+    });
+  }
+  const budget = term('budget.max_unit_price');
+  if (budget) rows.push({ k: 'budget', label: 'Budget', html: `up to ${esc(budget.value)} <small>finance</small>`, src: src(budget) });
+  const doc = (c.documents ?? []).filter((d) => d.kind === 'quote' && d.status !== 'superseded').at(-1) ?? (c.documents ?? []).filter((d) => d.kind === 'quote').at(-1);
   if (doc) {
     const status = { partially_stale: 'partly stale', current: 'current', superseded: 'superseded' }[doc.status] ?? doc.status;
-    rows.push(`<div><dt>quote</dt><dd>${esc(doc.filename.match(/Q-[\w-]+?(?=\.pdf$)/i)?.[0] ?? doc.filename)} <span class="tag ${esc(doc.status)}">${esc(status)}</span></dd></div>`);
+    const name = doc.filename.match(/Q-[\w-]+?(?=\.pdf$)/i)?.[0]?.replace(/-rev/, ' rev ') ?? doc.filename;
+    rows.push({ k: 'quote', label: 'Quote', bad: doc.status === 'partially_stale', html: `${esc(name)} <span class="tag ${esc(doc.status)}">${esc(status)}</span>`, src: doc.received_in });
   }
-  const order = term('decision.order');
-  if (order) rows.unshift(`<div><dt>order</dt><dd><span class="tag ok">accepted</span></dd></div>`);
-  setCard(el('#en-terms'), `${k('The deal right now')}${rows.length ? `<dl class="terms">${rows.join('')}</dl>` : '<div class="none">Nothing offered yet.</div>'}`);
+  const owed = (c.waiting_on_them ?? []).find((o) => o.kind === 'commitment');
+  const kept = (c.resolved_commitments ?? []).at(-1);
+  if (owed) rows.push({ k: 'owed', label: 'Owed', html: `${esc(owed.owed_by)} → ${esc(clip(owed.what.replace(/ by tomorrow$/, ''), 40))}${owed.due ? ` <small>due ${esc(dueDay(owed.due))}</small>` : ''}`, src: owed.source });
+  else if (kept) rows.push({ k: 'owed', label: 'Owed', ok: true, html: `✓ ${esc(kept.by ?? 'they')} kept it: ${esc(clip(kept.what.replace(/ by tomorrow$/, ''), 36))}`, src: kept.resolved_in });
+  const injected = (c.flags ?? []).filter((f) => f.kind === 'prompt_injection_suspected');
+  if (injected.length) rows.push({ k: 'flags', label: 'Blocked', bad: true, html: `${injected.length === 1 ? 'Hidden instruction in PDF' : `${injected.length} hidden instructions`} <span class="tag fail">quarantined</span>`, src: injected[0].event });
+  return rows;
+}
 
-  const open = [
-    ...[...new Map((c.waiting_on_them ?? []).map((o) => [`${o.owed_by}|${o.what}`, o])).values()].map((o) => `<div class="oloop">${o.kind === 'commitment' ? `${esc(o.owed_by)} promised` : `Asked ${esc(o.owed_by)}`}: ${esc(clip(o.what, 70))}${o.due ? `<small>due ${esc(dueDay(o.due))}</small>` : ''}</div>`),
-    ...(c.we_owe ?? []).map((o) => `<div class="oloop">We owe ${esc(o.owed_to)}: ${esc(o.what)}</div>`),
-  ];
-  const kept = (c.resolved_commitments ?? []).slice(-1).map((o) => `<div class="oloop done">${esc(o.by ?? o.owed_by ?? 'They')} kept their promise: ${esc(o.what ?? '')}</div>`);
-  setCard(el('#en-loops'), `${k('Open loops', String(open.length))}<div class="oloops">${[...open, ...kept].join('') || '<div class="none">Nobody owes anybody anything.</div>'}</div>`);
+function renderMemory(c) {
+  const box = el('#en-mem');
+  if (!c || !(c.current_terms ?? []).length) {
+    memPrev.clear();
+    box.innerHTML = '<div class="mem-empty">Empty. Nothing learned yet.</div>';
+    return;
+  }
+  const checks = c.checks ?? [];
+  const passing = checks.filter((x) => x.status === 'pass').length;
+  const rows = memoryRows(c).map((r, i) => {
+    const changed = memPrev.has(r.k) && memPrev.get(r.k) !== r.html;
+    const fresh = memPrev.size > 0 && !memPrev.has(r.k);
+    return `<div class="mm ${r.bad ? 'bad' : ''} ${r.ok ? 'ok' : ''} ${changed ? 'chg' : ''} ${fresh ? 'new' : ''}" data-k="${esc(r.k)}" data-src="${esc(r.src ?? '')}" style="--i:${i}">
+      <dt>${esc(r.label)}</dt><dd>${r.html}</dd><cite>${esc(r.src ?? '')}${r.via ? `<small>${esc(r.via)}</small>` : ''}</cite></div>`;
+  });
+  // requirements only show once they say something: one is broken, or all of them pass
+  const failing = checks.some((x) => x.status === 'fail');
+  const allPass = checks.length > 0 && passing === checks.length;
+  const lights = failing || allPass ? checks.map((x) => `<span class="light ${esc(x.status)}"><i></i>${esc(presenterCheck(x.check))}</span>`).join('') : '';
+  const html = `
+    <div class="mem-h"><span>Memory</span><span class="mem-next" data-k="next">next: <b class="actor ${esc(c.next_actor ?? '')}">${actorWord(c.next_actor)}</b></span></div>
+    <dl class="mem">${rows.join('')}</dl>
+    ${lights ? `<div class="mem-checks ${failing ? 'bad' : ''}" data-k="checks">${lights}</div>` : ''}`;
+  if (box.dataset.key === html) return;
+  box.dataset.key = html;
+  box.innerHTML = html;
+  memPrev.clear();
+  for (const r of memoryRows(c)) memPrev.set(r.k, r.html);
+}
+
+/** Retrieval: an agent asks Continuity for its context; every remembered fact is pulled into the briefing. */
+async function retrieveSweep() {
+  if (noMotion) return;
+  const rows = [...document.querySelectorAll('#en-mem .mm, #en-mem .mem-next, #en-mem .mem-checks')];
+  rows.forEach((row, i) => {
+    setTimeout(() => {
+      row.classList.remove('pull');
+      void row.offsetWidth;
+      row.classList.add('pull');
+    }, i * 90);
+  });
+  await pause(rows.length * 90 + 200);
+  const brief = el('#en-pipe').children[4];
+  brief?.classList.add('lit');
+  setTimeout(() => brief?.classList.remove('lit'), 1600);
 }
 
 function renderPresenter() {
@@ -1046,16 +1169,18 @@ function renderPresenter() {
   el('#p-hint').innerHTML = hint;
 
   const askers = new Set(openHuman().map((r) => r.asked_by));
-  el('#ib-agents').innerHTML = [...app.procs.values()].map((p) => {
+  // only the agent the story is about right now: the newest one
+  el('#ib-agents').innerHTML = [...app.procs.values()].slice(-1).map((p) => {
     const waiting = p.state === 'running' && askers.has(p.name);
     let note = p.state === 'killed' ? 'killed' : p.state === 'running' ? 'running' : 'done';
     if (waiting) note = 'waiting on you';
     return `<span class="ag ${esc(p.state)} ${waiting ? 'wait' : ''}"><i></i>${esc(p.name)} · ${note}</span>`;
-  }).join('') || '<span class="ag"><i></i>no agent yet</span>';
+  }).join('');
 
   const feed = mailFeed();
   renderMail(feed);
   renderEngine(feed);
+  cueHuman();
 }
 
 // ============================================================ pipeline
@@ -1078,7 +1203,7 @@ function renderPipeLabels() {
 
 // which pipeline stages are busy while a beat runs
 const INBOUND_BEATS = [1, 3, 4, 6];
-const AGENT_BEATS = [0, 5, 7];
+const AGENT_BEATS = [0, 2, 4];
 function renderPipeBusy() {
   const nodes = pipeNodes();
   nodes.forEach((n) => n.classList.remove('busy'));
@@ -1234,6 +1359,13 @@ function moment(kind, title, kicker, sub) {
   momentTimer = setTimeout(() => overlay.classList.remove('on'), kind === 'kill' ? 2000 : 1500);
 }
 
+/** The closing card, once nothing waits on a person any more (the last beat ends on an approval). */
+function maybeFinale() {
+  if (!app.finaleDue || openHuman().length) return;
+  app.finaleDue = false;
+  finale();
+}
+
 function finale() {
   const coldStarts = app.runs.filter((r) => r.decision?.prior_messages_in_process_memory === 0).length;
   const agentCount = new Set(app.runs.map((r) => r.agent_id)).size;
@@ -1244,6 +1376,84 @@ function finale() {
     `${coldStarts} cold starts with 0 messages in memory · every send checked against state`);
   clearTimeout(momentTimer);
   momentTimer = setTimeout(() => el('#flashover').classList.remove('on'), 5200);
+}
+
+// ============================================================ captions + spotlight
+// One short line at a time, and a ring around the thing it is about. C hides them (e.g. when talking live).
+let cueToken = 0;
+let spotTarget = null;
+const captionsOn = () => !document.body.classList.contains('no-cap');
+
+function cue(text, selector = null) {
+  cueToken++;
+  showCue(text, selector);
+}
+
+function showCue(text, selector) {
+  const line = typeof text === 'function' ? text() : text;
+  const cap = el('#cap');
+  if (!line) {
+    cap.classList.remove('on');
+    spotOn(null);
+    return;
+  }
+  el('#cap-t').textContent = line;
+  cap.classList.remove('on');
+  void cap.offsetWidth;
+  cap.classList.add('on');
+  spotOn(selector);
+}
+
+async function playCues(index) {
+  const steps = CUES[index]?.done ?? [];
+  if (!steps.length) return;
+  const mine = ++cueToken;
+  await pause(700);
+  for (const [selector, text] of steps) {
+    if (mine !== cueToken) return;
+    // a cue about something that is not on screen this run is skipped
+    if (selector && !document.querySelector(selector)) continue;
+    showCue(text, selector);
+    await pause(3000);
+  }
+  if (mine === cueToken) spotOn(null);
+}
+
+function spotOn(selector) {
+  spotTarget = selector;
+  placeSpot();
+}
+
+function placeSpot() {
+  const spot = el('#spot');
+  const target = spotTarget && document.querySelector(spotTarget);
+  const visible = target && captionsOn() && !document.body.classList.contains('details');
+  spot.classList.toggle('on', Boolean(visible));
+  if (!visible) return;
+  const r = target.getBoundingClientRect();
+  const padding = 6;
+  Object.assign(spot.style, {
+    left: `${r.left - padding}px`, top: `${r.top - padding}px`,
+    width: `${r.width + padding * 2}px`, height: `${r.height + padding * 2}px`,
+  });
+}
+setInterval(placeSpot, 250);
+// for scripted recordings: drive a caption by hand, e.g. stageCue('Text', '#en-mem')
+window.stageCue = cue;
+
+// the person in the loop: say so when an agent hands over, and again once they answered
+let askedFor = null;
+function cueHuman() {
+  const ask = openHuman()[0];
+  if (!ask && askedFor && !app.answered) {
+    askedFor = null;
+    cue(null);
+  }
+  if (ask && askedFor !== ask.id) {
+    askedFor = ask.id;
+    const [selector, text] = CUES.find((c) => c.human)?.human ?? [];
+    cue(text, selector);
+  }
 }
 
 // ============================================================ replay mode (no server)
@@ -1262,6 +1472,7 @@ async function startReplay() {
 
 function replayRestart() {
   app.replayBeat = 0;
+  cue(null);
   app.running = null;
   app.procs.clear();
   app.seenEvents.clear();
@@ -1290,6 +1501,7 @@ async function replayAdvance() {
   renderBeats();
   renderPipeBusy();
   log('stage', `▶ ${i + 1}. ${step.title}`);
+  cue(CUES[i]?.running);
   await pause(900);
 
   const events = snap.timeline.events;
@@ -1301,7 +1513,9 @@ async function replayAdvance() {
     const before = app.procs.get(name)?.state;
     const proc = { ...(app.procs.get(name) ?? {}), name, pid: firstRun?.decision?.pid, state };
     if (state === 'killed' && proc.killedAt == null) {
-      proc.killedAt = cut + 0.45;
+      // killed before this beat's mail: the mail that arrives afterwards is what the beat is about
+      const before = i > 0 ? events.findIndex((e) => e.id === REPLAY_SCRIPT[i - 1].at) : cut;
+      proc.killedAt = before + 0.45;
       if (name === 'agent-a') app.killFeedLen = mailFeed().length;
     }
     app.procs.set(name, proc);
@@ -1311,7 +1525,12 @@ async function replayAdvance() {
   if (step.moment && step.moment !== 'kill') {
     const firstRun = snap.runs.find((r) => r.agent_id === step.moment);
     moment('born', step.moment, 'new process', `pid ${firstRun?.decision?.pid ?? ''} · prior messages in memory: 0`);
-    await pause(1300);
+    await pause(1600);
+    if (CUES[i]?.retrieve) {
+      cue(CUES[i].retrieve, '#en-mem');
+      await retrieveSweep();
+      await pause(900);
+    }
   }
 
   for (const r of runs.filter((x) => !app.seenRuns.has(x.id))) {
@@ -1332,6 +1551,7 @@ async function replayAdvance() {
 
   app.replayBeat = i + 1;
   app.running = null;
+  playCues(i);
   if (app.replayBeat === REPLAY_SCRIPT.length) setTimeout(finale, 2600);
   renderBeats();
   renderPipeBusy();
@@ -1349,6 +1569,13 @@ el('#en-now').addEventListener('click', (e) => {
   const button = e.target.closest('[data-opt]');
   if (button && !button.disabled) answerHuman(button.dataset.req, button.dataset.opt);
 });
+// hovering a remembered fact lights the email it came from
+el('#en-mem').addEventListener('mouseover', (e) => {
+  const row = e.target.closest('[data-src]');
+  document.querySelectorAll('.mrow.cited').forEach((r) => r.classList.remove('cited'));
+  if (row?.dataset.src) document.querySelector(`.mrow[data-id="${CSS.escape(row.dataset.src)}"]`)?.classList.add('cited');
+});
+el('#en-mem').addEventListener('mouseleave', () => document.querySelectorAll('.mrow.cited').forEach((r) => r.classList.remove('cited')));
 // any message in the presenter inbox opens on click
 el('#mail-list').addEventListener('click', (e) => {
   const row = e.target.closest('.mrow');
