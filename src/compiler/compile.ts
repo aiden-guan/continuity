@@ -559,7 +559,7 @@ function suggestActions(store: StateStore, task: TaskSpec, s: SuggestInput) {
   actions.sort((a, b) => a.priority - b.priority);
   const waitingOn = s.openObs.filter((o) => o.debtor !== self);
   const urgent = actions.filter((a) => a.priority === 1);
-  const decided = !!pack.decisionKey && s.live.some((c) => c.key === pack.decisionKey && c.speaker === self);
+  const decided = !!pack.decisionKey && s.live.some((c) => c.key === pack.decisionKey && c.speaker === self && c.value !== 'declined');
   const next_actor: NextActor = urgent.length ? 'us' : waitingOn.length ? 'them' : 'none';
   let reason: string;
   if (urgent.length) reason = `We need to act: ${urgent.map((a) => a.action).join(' | ')}`;

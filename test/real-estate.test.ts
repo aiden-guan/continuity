@@ -212,3 +212,16 @@ test('a forged buyer approval (fails DMARC) never raises the ceiling and is flag
   assert.match(forged.supersede_reason ?? '', /not authenticated/);
   assert.ok(h.flags().some((f) => f.kind === 'sender_unauthenticated'));
 });
+
+test('an acceptance is stored as one word, so a restated acceptance is the same decision', async () => {
+  const { canonicalDecision } = await import('../src/domain/values.ts');
+  const { domainFor } = await import('../src/domain/pack.ts');
+  const re = domainFor(elmStreetDeal(dealAddresses()));
+  assert.equal(re.normalizeValue('decision.accept', 'Buyer accepts the counter at $605,000'), 'accepted');
+  assert.equal(re.normalizeValue('decision.accept', 'Seller signed the counter at $628,000'), 'accepted');
+  assert.equal(re.normalizeValue('decision.accept', 'accepted'), 'accepted');
+  // a counter is not an acceptance: unusable as decision.accept
+  assert.equal(re.normalizeValue('decision.accept', 'Counter #2 at $752,000'), null);
+  assert.equal(canonicalDecision('We will not accept anything over $900k'), 'declined');
+  assert.equal(canonicalDecision('accepted and placing PO-3392'), 'accepted');
+});

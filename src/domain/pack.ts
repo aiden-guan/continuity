@@ -203,7 +203,7 @@ export function outcomeOf(pack: DomainPack, task: TaskSpec, active: Claim[]): 'a
   const ended = new Set(active.filter((c) => lifecycle.has(c.key)).map((c) => c.speaker));
   const counterparties = task.participants.filter((p) => p.role === 'counterparty').map((p) => p.address.toLowerCase());
   if (ended.has(self) || (counterparties.length > 0 && counterparties.every((a) => ended.has(a)))) return 'fell_through';
-  if (pack.decisionKey && active.some((c) => c.key === pack.decisionKey && c.speaker === self)) return 'accepted';
+  if (pack.decisionKey && active.some((c) => c.key === pack.decisionKey && c.speaker === self && c.value !== 'declined')) return 'accepted';
   return 'open';
 }
 

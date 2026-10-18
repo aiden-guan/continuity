@@ -9,6 +9,7 @@
 import type { CheckResult, Claim, TaskSpec } from '../types.ts';
 import { findDates, isoDate, prettyDate } from '../extract/dates.ts';
 import { normalizeTyped } from './procurement.ts';
+import { canonicalDecision } from './values.ts';
 import { registerDomain, type DomainPack, type HeuristicSentence, type PolicyWriter, type SuggestedAction, type TermDef } from './pack.ts';
 
 const TERMS: TermDef[] = [
@@ -18,7 +19,7 @@ const TERMS: TermDef[] = [
   { key: 'inspection.date', type: 'date', description: 'Scheduled home inspection date', topics: ['inspection', 'inspector'], events: { default: 'inspection_scheduled' } },
   { key: 'appraisal.value', type: 'money', description: "Appraised value from the lender's appraisal (whole USD)", topics: ['appraisal', 'appraised', 'valuation'], events: { default: 'appraisal_received' } },
   { key: 'budget.max_price', type: 'money', description: "The buyer's approved maximum purchase price (the buyer's decision)", topics: ['approve', 'approval', 'comfortable', 'go up to', 'ceiling', 'max'], events: { default: 'price_ceiling_approved' } },
-  { key: 'decision.accept', type: 'text', description: 'A party accepting the current offer or counter', topics: ['accept', 'agree to'], events: { self: 'offer_accepted', default: 'accepted' } },
+  { key: 'decision.accept', type: 'text', description: 'A party accepting (or declining) the current offer or counter: value "accepted" or "declined"', topics: ['accept', 'agree to'], events: { self: 'offer_accepted', default: 'accepted' } },
   { key: 'payment.wire_instructions', type: 'text', description: 'Where to wire money (earnest deposit, closing funds): bank, routing and account details', topics: ['wire', 'wiring', 'bank', 'routing', 'account number'], events: { default: 'wire_instructions_received' }, sensitive: 'always' },
   { key: 'deal.fell_through', type: 'text', lifecycle: true, description: 'The deal ended without closing (withdrawn, terminated, another offer accepted): the reason', topics: ['withdraw', 'walk away', 'terminate', 'another offer', 'off the market'], events: { self: 'deal_withdrawn', default: 'fell_through' } },
 ];
@@ -293,6 +294,7 @@ export const realEstate: DomainPack = {
     '- deal.fell_through (a short reason) when a party withdraws, terminates, or the seller accepts another offer.',
   ].join('\n'),
   normalizeValue(key, value) {
+    if (key === 'decision.accept') return canonicalDecision(value);
     const def = termDef(key);
     return def ? normalizeTyped(def, value) : null;
   },
@@ -337,7 +339,7 @@ export const realEstate: DomainPack = {
       }
     }
 
-    const accepted = live.some((c) => c.key === 'decision.accept' && c.speaker === self);
+    const accepted = live.some((c) => c.key === 'decision.accept' && c.speaker === self && c.value === 'accepted');
     const allPass = checks.length > 0 && checks.every((c) => c.status === 'pass') && !contested.length;
     const seller = task.participants.find((p) => p.role === 'counterparty');
     if (allPass && !accepted && seller) {

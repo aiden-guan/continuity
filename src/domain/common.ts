@@ -99,7 +99,7 @@ export function standardActions(ctx: ActionContext, o: {
   }
 
   // our own decision, or the counterparty confirming the deal is done (a fully executed contract)
-  const committed = live.some((c) => c.key === o.decisionKey && (c.speaker === self || /execut|countersign|booked/i.test(String(c.value))));
+  const committed = live.some((c) => c.key === o.decisionKey && c.value !== 'declined' && (c.speaker === self || /execut|countersign|booked/i.test(String(c.value))));
   const failingParties = new Set(checks.filter((c) => c.status !== 'pass').map((c) => c.party));
   // a party that still owes a promised document (the revised invoice, the corrected rate con) is waited for, not committed to
   const owesDocument = (address: string) => o.waitForDocuments !== false && openDebtors.some((d) => d.debtor === address && d.kind === 'commitment' && !!d.expects_artifact);
