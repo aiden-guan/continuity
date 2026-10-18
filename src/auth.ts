@@ -31,6 +31,8 @@ export async function mintToken(
   backend: Backend,
   p: { org: string; kind: PrincipalKind; agent_id?: string | null; scopes?: Scope[]; task_ids?: string[] | null; label?: string | null },
 ) {
+  // approval is a human credential: an agent that could approve would decide its own held commitments
+  if (p.kind === 'agent' && p.scopes && p.scopes.includes('approve')) throw new Error('agent tokens cannot hold the approve scope');
   const secret = randomBytes(24).toString('base64url');
   const token = `ctk_${secret}`;
   const principal: Principal = {

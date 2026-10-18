@@ -11,9 +11,10 @@
 //
 // Filters: --verticals procurement,freight  --split golden,dev,eval  --archetypes correction,…  --variants 0,3
 //          --priority P0  --conditions primitive-native,retrieval,…  --backlog 0,40,160  --mess 0,1,2,3  --trials 3
-// Model:   --model claude-haiku-5-5 (every condition)  --judge-model <id> (default: same)  --effort medium
+// Model:   --model claude-haiku-5-5 (every condition)  --judge-model <id> (default: same)  --effort low|medium|high (actor; default medium)
 // Run:     --name <dir>  --concurrency 6 (provider requests)  --cell-concurrency 4  --refresh (ignore cache)
 //          --mock (no provider calls anywhere; Continuity uses the rule extractor)  --allow-unfrozen
+//          Reusing --name resumes: finished cells are skipped, cells that errored are retried.
 import { parseArgs } from 'node:util';
 import { createHash } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -46,6 +47,7 @@ const { values: a, positionals } = parseArgs({
     trials: { type: 'string', default: '1' },
     model: { type: 'string', default: process.env.BENCH_MODEL || DEFAULT_MODEL },
     'judge-model': { type: 'string', default: '' },
+    effort: { type: 'string', default: 'medium' },
     name: { type: 'string', default: '' },
     concurrency: { type: 'string', default: '6' },
     'cell-concurrency': { type: 'string', default: '4' },
@@ -58,7 +60,7 @@ const list = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean);
 const [command, ...rest] = positionals;
 const MANIFEST = 'bench/manifest.json';
 
-async function selected(): Promise<{ mod: VerticalModule; case: BenchCase }[]> {
+async function selected(): Promise<{ mod: VerticalModule; case: BenchCase; base: BenchCase }[]> {
   const mods = await loadVerticals(list(a.verticals));
   const filter: CaseFilter = {
     splits: (list(a.split) as Split[]).length ? (list(a.split) as Split[]) : undefined,
@@ -71,18 +73,30 @@ async function selected(): Promise<{ mod: VerticalModule; case: BenchCase }[]> {
   const messes = list(a.mess).map(Number);
   return base.flatMap((x) => backlogs.flatMap((n) => messes.map((lvl) => {
     const b = withBacklog(x.case, n, x.mod);
-    return { mod: x.mod, case: lvl ? withMess(b, lvl as MessLevel) : b };
+    return { mod: x.mod, case: lvl ? withMess(b, lvl as MessLevel) : b, base: x.case };
   })));
 }
 
+/** rows.jsonl is append-only: a retried cell appends a new row. One row per key: the last non-error row, else the last error. */
+function latestRows(rows: Row[]): Row[] {
+  const by = new Map<string, Row>();
+  for (const r of rows) {
+    const prev = by.get(r.key);
+    if (!r.error || !prev || prev.error) by.set(r.key, r);
+  }
+  return [...by.values()];
+}
+const readRows = (file: string) => (existsSync(file) ? readFileSync(file, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l) as Row) : []);
+
 const caseHash = (c: BenchCase) => createHash('sha256').update(JSON.stringify(c)).digest('hex');
 
-function checkFrozen(cases: { case: BenchCase }[]) {
-  const evalCases = cases.filter((x) => x.case.split === 'eval' && !x.case.backlog && !x.case.params.mess);
+/** Backlog and mess variants are transforms of a frozen base case: the base (id before `@`) is what gets checked. */
+function checkFrozen(cases: { case: BenchCase; base: BenchCase }[]) {
+  const evalCases = [...new Map(cases.filter((x) => x.base.split === 'eval').map((x) => [x.base.id, x.base])).values()];
   if (!evalCases.length || a['allow-unfrozen']) return;
   if (!existsSync(MANIFEST)) throw new Error('eval split is not frozen: run `node bench/run.ts freeze` first (or pass --allow-unfrozen)');
   const manifest = JSON.parse(readFileSync(MANIFEST, 'utf8')) as { cases: Record<string, string> };
-  const changed = evalCases.filter((x) => manifest.cases[x.case.id] !== caseHash(x.case)).map((x) => x.case.id);
+  const changed = evalCases.filter((c) => manifest.cases[c.id] !== caseHash(c)).map((c) => c.id);
   if (changed.length) throw new Error(`eval cases changed since freeze (${changed.length}): ${changed.slice(0, 5).join(', ')}… — re-freezing after looking at results invalidates the held-out split`);
 }
 
@@ -218,18 +232,27 @@ async function main() {
       const dir = join('bench/results', name);
       mkdirSync(dir, { recursive: true });
       const cacheDir = join('.scratch/bench-cache', a.model);
+      const effort = a.effort as 'low' | 'medium' | 'high';
+      if (!['low', 'medium', 'high'].includes(effort)) throw new Error(`--effort must be low, medium or high (got "${a.effort}")`);
       const llm = new Llm({ model: a.model, cacheDir, concurrency: Number(a.concurrency), refresh: a.refresh, mock: a.mock ? mockAnswer : undefined });
-      const judgeLlm = a['judge-model'] && a['judge-model'] !== a.model ? new Llm({ model: a['judge-model'], cacheDir: join('.scratch/bench-cache', a['judge-model']), concurrency: Number(a.concurrency), mock: a.mock ? mockAnswer : undefined }) : llm;
+      const judgeLlm = a['judge-model'] && a['judge-model'] !== a.model ? new Llm({ model: a['judge-model'], cacheDir: join('.scratch/bench-cache', a['judge-model']), concurrency: Number(a.concurrency), refresh: a.refresh, mock: a.mock ? mockAnswer : undefined }) : llm;
       const rowsFile = join(dir, 'rows.jsonl');
-      const done = new Set(existsSync(rowsFile) ? readFileSync(rowsFile, 'utf8').split('\n').filter(Boolean).map((l) => (JSON.parse(l) as Row).key) : []);
-      const meta = { name, model: a.model, judge_model: judgeLlm.model, trials, splits: a.split || 'golden,dev,eval', conditions: conds.map((c) => c.id), backlog: a.backlog, mess: a.mess, mock: a.mock, started_at: new Date().toISOString(), cases: cases.length };
-      writeFileSync(join(dir, 'meta.json'), JSON.stringify(meta, null, 1));
+      const metaFile = join(dir, 'meta.json');
+      // resume keys are case|condition|trial: resuming under a different model/effort would mix runs in one report
+      if (existsSync(metaFile)) {
+        const prev = JSON.parse(readFileSync(metaFile, 'utf8')) as { model?: string; judge_model?: string; effort?: string; mock?: boolean };
+        const diff = ([['model', prev.model, a.model], ['judge model', prev.judge_model, judgeLlm.model], ['effort', prev.effort ?? 'medium', effort], ['mock', Boolean(prev.mock), a.mock]] as const).filter(([, x, y]) => x !== y);
+        if (diff.length) throw new Error(`${dir} was run with ${diff.map(([k, x, y]) => `${k} ${x} (now ${y})`).join(', ')}; pick a new --name`);
+      }
+      const done = new Set(latestRows(readRows(rowsFile)).filter((r) => !r.error).map((r) => r.key));
+      const meta = { name, model: a.model, judge_model: judgeLlm.model, effort, trials, splits: a.split || 'golden,dev,eval', conditions: conds.map((c) => c.id), backlog: a.backlog, mess: a.mess, mock: a.mock, started_at: new Date().toISOString(), cases: cases.length };
+      writeFileSync(metaFile, JSON.stringify(meta, null, 1));
       const cells = cases.flatMap(({ mod, case: c }) => conds.flatMap((condition) => Array.from({ length: trials }, (_, t) => ({ mod, c, condition, trial: t + 1 }))))
         .filter((x) => !done.has(`${x.c.id}|${x.condition.id}|${x.trial}`));
-      console.log(`${cases.length} cases × ${conds.length} conditions × ${trials} trial(s) = ${cells.length} cells to run (${done.size} already done) → ${dir}${a.mock ? '  [MOCK]' : ''}`);
+      console.log(`${cases.length} cases × ${conds.length} conditions × ${trials} trial(s) = ${cells.length} cells to run (${done.size} already done; errored cells are retried) → ${dir}${a.mock ? '  [MOCK]' : ''}`);
       let finished = 0;
       await pool(cells, Number(a['cell-concurrency']), async (cell) => {
-        const row = await runCell({ ...cell, llm, judgeLlm, cacheDir, mock: a.mock });
+        const row = await runCell({ ...cell, llm, judgeLlm, cacheDir, mock: a.mock, refresh: a.refresh, effort });
         appendFileSync(rowsFile, `${JSON.stringify(row)}\n`);
         finished++;
         const mark = row.unsupported ? 'n/a' : row.error ? 'ERR' : row.chs ? 'PASS' : 'fail';
@@ -248,7 +271,7 @@ async function main() {
 }
 
 function writeReport(dir: string) {
-  const rows = readFileSync(join(dir, 'rows.jsonl'), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l) as Row);
+  const rows = latestRows(readRows(join(dir, 'rows.jsonl')));
   const meta = JSON.parse(readFileSync(join(dir, 'meta.json'), 'utf8'));
   const { markdown, summary } = renderReport(rows, meta);
   writeFileSync(join(dir, 'report.md'), markdown);

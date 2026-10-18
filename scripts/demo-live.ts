@@ -292,13 +292,13 @@ async function main() {
     await beat('9. A human approves the commitment Agent C drafted', C.green);
     console.log(held.text.split('\n').map((l) => `  ${l}`).join('\n'));
     const decidedAt = new Date().toISOString();
-    const decided = await api<{ status: string; sent?: { event_id: string } }>('POST', `/tasks/${taskPath}/approvals/${held.id}/decide`, { option: held.card.recommended, by: APPROVER }, tokens.approver);
-    say(`${APPROVER} decided ${held.id}: ${C.bold}${decided.status}${C.reset}${decided.sent ? ` — sent ${decided.sent.event_id}, recorded with approved_by` : ''}`);
+    const decided = await api<{ status: string; sent?: { event_id: string } }>('POST', `/tasks/${taskPath}/approvals/${held.id}/decide`, { option: 'approve', by: APPROVER }, tokens.approver);
+    say(`${APPROVER} chose "approve" on ${held.id} (card recommended "${held.card.recommended}"): ${C.bold}${decided.status}${C.reset}${decided.sent ? ` — sent ${decided.sent.event_id}, recorded with approved_by` : ''}`);
     if (decided.sent) {
       const closing = await agentMailTo(held.draft!.to, decidedAt, `the approved email to reach ${held.draft!.to}`);
       say(`delivered to ${held.draft!.to}: "${closing.subject}"`);
     } else {
-      say(`nothing sent: ${held.card.recommended_because}`);
+      say(`nothing sent (status ${decided.status})`);
     }
   }
 

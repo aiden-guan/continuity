@@ -55,7 +55,7 @@ Once every check passes, the acceptance still waits for a person: beat 9 prints 
 (*Sam, ops lead*) approves it; the sent email records who approved. "Agents propose, a human decides."
 
 **2:30 — Proof (20s).**
-- `npm test` (56 tests offline, 78 with local Supabase) and `npm run eval` (41/41 state assertions).
+- `npm test` (56 tests offline, 78 with local Supabase) and `npm run eval` (42/42 state assertions).
 - Fresh-context LLM results: on a long backlog the recency-window agent missed the delivery problem, and the
   compiled-state agent caught it.
 - `node eval/scale.ts`: the briefing stays around 1–2k tokens while the transcript climbs into the millions.

@@ -141,7 +141,8 @@ async function main() {
     await preparePostgres();
   } else {
     for (const f of [DB, `${DB}-wal`, `${DB}-shm`]) rmSync(f, { force: true });
-    Object.assign(serverEnv, { CONTINUITY_STORE: 'sqlite', CONTINUITY_DB: DB });
+    // pinned off so a .env with CONTINUITY_AUTH=required doesn't 401 this tokenless offline run
+    Object.assign(serverEnv, { CONTINUITY_STORE: 'sqlite', CONTINUITY_DB: DB, CONTINUITY_AUTH: 'off' });
   }
   const server = start('src/server.ts', [], '[continuity]', C.dim, { ...serverEnv, PORT, CONTINUITY_TRANSPORT: 'sim' });
   for (let attempt = 0; attempt < 100; attempt++) {
@@ -212,12 +213,13 @@ async function main() {
     if ((await exitOf(agentC)) !== 0) throw new Error('agent-c failed');
 
     // the acceptance commits us, so it waits for a person: agents propose, a human decides
-    const held = await api<{ id: string; text: string; card: { recommended: string } }[]>('GET', `/tasks/${taskPath}/approvals`);
-    if (held.length) {
+    type Held = { id: string; kind: string; current: boolean; text: string; draft: unknown };
+    const held = (await api<Held[]>('GET', `/tasks/${taskPath}/approvals`)).find((a) => a.kind === 'send' && a.current && a.draft);
+    if (held) {
       await banner('9. A human approves the commitment Agent C drafted', C.green);
-      console.log(held[0].text.split('\n').map((l) => `  ${l}`).join('\n'));
-      const decided = await api<{ status: string; sent?: { event_id: string } }>('POST', `/tasks/${taskPath}/approvals/${held[0].id}/decide`, { option: held[0].card.recommended, by: 'Sam (ops lead)' }, approverToken || operatorToken);
-      say(`decision: ${decided.status}${decided.sent ? ` — sent ${decided.sent.event_id}, recorded with approved_by` : ''}`);
+      console.log(held.text.split('\n').map((l) => `  ${l}`).join('\n'));
+      const decided = await api<{ status: string; sent?: { event_id: string } }>('POST', `/tasks/${taskPath}/approvals/${held.id}/decide`, { option: 'approve', by: 'Sam (ops lead)' }, approverToken || operatorToken);
+      say(`Sam (ops lead) chose "approve": ${decided.status}${decided.sent ? ` — sent ${decided.sent.event_id}, recorded with approved_by` : ''}`);
     }
   }
 

@@ -134,7 +134,12 @@ export class PrimitiveTransport implements Transport {
 
   async fetchEmailDetail(id: string): Promise<Record<string, unknown> | null> {
     const r = await getEmail({ client: this.client.client, path: { id }, signal: AbortSignal.timeout(30_000) });
-    return (r.data as { data?: Record<string, unknown> } | undefined)?.data ?? null;
+    const data = (r.data as { data?: Record<string, unknown> } | undefined)?.data ?? null;
+    // only a real 404 means "no such email"; an auth, rate-limit or server error must not read as one,
+    // or the receiver would move its cursor past mail it never ingested
+    const status = (r as { response?: Response }).response?.status;
+    if (!data && status !== 404) throw new Error(`Primitive GET /emails/${id} failed${status ? ` (HTTP ${status})` : ''}`);
+    return data;
   }
 
   memory = {

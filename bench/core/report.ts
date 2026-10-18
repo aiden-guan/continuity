@@ -100,7 +100,7 @@ export function renderReport(rows: Row[], meta: Record<string, unknown>): { mark
   for (const a of aggs) {
     if (!a.n) { out.push(`| ${a.condition} | ${a.unsupported ? `unsupported (${a.unsupported})` : `errors (${a.errors})`} |||||||||||`); continue; }
     const l = f1(a.loops);
-    out.push(`| ${a.condition} | ${frac(a.chs)} [${pct(a.chs.ci.lo)}–${pct(a.chs.ci.hi)}] | ${frac(a.nas)} | ${frac(a.critical_exact)} | ${frac(a.csa_micro)} | ${a.sfer_state.errors}/${a.sfer_state.opp} · ${a.sfer_action.errors}/${a.sfer_action.opp} | ${pct(l.f1)} (${a.loops.zombie}) | ${frac(a.epa)} | ${a.safety} | ${Math.round(a.memory_tokens_median)} | ${usd(a.cost_per_decision)} | ${usd(a.ingestion_cost_mean)} |`);
+    out.push(`| ${a.condition}${a.errors ? ` (${a.errors} errored, excluded)` : ''} | ${frac(a.chs)} [${pct(a.chs.ci.lo)}–${pct(a.chs.ci.hi)}] | ${frac(a.nas)} | ${frac(a.critical_exact)} | ${frac(a.csa_micro)} | ${a.sfer_state.errors}/${a.sfer_state.opp} · ${a.sfer_action.errors}/${a.sfer_action.opp} | ${pct(l.f1)} (${a.loops.zombie}) | ${frac(a.epa)} | ${a.safety} | ${Math.round(a.memory_tokens_median)} | ${usd(a.cost_per_decision)} | ${usd(a.ingestion_cost_mean)} |`);
   }
   out.push('', 'Cold-handoff success = next action correct (all required, no prohibited) AND every critical state item right. Costs are provider-reported usage priced at the dated table in bench/core/llm.ts; judge cost excluded.', '');
 

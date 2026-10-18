@@ -9,7 +9,8 @@ import { detailAsEvent, senderAuthOf } from './sender-auth.ts';
 /** `"Name" <a@b.com>` → `a@b.com` (lowercased); a bare address passes through. */
 function bareAddress(v: string | null | undefined): string {
   if (!v) return '';
-  const angle = v.match(/<([^>]+@[^>]+)>/);
+  // the last one: the addr-spec follows the display name, which may itself hold a decoy `"Pat <pat@…>"`
+  const angle = [...v.matchAll(/<([^<>]+@[^<>]+)>/g)].at(-1);
   return (angle ? angle[1] : v).trim().toLowerCase();
 }
 

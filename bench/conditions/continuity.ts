@@ -85,7 +85,7 @@ function outboundInput(m: MailMessage, taskId: string): EventInput {
 /** Wraps an extractor: caches proposals on disk (per trial) and records provider usage as ingestion cost.
  *  The rule extractor is free and deterministic, so it is never cached (a cache keyed by its name would
  *  serve stale proposals after its rules change). */
-function metered(inner: Extractor, cacheDir: string, trial: number, calls: CallRecord[]): Extractor {
+function metered(inner: Extractor, cacheDir: string, trial: number, calls: CallRecord[], refresh = false): Extractor {
   if (inner.name.startsWith('heuristic')) return inner;
   mkdirSync(cacheDir, { recursive: true });
   return {
@@ -97,7 +97,7 @@ function metered(inner: Extractor, cacheDir: string, trial: number, calls: CallR
       const started = Date.now();
       let proposal;
       let cached = false;
-      if (existsSync(file)) {
+      if (!refresh && existsSync(file)) {
         proposal = JSON.parse(readFileSync(file, 'utf8'));
         cached = true;
       } else {
@@ -237,7 +237,7 @@ function continuityCondition(id: string, label: string, description: string, pic
         return { label: 'briefing', memory: '', ingestion: [], retrieval: [], unsupported: `no Continuity domain pack "${domain}" for vertical ${ctx.vertical.id}` };
       }
       const calls: CallRecord[] = [];
-      const extractor = metered(pick(ctx), join(ctx.cacheDir, 'extractions'), ctx.trial, calls);
+      const extractor = metered(pick(ctx), join(ctx.cacheDir, 'extractions'), ctx.trial, calls, ctx.refresh);
       const { briefing, engineState, linkage } = await replay(mb, ctx, extractor);
       return { label: 'briefing', memory: briefing, ingestion: calls, retrieval: [], engineState, diag: { extractor: extractor.name, linkage } };
     },

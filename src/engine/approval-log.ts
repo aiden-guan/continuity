@@ -60,6 +60,8 @@ export interface ApprovalDecisionDetail {
   status: ApprovalStatus;
   option: string;
   by: string;
+  /** the authenticated principal that made the decision (`by` is the name it gave) */
+  principal_id?: string | null;
   note?: string;
   edited_body?: string;
   reply_body?: string;
@@ -121,7 +123,7 @@ export function approvalsForTask(store: StateStore, taskId: string, now = nowIso
     const target = byId.get(id);
     if (!target) continue;
     if (t.type === APPROVAL_EXPIRED) {
-      Object.assign(target, { status: 'expired', decided_at: t.at, decided_by: 'system: expired' });
+      Object.assign(target, { status: 'expired', decided_at: t.at, decided_by: EXPIRED_BY });
       continue;
     }
     const { approval_id: _id, status, ...decision } = t.detail as unknown as ApprovalDecisionDetail;
@@ -183,9 +185,13 @@ export function requestApproval(store: StateStore, taskId: string, at: string, d
   return approvalId(seq);
 }
 
+/** decided_by of a card whose expiry has been recorded. */
+export const EXPIRED_BY = 'system: expired';
+
 /** Record open cards past their deadline as expired (whoever touches them first writes it). */
 export function recordExpired(store: StateStore, taskId: string, at: string): string[] {
-  const expired = approvalsForTask(store, taskId, at).filter((a) => a.status === 'expired' && !a.decided_at);
+  // not yet recorded: an untouched card, or one a human put on hold (that one has decided_at set)
+  const expired = approvalsForTask(store, taskId, at).filter((a) => a.status === 'expired' && a.decided_by !== EXPIRED_BY);
   for (const a of expired) {
     store.addTransition({ task_id: taskId, event_id: null, at, type: APPROVAL_EXPIRED, subject_id: a.id, summary: `Approval ${a.id} expired undecided: ${a.title.slice(0, 160)}`, detail: { approval_id: a.id } });
   }

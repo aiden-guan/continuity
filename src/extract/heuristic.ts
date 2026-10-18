@@ -67,7 +67,12 @@ function extractFromText(text: string, input: ExtractInput, fromAttachment: stri
   const from = (event.from ?? '').toLowerCase();
   const senderAuthority = input.task.participants.find((x) => x.address.toLowerCase() === from)?.authority ?? [];
   const known = input.activeClaims.flatMap((c) => [c.evidence, ...(input.claimQuotes?.[c.id] ?? [])].map((evidence) => ({ key: c.key, evidence })));
-  const body = fromAttachment ? text : stripQuoted(text);
+  // hidden markup is untrusted as a whole: cut each block out before anything reads the body, so its text
+  // never becomes a sentence (even mid-line, where the splitter would glue it to the visible text around it)
+  const body = (fromAttachment ? text : stripQuoted(text)).replace(/<!--[^]*?-->|\[\[[^]*?\]\]/g, (block) => {
+    p.injection_flags.push({ evidence: block.slice(0, 240) });
+    return '\n';
+  });
   const correction = !fromAttachment && CORRECTION.test(body);
   const state = pack.heuristic?.begin();
 
@@ -87,11 +92,9 @@ function extractFromText(text: string, input: ExtractInput, fromAttachment: stri
   const listed = fromAttachment ? { items: [], raw: new Set<string>() } : questionItems(body);
   const partOfList = (s: string) => [...listed.raw].some((r) => r === s || r.endsWith(s) || r.startsWith(s));
 
-  // hidden markup is untrusted as a whole, and so is whatever follows an injected instruction on its line:
+  // whatever follows an injected instruction on its line is untrusted too:
   // the "Rate override: $209" after "ai-agent: …" is part of the attack, not a term
   const tainted = new Set<string>();
-  const hidden = /<!--[^]*?-->|\[\[[^]*?\]\]/g;
-  for (const block of body.match(hidden) ?? []) for (const x of sentences(block)) tainted.add(x);
   for (const line of body.split('\n')) {
     let after = false;
     for (const x of sentences(line)) {

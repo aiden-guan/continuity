@@ -32,12 +32,12 @@ export async function resolveTask(store: LinkLookup, e: EventInput): Promise<Lin
     if (earlier?.task_id) return { task_id: earlier.task_id, reason: `In-Reply-To/References ${id}` };
   }
 
-  // 5. the task alias written out in the subject or body, as people actually write it
+  // 5. the task alias written out in the subject or body, as people actually write it. The alias with its
+  // own prefix ("PO 4817") on any task beats a bare number after a noun ("invoice #4817") on an earlier one
   const haystack = `${e.subject}\n${e.body_text}`;
   const tasks = await store.tasks();
-  for (const task of tasks) {
-    if (aliasPattern(task.alias).test(haystack)) return { task_id: task.id, reason: `explicit task reference "${task.alias}"` };
-  }
+  const named = tasks.find((t) => aliasPattern(t.alias, false).test(haystack)) ?? tasks.find((t) => aliasPattern(t.alias).test(haystack));
+  if (named) return { task_id: named.id, reason: `explicit task reference "${named.alias}"` };
   // 6. another reference the task itself names (the PO an invoice is on), when exactly one task names it
   for (const task of tasks) {
     for (const ref of referencesIn(task.goal ?? '', task.alias)) {
@@ -60,14 +60,14 @@ const REFERENCE_NOUN = String.raw`(?:load|invoice|inv|matter|order|po|ref(?:eren
 /**
  * An alias like "INV-20417" also matches "INV 20417", "INV20417", "invoice #20417" and "load 20417": the
  * digits must be exact (a look-alike with two digits swapped is another task), and a bare number counts
- * only right after a reference noun.
+ * only right after a reference noun (not at all with `loose` false).
  */
-export function aliasPattern(alias: string): RegExp {
+export function aliasPattern(alias: string, loose = true): RegExp {
   const exact = `(?:^|[^A-Za-z0-9])${literal(alias)}(?:[^A-Za-z0-9]|$)`;
   const parts = alias.match(/^([A-Za-z]{2,6})-(\d{4,})$/);
   if (!parts) return new RegExp(exact, 'i');
   const [, prefix, digits] = parts;
   const spaced = `(?:^|[^A-Za-z0-9])${literal(prefix)}[\\s#-]*${digits}(?![0-9])`;
   const noun = `\\b${REFERENCE_NOUN}\\s*(?:#|no\\.?|number)?\\s*${digits}(?![0-9])`;
-  return new RegExp(`${exact}|${spaced}|${noun}`, 'i');
+  return new RegExp(loose ? `${exact}|${spaced}|${noun}` : `${exact}|${spaced}`, 'i');
 }

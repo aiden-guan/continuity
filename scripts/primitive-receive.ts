@@ -50,8 +50,10 @@ async function main() {
     if (process.env.CONTINUITY_TOKEN) headers.authorization = `Bearer ${process.env.CONTINUITY_TOKEN}`;
     const res = await fetch(`${continuityUrl}/ingest/primitive-email`, { method: 'POST', headers, body: JSON.stringify({ id: email.id }), signal: AbortSignal.timeout(60_000) });
     console.log(`[receive] ${email.id} "${email.subject}" → ${res.status} ${await res.text()}`);
-    // on failure the cursor stays put, so the email is offered again after a restart
-    if (res.ok) await saveCursor(email.cursor);
+    // a permanent refusal (no such email, malformed id) moves on; any other failure stops here with the cursor
+    // left before this email, so a restart offers it again (carrying on would save a later cursor and lose it)
+    if (res.ok || res.status === 400 || res.status === 404) await saveCursor(email.cursor);
+    else throw new Error(`ingest of ${email.id} failed with HTTP ${res.status}; stopping so it is retried from the saved cursor`);
   }
 }
 

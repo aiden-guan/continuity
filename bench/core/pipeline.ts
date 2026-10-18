@@ -4,8 +4,10 @@ import { materialize } from './mailbox.ts';
 import { act, actorInput } from './actor.ts';
 import { judge } from './judge.ts';
 import { scoreAction, scoreState, judgeConditions, type ActionScore, type StateScore } from './score.ts';
-import { Llm, estimateTokens, sumUsage, type CallRecord } from './llm.ts';
+import { Llm, estimateTokens, sumUsage, type CallRecord, type Request } from './llm.ts';
 import type { Condition } from '../conditions/types.ts';
+
+type Effort = NonNullable<Request['effort']>;
 
 export interface Row {
   key: string; // case|condition|trial
@@ -46,7 +48,7 @@ export interface Row {
   ms: number;
 }
 
-export async function runCell(opts: { mod: VerticalModule; c: BenchCase; condition: Condition; trial: number; llm: Llm; judgeLlm: Llm; cacheDir: string; mock: boolean }): Promise<Row> {
+export async function runCell(opts: { mod: VerticalModule; c: BenchCase; condition: Condition; trial: number; llm: Llm; judgeLlm: Llm; cacheDir: string; mock: boolean; refresh?: boolean; effort?: Effort }): Promise<Row> {
   const { mod, c, condition, trial, llm, judgeLlm } = opts;
   const started = Date.now();
   const mb = materialize(c);
@@ -56,11 +58,11 @@ export async function runCell(opts: { mod: VerticalModule; c: BenchCase; conditi
   };
   const emptyUsage = { memory_context_tokens_est: 0, actor_prompt_tokens_est: 0, actor_input_tokens: 0, actor_output_tokens: 0, ingestion: sumUsage([]), retrieval: sumUsage([]), actor_cost_usd: 0, judge_cost_usd: 0, system_cost_usd: 0, task_events: mb.messages.filter((m) => m.task).length };
   try {
-    const ctx = { llm, vertical: mod.vertical, trial, cacheDir: opts.cacheDir, mock: opts.mock };
+    const ctx = { llm, vertical: mod.vertical, trial, cacheDir: opts.cacheDir, mock: opts.mock, refresh: opts.refresh };
     const prepared = await condition.prepare(mb, ctx);
     if (prepared.unsupported) return { ...base, unsupported: prepared.unsupported, usage: emptyUsage, ms: Date.now() - started };
 
-    const actor = await act(llm, mod.vertical, mb, prepared.label, prepared.memory, trial);
+    const actor = await act(llm, mod.vertical, mb, prepared.label, prepared.memory, trial, opts.effort);
     const state = scoreState(mod.vertical, mb, actor.output);
     const engine_state = prepared.engineState ? scoreState(mod.vertical, mb, prepared.engineState as AgentOutput) : undefined;
     const policy = mb.checkpoint.action!;

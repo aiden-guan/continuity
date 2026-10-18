@@ -51,7 +51,7 @@ change, but the critical facts drift away from the newest mail. Plotting accurac
 - out-of-office replies and read receipts;
 - forwards of unrelated threads and newsletters with tracking links.
 
-It is meaning-preserving by construction: no digit, date, weekday or amount is added to or moved within task mail, and `assertMeaningPreserved` checks this for every case.
+It is meaning-preserving by construction: no digit, date, weekday or amount is added to or moved within task mail, and `assertMeaningPreserved` checks this in `test/bench-perturb.test.ts` (variants 0, 7 and 16 of every archetype, at every mess level); it is not run per case during a benchmark run.
 
 ## Conditions
 
@@ -165,11 +165,14 @@ npm run bench -- report bench/results/<name>
 ```
 
 Model extractions are cached by the extractor's name (`llm:<model>`) and input, not by prompt or code: after changing
-the model extractor's prompt, pass `--refresh`. The rule extractor is never cached.
+the model extractor's prompt, pass `--refresh`, which ignores both the response cache and the extraction cache
+(fresh results are still written back). The rule extractor is never cached.
 
 Results go to `bench/results/<name>/`: `rows.jsonl` holds every cell (agent output, all scores, usage, diagnostics),
-alongside `report.md` and `summary.json`. Runs resume: cells already in `rows.jsonl` are skipped, and cached responses
-in `.scratch/bench-cache/` are reused.
+alongside `report.md` and `summary.json`. Runs resume: cells already in `rows.jsonl` are skipped (cells that
+recorded an error are retried, and the report keeps the latest successful row per cell), and cached responses in
+`.scratch/bench-cache/` are reused. Resuming refuses to start if `meta.json` records a different model, judge model,
+effort or mock setting: pick a new `--name`.
 
 ## Honest limits
 

@@ -155,8 +155,8 @@ function clauses(s: string, known: { key: string; evidence: string }[] = []): [s
     const a = amounts(s.slice(capAmount.index!))[0];
     if (a) out.push(['liability.cap_amount', a.value]);
   }
-  const indem = s.match(/\bindemnifies (?:Customer|Acme|you|the customer) against (.+?)\.?\s*$/i);
-  if (indem) out.push(['indemnity.scope', indem[1].trim()]);
+  const indem = s.match(/\bindemnifies (?:Customer|Acme|you|the customer) against (.*\S)\s*$/i);
+  if (indem) out.push(['indemnity.scope', indem[1].replace(/\.$/, '').trim()]);
   if (/\bno (?:automatic|auto)[- ]?renewal\b|\bdoes not (?:auto(?:matically)?[- ]?)?renew\b|\bwithout (?:auto|automatic)[- ]?renewal\b/i.test(s)) out.push(['renewal.auto', 'none']);
   else if (/\brenews? automatically\b|\bauto[- ]?renew/i.test(s)) {
     if (/\b(?:12-month|twelve-month|annual|one-year|1-year|yearly)\b/i.test(s)) out.push(['renewal.auto', 'annual']);
@@ -218,7 +218,7 @@ function numericClauses(s: string, sections: Map<string, string> = new Map()): [
     seen.add(key);
     out.push([key, value]);
   };
-  const segments = s.split(/;|,(?=\s+(?:and\s+)?(?:termination|the |a |an |initial|annual|auto|payment|net|confidentiality|governing|renewal|liability|cap|no |dpa|its|our|in exchange))|\s+and\s+(?=(?:the\s+)?(?:termination|initial|confidentiality|renewal|liability|cap|payment|net|governing|dpa)\b)/i);
+  const segments = s.split(/;|,(?=\s+(?:and\s+)?(?:termination|the |a |an |initial|annual|auto|payment|net|confidentiality|governing|renewal|liability|cap|no |dpa|its|our|in exchange))|(?<!\s)\s+and\s+(?=(?:the\s+)?(?:termination|initial|confidentiality|renewal|liability|cap|payment|net|governing|dpa)\b)/i);
   for (const seg of segments) {
     let prevEnd = 0;
     for (const m of seg.matchAll(new RegExp(String.raw`\b${N}[- ](?:calendar\s+)?(days?|months?|years?)\b|\bnet\s?-?(\d{2,3})\b`, 'gi'))) {

@@ -9,6 +9,8 @@ export interface ConditionCtx {
   cacheDir: string;
   /** Mock mode: no provider calls anywhere (Continuity falls back to the rule extractor). */
   mock: boolean;
+  /** Ignore cached model output (still writes it), e.g. Continuity's extraction cache. */
+  refresh?: boolean;
 }
 
 export interface Prepared {

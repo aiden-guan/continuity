@@ -6,6 +6,8 @@ import { counterparty, defaultAddresses, procurementTask, quoteV1, quoteV2 } fro
 import type { Extractor, Proposal } from '../src/extract/types.ts';
 import { heuristicExtractor } from '../src/extract/heuristic.ts';
 import { fromPrimitiveWebhook } from '../src/ingest/normalize.ts';
+import { resolveTask } from '../src/ingest/link.ts';
+import type { EventInput } from '../src/types.ts';
 
 const addr = defaultAddresses();
 
@@ -109,6 +111,18 @@ test('explicit task alias links a brand-new thread (cross-thread continuity)', a
   assert.equal(result.linked, true);
   assert.match(result.event.link_reason!, /PO-4817/);
   assert.equal(h.active('budget.max_unit_price')[0].value, 11.5);
+});
+
+test('an alias named with its own prefix beats a bare number on an earlier task (INV-4817 vs PO-4817)', async () => {
+  const tasks = [{ id: 'task_inv', alias: 'INV-4817' }, { id: 'task_po', alias: 'PO-4817' }];
+  const store = { taskForThread: async () => null, eventByPrimitiveEmailId: async () => null, eventByMessageId: async () => null, tasks: async () => tasks };
+  const link = (subject: string, body = '') => resolveTask(store, { subject, body_text: body, references: [] } as unknown as EventInput).then((r) => r?.task_id ?? null);
+  assert.equal(await link('Re: PO 4817 delivery'), 'task_po');
+  assert.equal(await link('INV4817 attached'), 'task_inv');
+  assert.equal(await link('Re: delivery', 'See PO-4817.'), 'task_po');
+  // only a bare number after a noun: the first task that fits still wins, as before
+  assert.equal(await link('order #4817 update'), 'task_inv');
+  assert.equal(await link('Re: delivery'), null);
 });
 
 test('newer is not truer: a third party contradicting the supplier is contested, not superseding', async () => {

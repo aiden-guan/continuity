@@ -22,6 +22,18 @@ export function isoDate(d: Date): string {
   return `${d.getUTCFullYear()}-${two(d.getUTCMonth() + 1)}-${two(d.getUTCDate())}`;
 }
 
+/** The UTC day for year/month(0-based)/day, or null when that day doesn't exist ("Feb 30", month 13). */
+export function calendarDay(year: number, month: number, day: number): Date | null {
+  const d = new Date(Date.UTC(year, month, day));
+  return d.getUTCFullYear() === year && d.getUTCMonth() === month && d.getUTCDate() === day ? d : null;
+}
+
+/** "2026-10-23" names a real calendar day (the regex alone accepts "2026-13-45"). */
+export function isCalendarIso(iso: string): boolean {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  return !!m && calendarDay(Number(m[1]), Number(m[2]) - 1, Number(m[3])) !== null;
+}
+
 /** "Fri" */
 export function weekdayName(iso: string): string {
   return capitalize(WEEKDAYS[noon(iso).getUTCDay()].slice(0, 3));
@@ -62,16 +74,20 @@ export function findDates(text: string, referenceIso: string): DateMention[] {
   each(new RegExp(`\\b(?:${WEEKDAY},?\\s*\\(?\\s*)?${MONTH}\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?(?:,?\\s*(\\d{4}))?\\)?`, 'gi'), (m) => {
     const month = MONTHS.indexOf(m[2].slice(0, 3).toLowerCase());
     const day = Number(m[3]);
-    add(m, new Date(Date.UTC(m[4] ? Number(m[4]) : yearOf(month, day), month, day)), true);
+    const date = calendarDay(m[4] ? Number(m[4]) : yearOf(month, day), month, day);
+    if (date) add(m, date, true);
   });
   // 2026-10-28
-  each(/\b(\d{4})-(\d{2})-(\d{2})\b/g, (m) => add(m, `${m[1]}-${m[2]}-${m[3]}`, true));
+  each(/\b(\d{4})-(\d{2})-(\d{2})\b/g, (m) => {
+    if (isCalendarIso(m[0])) add(m, m[0], true);
+  });
   // 10/28 or 10/28/26
   each(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/g, (m) => {
     const month = Number(m[1]) - 1, day = Number(m[2]);
     if (month > 11 || day > 31) return;
     const year = !m[3] ? yearOf(month, day) : m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3]);
-    add(m, new Date(Date.UTC(year, month, day)), true);
+    const date = calendarDay(year, month, day);
+    if (date) add(m, date, true);
   });
   // "Friday", "next Wednesday"
   each(new RegExp(`\\b(next\\s+)?${WEEKDAY}\\b`, 'gi'), (m) => {

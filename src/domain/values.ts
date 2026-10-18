@@ -11,19 +11,20 @@
 //   schedule  [{qty, date}, …]          (delivery lots, nightly room blocks, installments; one entry per date)
 //   text      "Net 30"
 //   enum      one of the term's values
-import { prettyDate } from '../extract/dates.ts';
+import { isCalendarIso, prettyDate } from '../extract/dates.ts';
 import type { TermDef } from './pack.ts';
 
 export interface Lot { qty: number; date: string }
 export interface Window { start: string; end: string }
 
-const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
-const LOCAL = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?$/;
+const LOCAL = /^(\d{4}-\d{2}-\d{2})[T ]((?:[01]\d|2[0-3]):[0-5]\d)(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?$/;
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
 function numeric(value: unknown): number | null {
-  const n = typeof value === 'number' ? value : typeof value === 'string' ? Number(value.replace(/[$,%\s]/g, '')) : NaN;
+  const digits = typeof value === 'string' ? value.replace(/[$,%\s]/g, '') : null;
+  // Number('') is 0: a blank or symbol-only string is no number at all
+  const n = typeof value === 'number' ? value : digits ? Number(digits) : NaN;
   return Number.isFinite(n) ? n : null;
 }
 
@@ -31,7 +32,7 @@ function numeric(value: unknown): number | null {
 export function normalizeDatetime(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const m = value.trim().match(LOCAL);
-  return m ? `${m[1]}T${m[2]}` : null;
+  return m && isCalendarIso(m[1]) ? `${m[1]}T${m[2]}` : null;
 }
 
 /** Validate a proposed value against its term and put it in canonical form; null when unusable. */
@@ -45,10 +46,11 @@ export function normalizeTyped(def: TermDef, value: unknown): unknown | null {
       const range = def.range ?? (def.type === 'percent' ? 'nonnegative' : 'positive');
       if (range === 'positive' && n <= 0) return null;
       if (range === 'nonnegative' && n < 0) return null;
+      if (def.type === 'percent' && n > 100) return null; // a share: a 150% discount is no discount
       return round2(n);
     }
     case 'date':
-      return typeof value === 'string' && ISO_DAY.test(value.trim().slice(0, 10)) ? value.trim().slice(0, 10) : null;
+      return typeof value === 'string' && isCalendarIso(value.trim().slice(0, 10)) ? value.trim().slice(0, 10) : null;
     case 'datetime':
       return normalizeDatetime(value);
     case 'window': {
@@ -70,7 +72,7 @@ export function normalizeTyped(def: TermDef, value: unknown): unknown | null {
       for (const lot of value as Record<string, unknown>[]) {
         const qty = numeric(lot?.qty);
         const date = String(lot?.date ?? '').slice(0, 10);
-        if (qty === null || qty <= 0 || !ISO_DAY.test(date)) return null;
+        if (qty === null || qty <= 0 || !isCalendarIso(date)) return null;
         byDate.set(date, round2((byDate.get(date) ?? 0) + qty)); // lots on the same day are one lot
       }
       return [...byDate].map(([date, qty]) => ({ qty, date })).sort((a, b) => a.date.localeCompare(b.date));

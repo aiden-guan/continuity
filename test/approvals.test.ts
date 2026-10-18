@@ -13,6 +13,8 @@ import type { Backend, Principal } from '../src/store/backend.ts';
 import { LocalSimTransport } from '../src/transport/transport.ts';
 import { Continuity } from '../src/service.ts';
 import { heuristicExtractor } from '../src/extract/heuristic.ts';
+import type { Extractor } from '../src/extract/types.ts';
+import { Harness } from '../src/sim/harness.ts';
 import { closeAll, PG_URL, pg, uniqueOrg } from './backends.ts';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -318,6 +320,32 @@ test('payment-term changes from email are never applied on their own; a human ve
   } finally {
     app.close();
   }
+});
+
+test('a retraction does not open the door: a new value after "disregard the terms on file" is still held', async () => {
+  // the rule extractor never proposes retractions, so script one the way Claude would for this email
+  const extractor: Extractor = {
+    name: 'retracting',
+    async extract(input) {
+      const p = await heuristicExtractor.extract(input);
+      if (/disregard/i.test(input.event.body_text)) {
+        p.claims.push({ key: 'payment.terms', value: 'Net 30', kind: 'offer', mode: 'retraction', evidence: input.event.body_text, confidence: 0.9, hedged: false, from_attachment: null });
+      }
+      return p;
+    },
+  };
+  const h = new Harness(procurementTask(a), extractor);
+  await h.in(supplierMail('Our payment terms are Net 30.', '2026-10-19T13:00:00Z'));
+  assert.deepEqual(h.active('payment.terms').map((c) => c.value), ['Net 30']);
+  await h.in(supplierMail('Please disregard the payment terms we sent earlier.', '2026-10-19T14:00:00Z'));
+  assert.deepEqual(h.active('payment.terms'), []);
+  await h.in(supplierMail('Our payment terms are Net 10.', '2026-10-19T15:00:00Z'));
+  assert.equal(h.claims('payment.terms').find((c) => c.value === 'Net 10')?.status, 'proposed');
+  assert.deepEqual(h.active('payment.terms'), []);
+});
+
+test('agent tokens can never be minted with the approve scope', async () => {
+  await assert.rejects(mintToken(new MemoryBackend(), { org: ORG, kind: 'agent', agent_id: 'agent-x', scopes: ['send', 'approve'] }), /approve/);
 });
 
 test('"auto_when_clear": a clean commitment may go out on its own; any gray area still goes to a human', async () => {

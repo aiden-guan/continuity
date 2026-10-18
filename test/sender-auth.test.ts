@@ -67,6 +67,13 @@ test('display-name trick: "finance@…" <attacker@evil> is the attacker, not fin
   assert.equal(fromPrimitiveWebhook(JSON.parse(d.body)).from, 'attacker@evil.example');
 });
 
+test('display-name trick: a decoy <address> inside the quoted name is not the From address', () => {
+  const evt = { email: { headers: { from: `"Pat <${a.supplier}>" <attacker@evil.example>` } } };
+  assert.equal(fromPrimitiveWebhook(evt).from, 'attacker@evil.example');
+  assert.equal(fromPrimitiveWebhook({ email: { headers: { from: `Dana <${a.supplier}>` } } }).from, a.supplier);
+  assert.equal(fromPrimitiveWebhook({ email: { headers: { from: a.supplier } } }).from, a.supplier);
+});
+
 test('a From that differs from the authenticated domain fails; identity never falls back to the envelope', () => {
   const evt = { email: { auth: simAuth({ from: a.supplier }), headers: { from: `Priya <${a.finance}>` } } };
   // DMARC passed for northwind, but the From says finance: mismatch

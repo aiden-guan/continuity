@@ -12,7 +12,7 @@ import { modelBindingPhrases, type SendClassifier } from './engine/send-check.ts
 import { applyVerifiedClaim, buildCard, notifyApproval, optionsFor, rejectHeldClaim, renderCard, approvalLink, sendTitle, type OptionId } from './approvals.ts';
 import {
   approvalsForTask, openApprovals, recordDecision, recordExpired, requestApproval, stateFingerprint,
-  announcedApprovalIds, recordAnnounced, APPROVAL_NOTIFIED,
+  announcedApprovalIds, recordAnnounced, APPROVAL_NOTIFIED, EXPIRED_BY,
   type Approval, type ApprovalDraft, type ApprovalStatus,
 } from './engine/approval-log.ts';
 import { compileContext, estimateTokens, artifactSummary, TOKEN_UNIT, type ContextPurpose } from './compiler/compile.ts';
@@ -587,7 +587,7 @@ export class Continuity {
     const a = approvalsForTask(store, task.id, at).find((x) => x.id === approvalId);
     if (!a) throw new HttpError(404, `no approval ${approvalId} on task ${task.alias}`);
     if (a.status === 'expired') {
-      if (!a.decided_at) await this.backend.commit(snap, (w) => recordExpired(w, task.id, at)).then((c) => c.ok && this.engine.notify(org, task.id));
+      if (a.decided_by !== EXPIRED_BY) await this.backend.commit(snap, (w) => recordExpired(w, task.id, at)).then((c) => c.ok && this.engine.notify(org, task.id));
       throw new HttpError(410, `approval ${a.id} expired at ${a.expires_at}`, { code: 'approval_expired' });
     }
     if (a.status !== 'pending' && a.status !== 'held') throw new HttpError(409, `approval ${a.id} was already decided (${a.status})`, { code: 'approval_decided', status: a.status });
@@ -601,7 +601,8 @@ export class Continuity {
       ...(d.edited_body ? { edited_body: String(d.edited_body) } : {}),
       ...(d.reply_body ? { reply_body: String(d.reply_body) } : {}),
     };
-    const decision = (status: ApprovalStatus, extra: Record<string, unknown> = {}) => ({ approval_id: a.id, status, option, by, ...extras, ...extra });
+    // `by` is the name the approver gives; the authenticated principal is recorded alongside it for the audit trail
+    const decision = (status: ApprovalStatus, extra: Record<string, unknown> = {}) => ({ approval_id: a.id, status, option, by, principal_id: principal?.id ?? null, ...extras, ...extra });
     const commit = async <T>(mutate: (w: Store) => T, opts?: Parameters<Backend['commit']>[2]) => {
       const c = await this.backend.commit(snap, mutate, opts);
       if (!c.ok) {
@@ -624,10 +625,15 @@ export class Continuity {
           return null;
         }
         const reasons = g.hold_reasons.length ? g.hold_reasons : ['re-issued: the deal changed since the earlier card'];
-        return requestApproval(w, task.id, at, { kind: 'send', title: sendTitle(task, a.draft!.to, reasons), reasons, gray_areas: g.gray_areas, draft: a.draft, claim_id: null, replaces: a.id });
+        const id = requestApproval(w, task.id, at, { kind: 'send', title: sendTitle(task, a.draft!.to, reasons), reasons, gray_areas: g.gray_areas, draft: a.draft, claim_id: null, replaces: a.id });
+        const card = approvalsForTask(w, task.id, at).find((x) => x.id === id)!;
+        // the re-issued card is announced like any new one, claimed in this same commit
+        if (this.approvalWebhook) recordAnnounced(w, task.id, at, card);
+        return { id, card };
       });
-      const why = fresh ? `review the new card ${fresh}` : 'the draft is now blocked by a hard limit';
-      throw new HttpError(409, `the deal changed since this card was made; ${why}`, { code: 'approval_stale', stale: true, new_approval_id: fresh, reasons: g.reasons });
+      if (fresh && this.approvalWebhook) void this.#postCard(org, task, snap.store, fresh.card).catch(() => undefined);
+      const why = fresh ? `review the new card ${fresh.id}` : 'the draft is now blocked by a hard limit';
+      throw new HttpError(409, `the deal changed since this card was made; ${why}`, { code: 'approval_stale', stale: true, new_approval_id: fresh?.id ?? null, reasons: g.reasons });
     }
     if (acts && a.kind === 'verify_change') {
       // a later change to the same detail from the same party replaces this one

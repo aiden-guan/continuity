@@ -88,11 +88,12 @@ export class Engine {
     this.extractor = extractor;
     this.fetchAttachment = fetchAttachment;
     this.workerId = opts.workerId ?? `worker-${process.pid}-${randomUUID().slice(0, 6)}`;
-    this.leaseMs = opts.leaseMs ?? 120_000;
     this.maxStaleRetries = opts.maxStaleRetries ?? 4;
     this.inlineTimeoutMs = opts.inlineTimeoutMs ?? 120_000;
     this.#extractDeadlineMs = opts.extractDeadlineMs ?? envNum('CONTINUITY_EXTRACT_DEADLINE_MS', 150_000);
     this.#attachmentTimeoutMs = opts.attachmentTimeoutMs ?? envNum('CONTINUITY_ATTACHMENT_TIMEOUT_MS', 30_000);
+    // the lease must outlast one interpretation (deadline plus attachment fetches), or a second worker reclaims a job still running
+    this.leaseMs = opts.leaseMs ?? Math.max(120_000, this.#extractDeadlineMs + 2 * this.#attachmentTimeoutMs + 30_000);
     this.#limit = limiter(opts.extractConcurrency ?? envNum('CONTINUITY_EXTRACT_CONCURRENCY', 4));
     this.breaker = opts.breaker ?? new Breaker();
   }
@@ -371,7 +372,10 @@ export class Engine {
       this.breaker.success();
       return { proposal, extractorName: primary.name, fallback: null };
     } catch (err) {
+      // bad output still means the service answered: settle the breaker either way, or a failed half-open
+      // trial would leave it refusing every call until a restart
       if (isTransient(err)) this.breaker.failure();
+      else this.breaker.success();
       const why = (err as Error)?.name === 'TimeoutError' ? `deadline of ${this.#extractDeadlineMs} ms exceeded` : (err as Error)?.message;
       return { proposal: await heuristicExtractor.extract(input), extractorName: heuristicExtractor.name, fallback: `${primary.name} failed: ${why}` };
     }
@@ -470,7 +474,8 @@ function flagEvidence(s: MemoryStore, task: TaskSpec, event: StoredEvent, party:
 /** One deadline job per (obligation, due date), scheduled once the obligation is actually due (conditions met). */
 export function deadlineJobs(s: MemoryStore, task: TaskSpec): JobInput[] {
   return s.obligationsForTask(task.id)
-    .filter((o) => isOpen(o) && o.due_at && (!o.condition || o.condition_met_at))
+    // a due date the model wrote in some other shape gets no deadline job rather than failing interpretation
+    .filter((o) => isOpen(o) && o.due_at && /^\d{4}-\d{2}-\d{2}$/.test(o.due_at) && !Number.isNaN(Date.parse(`${o.due_at}T00:00:00Z`)) && (!o.condition || o.condition_met_at))
     .map((o) => ({
       kind: 'deadline' as const,
       task_id: task.id,

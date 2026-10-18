@@ -7,7 +7,7 @@
 import type { AgentOutput, VerticalSpec } from './types.ts';
 import type { Mailbox } from './mailbox.ts';
 import { taskHeader, triggerBlock } from './mailbox.ts';
-import { Llm, type CallRecord } from './llm.ts';
+import { Llm, type CallRecord, type Request } from './llm.ts';
 
 const VALUE_HELP: Record<string, string> = {
   money: 'a number in USD, e.g. 11.4',
@@ -88,7 +88,7 @@ export function actorInput(mb: Mailbox, memoryLabel: string, memory: string): st
 
 export interface ActorResult { output: AgentOutput; input_tokens: number; output_tokens: number; record: CallRecord; prompt_chars: number }
 
-export async function act(llm: Llm, v: VerticalSpec, mb: Mailbox, memoryLabel: string, memory: string, trial = 1): Promise<ActorResult> {
+export async function act(llm: Llm, v: VerticalSpec, mb: Mailbox, memoryLabel: string, memory: string, trial = 1, effort: NonNullable<Request['effort']> = 'medium'): Promise<ActorResult> {
   const parties = mb.case.task.parties.map((p) => p.address);
   const content = actorInput(mb, memoryLabel, memory);
   const res = await llm.complete({
@@ -96,7 +96,7 @@ export async function act(llm: Llm, v: VerticalSpec, mb: Mailbox, memoryLabel: s
     system: actorSystem(v),
     messages: [{ role: 'user', content }],
     schema: outputSchema(v, parties),
-    effort: 'medium',
+    effort,
     trial,
   });
   return { output: Llm.json<AgentOutput>(res), input_tokens: res.usage.input_tokens + (res.usage.cache_read_input_tokens ?? 0), output_tokens: res.usage.output_tokens, record: res.record, prompt_chars: content.length };

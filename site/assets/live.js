@@ -350,7 +350,7 @@ function renderTopBar() {
   if (health.agent_llm != null) pills.push(`<span class="pill">${health.agent_llm ? 'Claude agents' : 'policy agents'}</span>`);
   if (health.webhook_signature_verification) pills.push('<span class="pill ok">signed webhooks ✓</span>');
   const version = app.state?.state_version ?? app.ctx?.meta?.state_version;
-  if (version != null) pills.push(`<span class="pill v">state v${version}</span>`);
+  if (version != null) pills.push(`<span class="pill v">state v${esc(version)}</span>`);
   el('#badges').innerHTML = pills.join('');
 }
 
@@ -403,7 +403,7 @@ function renderProcs() {
   el('#procs').innerHTML = rows.map((p) => {
     const cls = p.engine ? 'engine' : p.state;
     const tail = p.state === 'running' || p.engine ? HEARTBEAT : `<span class="pid">${p.state === 'killed' ? '✕' : '·'}</span>`;
-    return `<div class="proc ${cls}"><span class="nm">${esc(p.name)}</span><span class="pid">${p.pid ? `pid ${p.pid}` : ''}</span>${tail}<span class="sub">${esc(procSubtitle(p))}</span></div>`;
+    return `<div class="proc ${esc(cls)}"><span class="nm">${esc(p.name)}</span><span class="pid">${p.pid ? `pid ${esc(p.pid)}` : ''}</span>${tail}<span class="sub">${esc(procSubtitle(p))}</span></div>`;
   }).join('') || '<div class="empty">no agent processes yet</div>';
 
   const alive = [...app.procs.values()].filter((p) => p.state === 'running').length;
@@ -858,7 +858,7 @@ function nowCard(feed) {
     return {
       cls: 'agent',
       html: head(`${esc(run.agent_id)} · a brand-new process`, `pid ${esc(d.pid ?? '?')}`)
-        + `<div class="ho-n"><div class="zero"><b>${d.prior_messages_in_process_memory ?? 0}</b><span>messages in memory</span></div><div><b>${(run.context_tokens ?? 0).toLocaleString()}</b><span>briefing tokens</span></div></div>`
+        + `<div class="ho-n"><div class="zero"><b>${esc(d.prior_messages_in_process_memory ?? 0)}</b><span>messages in memory</span></div><div><b>${esc((run.context_tokens ?? 0).toLocaleString())}</b><span>briefing tokens</span></div></div>`
         + `<div class="ho-wrote">${esc(clip(firstSentences(d.messages?.[0]?.body ?? '', 1), 120))}</div>`,
     };
   }
@@ -1171,15 +1171,15 @@ function handoffCard(run) {
   const mail = (d.messages ?? [])
     .map((m) => `<div class="ho-k"><span>email → ${esc(m.to)}</span><span>${d.sent?.length ? `sent ${esc(d.sent.join(', '))}` : ''}</span></div><pre>${esc(m.body)}</pre>`)
     .join('<br>');
-  const actionList = actions.map((a) => `<div><b>P${a.priority}</b>${esc(a.action)}</div>`).join('') || `<div>${esc(d.rationale ?? '')}</div>`;
+  const actionList = actions.map((a) => `<div><b>P${esc(a.priority)}</b>${esc(a.action)}</div>`).join('') || `<div>${esc(d.rationale ?? '')}</div>`;
   const blocked = d.blocked?.length ? '<div class="ho-k blocked"><span>blocked by send guard</span></div>' : '';
   return `<div class="handoff">
       <div class="ho-card">
         <div class="ho-k"><span>${esc(run.agent_id)} · pid ${esc(d.pid ?? '?')}</span><span>${esc(d.wake_reason ?? '')}</span></div>
         <div class="ho-big">
-          <div class="${d.prior_messages_in_process_memory === 0 ? 'zero' : ''}"><b>${d.prior_messages_in_process_memory ?? '?'}</b><span>messages in memory</span></div>
-          <div><b>${(run.context_tokens ?? 0).toLocaleString()}</b><span>briefing tokens</span></div>
-          <div><b>${(run.transcript_tokens ?? 0).toLocaleString()}</b><span>transcript would be</span></div>
+          <div class="${d.prior_messages_in_process_memory === 0 ? 'zero' : ''}"><b>${esc(d.prior_messages_in_process_memory ?? '?')}</b><span>messages in memory</span></div>
+          <div><b>${esc((run.context_tokens ?? 0).toLocaleString())}</b><span>briefing tokens</span></div>
+          <div><b>${esc((run.transcript_tokens ?? 0).toLocaleString())}</b><span>transcript would be</span></div>
         </div>
         <div class="ho-acts">${actionList}</div>
       </div>

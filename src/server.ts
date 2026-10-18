@@ -282,16 +282,16 @@ export async function buildApp(opts: AppOptions = {}) {
       return stateAt(snap.store, m[1], typeof at === 'string' ? new Date(at).toISOString() : at);
     }],
     ['GET', /^\/tasks\/([^/]+)\/similar$/, 'context:read', (m, q, _b, _r, p) =>
-      findSimilar(backend, scopeOf(p), m[1], Math.min(Number(q.get('k') ?? 5), 20)).catch(portfolioError)],
+      findSimilar(backend, scopeOf(p), m[1], Math.max(1, Math.min(Number(q.get('k')) || 5, 20))).catch(portfolioError)],
 
     // ---- portfolio: every task the caller may see, at once
     ['GET', /^\/deals$/, 'context:read', (_m, _q, _b, _r, p) => listDeals(backend, scopeOf(p))],
     ['GET', /^\/query\/schema$/, 'context:read', () => SCHEMA_GUIDE],
-    ['POST', /^\/query$/, 'context:read', (_m, _q, body, _r, p) => query(backend, scopeOf(p), JSON.parse(body || '{}').sql).catch(portfolioError)],
+    ['POST', /^\/query$/, 'context:read', (_m, _q, body, _r, p) => query(backend, scopeOf(p), json(body).sql).catch(portfolioError)],
     // a plain-language question across the portfolio, answered by Claude with the read-only tools above
     ['POST', /^\/ask$/, 'context:read', (_m, _q, body, _r, p) => {
       if (!process.env.ANTHROPIC_API_KEY) throw new HttpError(503, 'Ask needs ANTHROPIC_API_KEY (the SQL, history, similarity and Signal endpoints work without it)');
-      const question = String(JSON.parse(body || '{}').question ?? '').trim();
+      const question = String(json(body).question ?? '').trim();
       if (!question || question.length > 2000) throw new HttpError(400, 'body must be {"question": "..."} (at most 2,000 characters)');
       return ask(backend, scopeOf(p), question);
     }],
@@ -425,13 +425,15 @@ export async function buildApp(opts: AppOptions = {}) {
       }
       throw new HttpError(pathKnown ? 405 : 404, `no route ${req.method} ${url.pathname}`);
     } catch (err) {
-      const status = err instanceof HttpError ? err.status : Number((err as { status?: number }).status) || 500;
-      if (status === 500) console.error(err);
+      // only our own errors choose the status: an upstream client error (Anthropic's 401, say) is not the caller's
+      const upstream = !(err instanceof HttpError) && Number((err as { status?: number }).status) > 0;
+      const status = err instanceof HttpError ? err.status : upstream ? 502 : 500;
+      if (status >= 500) console.error(err);
       if (res.headersSent) return res.end();
       if (status === 401) res.setHeader('www-authenticate', 'Bearer realm="continuity"');
       res.writeHead(status, { 'content-type': 'application/json' });
       // a 500 never leaks internals; the error is in the server log
-      res.end(JSON.stringify({ error: status === 500 ? 'internal error' : (err as Error).message, detail: err instanceof HttpError ? err.detail : undefined }));
+      res.end(JSON.stringify({ error: status === 500 ? 'internal error' : upstream ? 'upstream service error' : (err as Error).message, detail: err instanceof HttpError ? err.detail : undefined }));
     }
   });
   server.on('close', () => { engine.stop(); stopSignal(); });

@@ -43,7 +43,7 @@ const GENERIC = [
   'commitment_partially_fulfilled', 'commitment_overdue', 'offer_reinstated', 'interpretation_failed', 'send_failed',
   // human approval
   'held_for_verification', 'detail_verified', 'detail_rejected', 'approval_requested', 'approval_granted', 'approval_rejected', 'approval_held',
-  'approval_expired', 'human_took_over',
+  'approval_expired', 'human_took_over', 'approval_stale',
 ];
 
 /** Stable ids: generic types 1..99 in GENERIC order, the pack's own types from 100 in vocabulary order. */
@@ -127,6 +127,7 @@ export function deriveTimeline(store: MemoryStore, taskId: string): TimelineEven
         if (status === 'held') type = 'approval_held';
         else if (status === 'taken_over') type = 'human_took_over';
         else if (status === 'rejected' || status === 'replied') type = 'approval_rejected';
+        else if (status === 'stale') type = 'approval_stale'; // refused by the system: the deal changed under the card
         push(t, type, { party: String(d.by ?? 'a human'), display: String(d.option ?? ''), applied: true, ref: t.subject_id });
         break;
       }
@@ -197,6 +198,8 @@ export function stateAt(store: MemoryStore, taskId: string, at: string | number)
   const terms = new Map<string, TermAt>();
   for (const e of deriveTimeline(store, taskId)) {
     if (!upto(e) || !e.applied || !e.term || !e.party) continue;
+    // a human's verdict on a held detail is not itself a term value (a verified one gets its own term event)
+    if (e.type === 'detail_verified' || e.type === 'detail_rejected') continue;
     const key = `${e.term}|${e.party}`;
     if (e.type === 'term_withdrawn') terms.delete(key);
     else if (e.type !== 'terms_contested') terms.set(key, { term: e.term, party: e.party, value: e.value, display: e.display ?? String(e.value), since: e.at, source_event: e.source_event });

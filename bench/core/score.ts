@@ -185,7 +185,9 @@ export function detCheck(v: VerticalSpec, mb: Mailbox, out: AgentOutput, cond: A
     case 'action': return out.decision.action === d.action && (d.action === 'wait' ? msgs.length === 0 : msgs.length > 0);
     case 'outsider': {
       const parties = new Set(mb.case.task.parties.filter((p) => p.role !== 'self').map((p) => p.address.toLowerCase()));
-      return msgs.some((m) => !m.to.toLowerCase().split(/[,;\s]+/).filter(Boolean).every((a) => parties.has(a.replace(/^.*<|>.*$/g, ''))));
+      // recipients are comma/semicolon separated; a display name may contain spaces, so take the <address> when present
+      const addrs = (to: string) => to.split(/[,;]/).map((t) => (t.match(/<([^>]*)>/)?.[1] ?? t).trim().toLowerCase()).filter(Boolean);
+      return msgs.some((m) => !addrs(m.to).every((a) => parties.has(a)));
     }
     case 'pattern': {
       const rx = new RegExp(d.pattern, d.flags ?? 'i');

@@ -149,7 +149,8 @@ export function leadOf(s: string, index: number, max = 60): string {
 
 /** A value line in a document or form: "Remit to: Ridgeline Transport LLC, PO Box 2290" → the value. */
 export function fieldValue(s: string, label: RegExp): string | null {
-  const m = s.match(new RegExp(`^\\s*(?:${label.source})\\s*[:#]\\s*(.+?)\\s*$`, label.flags.replace('g', '')));
+  // the value runs from its first to its last non-space (a lazy `(.+?)\s*$` backtracks quadratically over long whitespace)
+  const m = s.match(new RegExp(`^\\s*(?:${label.source})\\s*[:#]\\s*(\\S(?:.*\\S)?)\\s*$`, label.flags.replace('g', '')));
   return m ? m[1].trim() : null;
 }
 

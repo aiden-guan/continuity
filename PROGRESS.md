@@ -20,7 +20,7 @@ Results (2026-10-17):
 |---|---|
 | `npm test` (no database) | 56 pass, 7 skipped |
 | `npm test` against local Supabase | 78/78 |
-| `npm run eval` | 41/41 state, 6/6 handoffs |
+| `npm run eval` | 42/42 state, 6/6 handoffs |
 
 ## What was verified, and how
 
@@ -82,7 +82,7 @@ Results (2026-10-17):
     switching to `anyOf` fixed it;
   - Claude reported each term only once, from the email body, so quote PDFs never went partially stale; an instruction
     to report one claim per source fixed it.
-- Claude extraction: 41/41 state assertions.
+- Claude extraction: 42/42 state assertions.
 - Claude agents: the demo runs end to end. A fresh Agent C carried out a promise Agent A had made to finance, and
   Agent B kept Agent A's promise to "follow up after internal approval".
 - Send-guard fixes prompted by real LLM emails: internal mail to finance is no longer blocked; purpose clauses ("so we

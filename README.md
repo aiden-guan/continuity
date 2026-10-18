@@ -99,7 +99,7 @@ build step.
 npm install
 npm test                 # every test on the in-memory backend (Supabase cases are skipped unless configured)
 npm run test:report      # the same, also writing the spec report to test-results/spec.txt (read a flaky run afterwards)
-npm run eval             # 10 scenarios, 41 state assertions, plus offline handoff grading
+npm run eval             # 10 scenarios, 42 state assertions, plus offline handoff grading
 node eval/scale.ts       # briefing size against history length
 npm run demo             # full cold handoff, OFFLINE (SQLite file + simulated mail), UI on :4100
 npm run agent -- --task PO-4817 --agent my-agent --once      # one fresh agent against a server that is already up
@@ -341,7 +341,7 @@ Instead of long-polling you can aim a Primitive webhook endpoint (or a Function)
 **Claude path (verified 2026-10-17)**
 - When `ANTHROPIC_API_KEY` is set, Claude (`claude-haiku-5-5`) performs extraction and makes every agent decision. This
   was checked end to end: the demo runs on Claude agents, and a fresh Claude Agent C kept a promise that Agent A had made
-  to finance. Claude extraction passes all 41 state assertions.
+  to finance. Claude extraction passes all 42 state assertions.
 - **Refusals.** Claude Haiku 5.5, the default model, has no server-side refusal fallback (another model re-running a
   declined request), so a refusal is handled here: extraction falls back to the rule extractor (the event is flagged
   `extractor_fallback`), the agent falls back to the offline policy, and the send check counts the draft as binding, so
@@ -355,7 +355,7 @@ Instead of long-polling you can aim a Primitive webhook endpoint (or a Function)
 ## Evaluation (measured, not claimed)
 
 `npm run eval` runs 10 scenarios covering corrections, outstanding commitments, answered questions, conflicting claims,
-stale artifacts, cross-thread continuity, untrusted content and cold handoff. Result: **41/41 state assertions** and
+stale artifacts, cross-thread continuity, untrusted content and cold handoff. Result: **42/42 state assertions** and
 **6/6 offline policy-agent handoffs**, graded by rubric.
 
 Cold handoff to a fresh **Claude agent** (in-app API run, Claude also extracting, n=1 per cell; every email and the

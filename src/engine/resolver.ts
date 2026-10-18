@@ -70,6 +70,8 @@ export function labelOf(task: TaskSpec, address: string): string {
   return partyOf(task, address)?.label ?? address;
 }
 
+const EFFECTIVE_CLAIM_TRANSITIONS = new Set(['claim_added', 'claim_superseded', 'claim_contested', 'claim_held_for_verification', 'claim_verified']);
+
 function groupOf(task: TaskSpec, address: string): string {
   return partyOf(task, address)?.group ?? address.toLowerCase();
 }
@@ -134,6 +136,10 @@ export function applyProposal(inp: ApplyInput) {
   const at = event.received_at;
   const log = (type: string, summary: string, subject_id: string | null = null, detail: Record<string, unknown> = {}) =>
     store.addTransition({ task_id: task.id, event_id: event.id, at, type, subject_id, summary, detail });
+  // claims that were applied, contested or held for verification at some point (computed on first use)
+  let effective: Set<string> | null = null;
+  const tookEffect = () => effective ??= new Set(store.transitionsForTask(task.id)
+    .filter((t) => t.subject_id && EFFECTIVE_CLAIM_TRANSITIONS.has(t.type)).map((t) => t.subject_id!));
   const speaker = event.from.toLowerCase();
   const who = labelOf(task, speaker);
   const whoParty = partyOf(task, speaker);
@@ -311,9 +317,16 @@ export function applyProposal(inp: ApplyInput) {
     // held until a human verifies them out of band (an approval card); a repeat of the current value just corroborates
     const sensitivity = event.direction === 'inbound' && pc.mode !== 'retraction' ? termOf(pack, pc.key)?.sensitive : undefined;
     if (sensitivity) {
-      const current = liveClaims().find((c) => c.key === pc.key && c.speaker === speaker);
+      const side = groupOf(task, speaker);
+      const current = liveClaims().find((c) => c.key === pc.key && c.speaker === speaker)
+        ?? liveClaims().find((c) => c.key === pc.key && groupOf(task, c.speaker) === side);
       const changed = !current || !sameValue(current.value, value);
-      if (changed && (sensitivity === 'always' || current)) {
+      // a 'change' term is applied unverified only the first time anyone on the speaker's side ever states it:
+      // neither "disregard the account on file" followed by a new account (the retraction leaves no current value)
+      // nor a colleague's mailbox that never stated it before may slip a new account through
+      // (counting only statements that took effect or were held, not tentative ones from parties without authority)
+      const statedBefore = !!current || store.claimsForTask(task.id).some((c) => c.key === pc.key && groupOf(task, c.speaker) === side && tookEffect().has(c.id));
+      if (changed && (sensitivity === 'always' || statedBefore)) {
         const held = store.insertClaim({ ...base, status: 'proposed', supersede_reason: `held for human verification: ${pc.key} is a payment/identity detail and is never applied from email alone` });
         attachEvidence(held.id);
         const what = current ? `changed ${pc.key} (${current.display} → ${display})` : `new ${pc.key} (${display})`;

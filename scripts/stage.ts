@@ -265,7 +265,8 @@ async function bootEngine() {
 
   const child = spawn(process.execPath, ['src/server.ts'], {
     cwd: REPO,
-    env: { ...baseEnv, CONTINUITY_DB: DB_PATH, PORT: opts['engine-port'] } as NodeJS.ProcessEnv,
+    // pinned so a .env with CONTINUITY_AUTH=required or SUPABASE_DB_URL doesn't change the stage's local engine
+    env: { ...baseEnv, CONTINUITY_STORE: 'sqlite', CONTINUITY_DB: DB_PATH, CONTINUITY_AUTH: 'off', PORT: opts['engine-port'] } as NodeJS.ProcessEnv,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   engineChild = child;
