@@ -142,13 +142,39 @@
           <h2 class="h2 reveal">Watch an agent die. <span class="dim">Then watch the work continue.</span></h2>
         </div>
       </div>
-      <div class="story wrap">
-        <div id="story-stage" class="story-stage">
-          <div class="stage-h"><span>PO-4817 · 500 AX-200 boards</span><span id="stage-v"></span></div>
-          <div id="story-thread"></div>
-          <div id="story-mini" class="mini"></div>
+      <!-- the replay: a pinned scene, one beat per screen of scroll (relay.js, real engine output) -->
+      <div id="relay" class="relay">
+        <div class="rl-pin">
+          <div class="wrap rl-in">
+            <div class="rl-top">
+              <span class="rl-po">PO-4817 · 500 AX-200 boards</span>
+              <div class="rl-track"></div>
+              <span class="rl-count">01 / 08</span>
+            </div>
+
+            <div class="rl-stage">
+              <div class="rl-st rl-thread">
+                <div class="rl-h"><span>The thread</span><b>email</b></div>
+                <div class="rl-bubs"></div>
+              </div>
+              <div class="rl-st rl-corest">
+                <div class="rl-h"><span><i class="rl-mark"></i>Continuity</span><b data-ver>state v—</b></div>
+                <div class="rl-core"></div>
+              </div>
+              <div class="rl-st rl-agentst">
+                <div class="rl-h"><span>The agent</span><b data-agent-chip>idle</b></div>
+                <div class="rl-agent"></div>
+                <canvas class="rl-burst" aria-hidden="true"></canvas>
+              </div>
+            </div>
+
+            <div class="rl-cap" aria-live="polite">
+              <span class="rl-cap-n">01</span>
+              <h3></h3>
+              <p></p>
+            </div>
+          </div>
         </div>
-        <div id="story-steps" class="story-steps"></div>
       </div>
     </section>
 
