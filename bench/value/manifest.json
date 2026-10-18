@@ -1,6 +1,6 @@
 {
- "frozen_at": "2026-10-18T05:37:25.671Z",
- "commit": "fa260eae80b86c5e7f2430774caf1b0481ef4b01",
+ "frozen_at": "2026-10-18T05:41:50.169Z",
+ "commit": "c59515f901d82c3371dfb21d73b2b49b73208105",
  "cases": {
   "procurement/value_chain_d1/11": "07e149e7a1cb61de31b01ec65459683574483abfaddf57725e4d4692fe7a6a07",
   "procurement/value_chain_d1/12": "f226e72b8f1c594f397c97852937e4bb2cc98ebae21a8fc3db3016af9f6f4d56",
@@ -35,7 +35,7 @@
   "procurement/value_chain_d4/17": "87b93352b09a9b480f84b1a2a595b3b68542b553c418019a56dfd689ade93ed1",
   "procurement/value_chain_d4/18": "d60a743a2682aabd85bee4c1cc91a82bf76c52910f4291ff162164a929638c64",
   "procurement/value_chain_d4/19": "ffc17f015e37ea682b3c87889f3e7fedc800cd71c979f88a1b0f16d8a71aa5dc",
-  "procurement/value_chain_d4/20": "0ad9de6e28cc7293ec91cf017aced7a4611f5c341dddd29a48195a4648f6c66a",
+  "procurement/value_chain_d4/20": "eca478238be5b7e6957fc6a268cf65e6f048b59b448543687c74ab4261b1f621",
   "procurement/value_chain_d4/21": "a4117552f63dd3a4edc5c08186077446bf6887dcb54d41b10463a35cd92ee0af",
   "procurement/value_chain_d4/22": "18901d3022031bf1fdc40d69cf9508bdc097f81ccad7c5ebbd0bac310cf7ac98",
   "procurement/value_chain_d6/11": "cc9ef190e97fe73b3cf734394af3cbeb294a0d47b1c51402765d3b85633059ff",
@@ -47,8 +47,8 @@
   "procurement/value_chain_d6/17": "3c6857ce75269e703ff8357bab6733f9adb92ba8ce08692a7e2b4bc565f1a6e8",
   "procurement/value_chain_d6/18": "71afa52b9b03eebead3537ed5da4842419fbf441f65cd4c2fadb980e95f7b528",
   "procurement/value_chain_d6/19": "53698f7a8c89682e9fb7e321ef55d10dfc43d308621d3aa040ec1488c62940bc",
-  "procurement/value_chain_d6/20": "7795eecbecc88a9f0d153dda099d22812dc63fa087b36e58cd595269506fc863",
-  "procurement/value_chain_d6/21": "0a661ccaebea19276621e031a71fca9fc7f103b5ccb8040fb8b5f74db370516e",
+  "procurement/value_chain_d6/20": "545a58bae8adf0ddc27d0047a5bfe3befeb3c73a5d0db984559685affa2ca458",
+  "procurement/value_chain_d6/21": "43711627eb0a8c64294d78ed61afe55acd5eef784c75624691d598c874c3dfc1",
   "procurement/value_chain_d6/22": "03778bb490da71e9696d2e4bf1c529c386bbefd2f89f3628daf7244f655319f4",
   "procurement/value_fanout_t2/11": "c7f63b53aa58bea73417f3c5af41435e6d588467b8cdd7b4b8e53c975934f09d",
   "procurement/value_fanout_t2/12": "33bfe332f56de3ebe56ac692a5ac85b2aab8cd95b85f868d80e0b9f549e16385",

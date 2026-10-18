@@ -57,13 +57,18 @@ const git = (...args: string[]) => { try { return execFileSync('git', args, { en
 type Blocker = 'over_budget' | 'late_units' | 'disputed_date' | 'quote_owed';
 const BLOCKER_OF: Record<string, Blocker> = { over: 'over_budget', late: 'late_units', contested: 'disputed_date', quoteOwed: 'quote_owed' };
 interface TraceStep { step: number; type: string; events: string[]; price: number; budget: number; lots: { qty: number; date: string }[]; quoteOwed: boolean; contested: boolean; blockers: string[] }
-interface Questions { at_id: string; at_desc: string; q1: Blocker[]; q2: { price: number; budget: number }; q3: { term: string; label: string; value: string; answer_id: string } | null; text: string }
+interface Questions { at_id: string; at_desc: string; q1: Blocker[]; q2: { price: number; budget: number }; q3: { term: string; label: string; value: string; answer_id: string } | null; text: string; differs_from_final: boolean }
 
 function questionsOf(c: BenchCase, mb: Mailbox): Questions {
   const trace = c.params.trace as TraceStep[];
   const id = (k: string) => mb.byKey.get(k)!.id;
-  // the moment asked about: the end of the middle change
-  const mid = trace[Math.floor((trace.length - 1) / 2)];
+  // the moment asked about: the change nearest the middle whose state differs from the final state, so
+  // knowing only the current state cannot answer it
+  const sig = (s: TraceStep) => JSON.stringify([[...s.blockers].sort(), s.price, s.budget]);
+  const last = trace.at(-1)!;
+  const middle = (trace.length - 1) / 2;
+  const differing = trace.slice(0, -1).filter((s) => sig(s) !== sig(last)).sort((x, y) => Math.abs(x.step - 1 - middle) - Math.abs(y.step - 1 - middle) || x.step - y.step);
+  const mid = differing[0] ?? trace[Math.floor(middle)];
   const atKey = mid.events.at(-1)!;
   const atMsg = mb.byKey.get(atKey)!;
   const party = c.task.parties.find((p) => p.address === atMsg.event.from)?.label ?? 'us';
@@ -93,7 +98,7 @@ function questionsOf(c: BenchCase, mb: Mailbox): Questions {
     `Q2. At that same moment (right after ${atMsg.id}), what was the supplier's unit price, and what was finance's approved cap per unit?`,
     q3 ? `Q3. Which message made ${q3.term === 'price' ? "the supplier's unit price" : "finance's approved cap"} of ${q3.value} no longer valid? Give its message id.` : 'Q3. (no question; answer null)',
   ].join('\n');
-  return { at_id: atMsg.id, at_desc, q1, q2: { price: mid.price, budget: mid.budget }, q3, text };
+  return { at_id: atMsg.id, at_desc, q1, q2: { price: mid.price, budget: mid.budget }, q3, text, differs_from_final: sig(mid) !== sig(last) };
 }
 
 // ------------------------------------------------------------------ answering
@@ -188,7 +193,7 @@ await Promise.all(Array.from({ length: Math.min(Number(a['cell-concurrency']), c
       const ing = sumUsage(prepared.ingestion);
       const ret = sumUsage(prepared.retrieval);
       const row = {
-        case_id: c.id, archetype: c.archetype, condition: cond, trial, gold: { q1: q.q1, q2: q.q2, q3: q.q3?.answer_id ?? null, at: q.at_id }, out, score: s, tools: toolsUsed,
+        case_id: c.id, archetype: c.archetype, condition: cond, trial, gold: { q1: q.q1, q2: q.q2, q3: q.q3?.answer_id ?? null, at: q.at_id, differs_from_final: q.differs_from_final }, out, score: s, tools: toolsUsed,
         memory_tokens_est: estimateTokens(prepared.memory),
         query: { ...query, cost_cold: cold(query) }, ingestion: { ...ing, cost_cold: cold(ing) }, retrieval: { ...ret, cost_cold: cold(ret) },
       };

@@ -69,8 +69,11 @@ function plan(d: ProcurementDeal, spec: ChainSpec, pr: Rand): { steps: Step[]; s
       price_up: !b.over,
       budget_raise: b.over,
       price_hold: sim.price !== d.price,
-      split: full && !sim.contested,
-      restore: !full,
+      // once the forwarder has stated a delivery date, a later schedule change by the supplier would be a
+      // supplier-vs-forwarder disagreement, which the benchmark convention scores as contested while a
+      // reader could fairly call it a correction; the chain avoids that ambiguous pattern
+      split: full && !sim.contested && sim.fwdLots === null,
+      restore: !full && sim.fwdLots === null,
       revised_quote: sim.quoteOwed,
       quote_missing: sim.quoteOwed,
       forwarder_date: extraParties && full && !sim.contested,
