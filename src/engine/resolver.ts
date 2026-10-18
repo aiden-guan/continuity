@@ -69,6 +69,9 @@ export function partyOf(task: TaskSpec, address: string): Participant | null {
   return task.participants.find((p) => p.address.toLowerCase() === wanted) ?? null;
 }
 
+/** The (first) recipient of a message, lowercased. */
+const recipientOf = (e: Pick<StoredEvent, 'to'>) => (e.to[0] ?? '').toLowerCase();
+
 export function labelOf(task: TaskSpec, address: string): string {
   return partyOf(task, address)?.label ?? address;
 }
@@ -449,18 +452,28 @@ export function applyProposal(inp: ApplyInput) {
     }
   }
 
-  // accepting their terms retires an earlier offer of ours that differs from them ("we offered $880,000"
-  // stops being our position once we accept their $905,000); an offer of ours they matched stays
-  const weAccepted = event.direction === 'outbound' && whoParty?.role === 'self' && !!pack.decisionKey
-    && liveClaims().some((c) => c.key === pack.decisionKey && c.speaker === speaker && c.source_event_id === event.id && c.value !== 'declined');
-  if (weAccepted && pack.ourOfferTerms) {
+  // accepting their terms makes them our position: an earlier offer of ours that differs ("we offered
+  // $880,000") is replaced by the value we accepted (their $905,000), recorded from the acceptance itself,
+  // whether or not the acceptance restates it; an offer of ours they matched stays. Only an undisputed
+  // value of theirs is adopted, preferring the party we are writing to.
+  const acceptance = event.direction === 'outbound' && whoParty?.role === 'self' && pack.decisionKey
+    ? liveClaims().find((c) => c.key === pack.decisionKey && c.speaker === speaker && c.source_event_id === event.id && c.value !== 'declined')
+    : undefined;
+  if (acceptance && pack.ourOfferTerms) {
     const live = liveClaims();
     for (const ours of live.filter((c) => c.speaker === speaker && c.kind === 'offer' && c.source_event_id !== event.id)) {
-      const theirs = live.find((c) => c.key === ours.key && partyOf(task, c.speaker)?.role === 'counterparty');
+      const candidates = live.filter((c) => c.key === ours.key && c.status === 'active' && partyOf(task, c.speaker)?.role === 'counterparty');
+      const theirs = candidates.find((c) => c.speaker === recipientOf(event)) ?? candidates[0];
       if (!theirs || sameValue(theirs.value, ours.value)) continue;
-      store.updateClaim(ours.id, { status: 'superseded', superseded_by: theirs.id, supersede_reason: `we accepted ${nameOf(theirs.speaker)}'s ${ours.key} (${theirs.display}) in ${event.id}` });
-      log('claim_superseded', `${who} accepted ${nameOf(theirs.speaker)}'s ${ours.key}: our ${ours.display} → ${theirs.display}`, ours.id,
-        { from: ours.id, to: theirs.id, from_display: ours.display, to_display: theirs.display, mode: 'acceptance' });
+      const adopted = store.insertClaim({
+        task_id: task.id, key: ours.key, value: theirs.value, display: theirs.display, kind: 'decision', speaker, source_event_id: event.id,
+        source_artifact_id: null, evidence: acceptance.evidence, superseded_by: null, supersede_reason: null, learned_at: at,
+        confidence: acceptance.confidence, extractor, status: 'active',
+      });
+      store.addClaimEvidence(adopted.id, event.id, null, acceptance.evidence);
+      store.updateClaim(ours.id, { status: 'superseded', superseded_by: adopted.id, supersede_reason: `replaced by our acceptance of ${nameOf(theirs.speaker)}'s ${ours.key} (${theirs.display}) in ${event.id}` });
+      log('claim_superseded', `${who} accepted ${nameOf(theirs.speaker)}'s ${ours.key}: our ${ours.display} → ${theirs.display}`, adopted.id,
+        { from: ours.id, to: adopted.id, from_display: ours.display, to_display: theirs.display, mode: 'acceptance' });
     }
   }
 

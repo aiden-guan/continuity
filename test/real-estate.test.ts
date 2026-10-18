@@ -263,7 +263,7 @@ test('our counter is our current position, kept apart from the seller\'s terms',
   assert.match(check?.detail ?? '', /\$972,000/);
 });
 
-test('accepting their terms retires a different earlier offer of ours, and keeps one they matched', async () => {
+test('accepting their terms makes them our position, and keeps an offer of ours they matched', async () => {
   const a = dealAddresses();
   const h = new Harness(elmStreetDeal(a), scripted({
     'We offer $880,000': [{ key: 'price.purchase', value: 880000, kind: 'offer' }, { key: 'closing.date', value: '2026-12-18', kind: 'offer' }],
@@ -277,7 +277,11 @@ test('accepting their terms retires a different earlier offer of ours, and keeps
   const ours = (key: string) => h.claims(key).filter((c) => c.speaker === a.self);
   const oldPrice = ours('price.purchase').find((c) => c.value === 880000)!;
   assert.equal(oldPrice.status, 'superseded');
-  assert.match(oldPrice.supersede_reason!, /we accepted listing agent's price\.purchase \(\$905,000\)/);
+  assert.match(oldPrice.supersede_reason!, /replaced by our acceptance of listing agent's price\.purchase \(\$905,000\)/);
+  // the acceptance named no price as a term of its own, yet the price we accepted is now ours
+  const nowOurs = ours('price.purchase').filter((c) => c.status === 'active');
+  assert.deepEqual(nowOurs.map((c) => c.value), [905000]);
+  assert.equal(oldPrice.superseded_by, nowOurs[0].id);
   // our closing date matched theirs, so it is still our position
   assert.equal(ours('closing.date')[0].status, 'active');
   assert.equal(h.active('decision.accept')[0].value, 'accepted');
