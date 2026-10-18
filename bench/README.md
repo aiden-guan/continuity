@@ -164,8 +164,8 @@ npm run bench -- run --split dev --backlog 0,40,160 --trials 3
 npm run bench -- report bench/results/<name>
 ```
 
-Cached extractions are keyed by the extractor's name (`heuristic-v2`, `llm:<model>`), not its code: after changing the
-rule extractor, bump its name (or pass `--refresh`) so stale proposals are not reused.
+Model extractions are cached by the extractor's name (`llm:<model>`) and input, not by prompt or code: after changing
+the model extractor's prompt, pass `--refresh`. The rule extractor is never cached.
 
 Results go to `bench/results/<name>/`: `rows.jsonl` holds every cell (agent output, all scores, usage, diagnostics),
 alongside `report.md` and `summary.json`. Runs resume: cells already in `rows.jsonl` are skipped, and cached responses

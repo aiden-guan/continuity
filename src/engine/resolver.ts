@@ -361,7 +361,8 @@ export function applyProposal(inp: ApplyInput) {
           exclude_sha256: store.artifactsForTask(task.id).filter((a) => a.owner === debtor && a.kind === expects).map((a) => a.sha256),
         };
       }
-      const quantity = po.kind === 'commitment' && pack.quantityOf ? pack.quantityOf(po.text) : null;
+      // a promise of N things, or a request for N documents ("return signed pages for all 3 entities")
+      const quantity = (po.kind === 'commitment' || (po.kind === 'request' && expects)) && pack.quantityOf ? pack.quantityOf(po.text) : null;
       // a question's "by Friday" is about its subject matter, not a deadline for replying
       let dueAt: string | null = null;
       if (po.kind !== 'question') {

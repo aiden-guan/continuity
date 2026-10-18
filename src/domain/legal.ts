@@ -19,7 +19,7 @@ export const TERMS: TermDef[] = [
   { key: 'renewal.auto', type: 'enum', values: ['none', 'annual', 'monthly'], description: 'Automatic renewal: none, annual (12-month renewal terms) or monthly', topics: ['auto-renewal', 'automatic renewal', 'renews', 'renewal term', '§12.4'] },
   { key: 'renewal.notice_days', type: 'number', description: 'Days of notice required to stop an automatic renewal', topics: ['non-renewal', 'renewal notice'] },
   { key: 'governing.law', type: 'enum', values: ['delaware', 'new_york', 'california', 'england'], description: 'Governing law of the agreement', topics: ['governing law', 'choice of law', '§15.1', 'which law'] },
-  { key: 'payment.net_days', type: 'number', description: 'Invoice payment terms in days (Net 30 = 30)', topics: ['payment terms', 'net 30', 'net 45', 'net 60', '§6.2'] },
+  { key: 'payment.net_days', type: 'number', range: 'nonnegative', description: 'Invoice payment terms in days (Net 30 = 30)', topics: ['payment terms', 'net 30', 'net 45', 'net 60', '§6.2'] },
   { key: 'confidentiality.years', type: 'number', description: 'Years the confidentiality obligations survive termination', topics: ['confidentiality', '§11.4', 'survive'] },
   { key: 'dpa.status', type: 'enum', values: ['included', 'excluded'], description: 'Whether a Data Processing Addendum is attached to the agreement', topics: ['dpa', 'data processing'] },
   { key: 'effective.date', type: 'date', description: 'Effective / start date of the agreement', topics: ['effective date', 'start date', 'go-live', 'go live'] },
@@ -131,7 +131,7 @@ const N = String.raw`(\d{1,3}|thirty|sixty|ninety|forty-five|twelve|six|eighteen
 const num = (s: string) => NUM_WORDS[s.toLowerCase()] ?? Number(s);
 const NEGATED = /\b(?:no|not|cannot|can't|can not|don't|do not|won't|unable|never)\b[^.]{0,20}$/i;
 const OLD = /\b(?:not|instead of|rather than|was|from|previously|originally)\s*(?:the\s+)?$/i;
-const WITHDRAW = /\b(?:withdraw\w*|pull\w*|rescind\w*) (?:our|the|my|this|its) (?:proposal|offer|redline|deal|package|draft)|\b(?:pull(?:ing|ed)? (?:out of )?the deal|(?:decided|decision) not to (?:proceed|move forward)|(?:will not|won't|cannot|can't) (?:proceed|move forward|sign|deliver the services)|no longer (?:able to )?(?:proceed|offer|pursue|move forward)|froze (?:all )?new (?:enterprise )?contracts|(?:freeze|hold) on (?:all )?new (?:enterprise )?(?:contracts|deals)|(?:offer|proposal|package|deal) (?:is |has been )?(?:withdrawn|off the table|no longer available))\b/i;
+const WITHDRAW = /\b(?:withdraw\w*|pull\w*|rescind\w*) (?:our|the|my|this|its) (?:proposal|offer|redline|deal|package|draft)|\b(?:pull(?:ing|ed)? (?:out of )?the deal|(?:decided|decision) not to (?:proceed|move forward)|(?:will not|won't|cannot|can't) (?:proceed|move forward|sign|deliver the services)|no longer (?:able to )?(?:proceed|offer|pursue|move forward)|froze (?:all )?new (?:enterprise )?contracts|(?:freeze|hold) on (?:all )?new (?:enterprise )?(?:contracts|deals)|(?:offer|proposal|package|deal) (?:is |has been )?(?:withdrawn|off the table|no longer available)|treat [^.]{0,50}\bas withdrawn|(?:decided|decision) not to (?:pursue|continue))\b/i;
 const CONDITIONAL = /\b(if|unless|in case|would you|should we)\b/i;
 const AGREE_EXECUTE = /\b(?:(?:we|acme|i) (?:hereby )?(?:accept|approve)s? (?:your|the|this) (?:\w+ )?(?:redline|draft|agreement|contract|execution version)|(?:we|acme) (?:have|has) (?:now )?(?:signed|executed|countersigned)|(?:attached|enclosed) (?:is|are) (?:our|acme'?s) (?:signed|executed|countersigned)|signed for acme)\b/i;
 
@@ -148,6 +148,8 @@ function clauses(s: string, known: { key: string; evidence: string }[] = []): [s
     return m;
   };
   out.push(...numericClauses(s, sectionsOf(known)));
+  // fees "payable on signature" are Net 0
+  if (/\b(?:payable|due|paid) (?:up)?on signature\b/i.test(s) && !out.some(([k]) => k === 'payment.net_days')) out.push(['payment.net_days', 0]);
   const capAmount = at(/\b(?:capped at|cap of|cap at)\s+\$/i);
   if (capAmount) {
     const a = amounts(s.slice(capAmount.index!))[0];
@@ -181,9 +183,22 @@ const UNIT_OF: Record<string, string> = {
 /** Section numbers mapped to the clause the redline on record states under them ("§12.1 Term: …" → term.months). */
 function sectionsOf(known: { key: string; evidence: string }[]): Map<string, string> {
   const map = new Map<string, string>();
+  // a redline line names its clause: "§12.1 Term: initial term of 24 months"
   for (const k of known) {
     const m = k.evidence.match(/^\s*§\s*(\d+(?:\.\d+)?)/);
     if (m && UNIT_OF[k.key]) map.set(m[1], k.key);
+  }
+  // a counter that cites sections names them by what it says ("§9.2 at 30 months' fees, §12.1 at 36 months")
+  for (const k of known) {
+    for (const m of k.evidence.matchAll(/§\s*(\d+(?:\.\d+)?)([^§]{0,60})/g)) {
+      if (map.has(m[1])) continue;
+      const t = m[2].toLowerCase();
+      const key = /\bdays?\b/.test(t) ? (/renewal/.test(t) ? 'renewal.notice_days' : /terminat|convenience/.test(t) ? 'termination.convenience_notice_days' : /net|pay/.test(t) ? 'payment.net_days' : null)
+        : /\bmonths?(?:'|’)?s?\s*(?:of\s+)?fees/.test(t) ? 'liability.cap_months_fees'
+          : /\bmonths?\b/.test(t) ? 'term.months'
+            : /\byears?\b/.test(t) ? 'confidentiality.years' : null;
+      if (key) map.set(m[1], key);
+    }
   }
   return map;
 }
@@ -205,33 +220,42 @@ function numericClauses(s: string, sections: Map<string, string> = new Map()): [
   };
   const segments = s.split(/;|,(?=\s+(?:and\s+)?(?:termination|the |a |an |initial|annual|auto|payment|net|confidentiality|governing|renewal|liability|cap|no |dpa|its|our|in exchange))|\s+and\s+(?=(?:the\s+)?(?:termination|initial|confidentiality|renewal|liability|cap|payment|net|governing|dpa)\b)/i);
   for (const seg of segments) {
-    const ctx = seg;
+    let prevEnd = 0;
     for (const m of seg.matchAll(new RegExp(String.raw`\b${N}[- ](?:calendar\s+)?(days?|months?|years?)\b|\bnet\s?-?(\d{2,3})\b`, 'gi'))) {
-      if (OLD_MARK.test(seg.slice(Math.max(0, m.index! - 22), m.index!)) || /\(\s*(?:was|v\d says|previously)\b[^)]*$/i.test(seg.slice(0, m.index!))) continue;
+      const start = m.index!;
+      const end = start + m[0].length;
+      // what this number is about: the words since the previous number, plus what follows it
+      const local = seg.slice(prevEnd, Math.min(seg.length, end + 45)).toLowerCase();
+      const lead = seg.slice(prevEnd, start);
+      prevEnd = end;
+      if (OLD_MARK.test(seg.slice(Math.max(0, start - 22), start)) || /\(\s*(?:was|v\d says|previously)\b[^)]*$/i.test(seg.slice(0, start))) continue;
+      if (/\b(?:won't|will not|cannot|can't|refuses? to|not)\b[^,;.]{0,30}$/i.test(lead)) continue; // "won't sign up to a 48-month term"
+      // "The Net 30 in v2 was a mistake": the value named is the one being corrected away
+      if (/^[^,;.]{0,25}?\b(?:was|is) (?:a |an |just )?(?:mistake|error|wrong|typo|incorrect|left over|leftover|a slip)/i.test(seg.slice(end))) continue;
       if (m[3]) {
         add('payment.net_days', Number(m[3]));
         continue;
       }
       const n = num(m[1]);
       const unit = m[2].toLowerCase();
-      const around = ctx.toLowerCase();
-      const after = seg.slice(m.index! + m[0].length, m.index! + m[0].length + 30).toLowerCase();
-      // "§12.1 at 36 months": the section names the clause, as the redline on record does
-      const section = [...seg.slice(0, m.index!).matchAll(/§\s*(\d+(?:\.\d+)?)/g)].pop()?.[1];
+      const after = seg.slice(end, end + 30).toLowerCase();
+      // "§12.1 at 36 months": the section names the clause, as the redline (or an earlier counter) on record does
+      const section = [...seg.slice(0, start).matchAll(/§\s*(\d+(?:\.\d+)?)/g)].pop()?.[1];
       const named = section ? sections.get(section) : undefined;
       if (named && UNIT_OF[named] && unit.startsWith(UNIT_OF[named])) {
         add(named, n);
         continue;
       }
       if (unit.startsWith('day')) {
-        if (/non-?renewal|renewal notice/.test(around)) add('renewal.notice_days', n);
-        else if (/terminat|convenience/.test(around)) add('termination.convenience_notice_days', n);
-        else if (/\bpay|invoice|payable/.test(around)) add('payment.net_days', n);
+        if (/non-?renewal|renewal notice/.test(local)) add('renewal.notice_days', n);
+        else if (/terminat|convenience/.test(local)) add('termination.convenience_notice_days', n);
+        else if (/\bpay|invoice|payable/.test(local)) add('payment.net_days', n);
       } else if (unit.startsWith('month')) {
-        if (/^\s*(?:'|’)?s?\s*(?:of\s+)?fees|^\s*preceding the claim/.test(after) || /\bcap\b|liabilit|fees paid/.test(around) && !/initial term|term of/.test(around)) add('liability.cap_months_fees', n);
-        else if (/renew/.test(around) && /^\s*terms?\b|^-?month terms/.test(after)) continue; // "successive 12-month terms" is the renewal, not the initial term
-        else if (/\bterm\b|initial/.test(around)) add('term.months', n);
-      } else if (/confidential|surviv/.test(around) || !/\bterm\b/.test(around)) add('confidentiality.years', n);
+        const before = lead.toLowerCase();
+        if (/^\s*(?:'|’)?s?\s*(?:of\s+)?fees|^\s*preceding the claim/.test(after) || (/\bcap\b|liabilit|fees paid/.test(before) && !/initial term|term of/.test(before) && !/^-?\s*month (?:initial )?term/.test(after))) add('liability.cap_months_fees', n);
+        else if (/renew/.test(local) && /^\s*terms?\b|^-?month terms/.test(after)) continue; // "successive 12-month terms" is the renewal, not the initial term
+        else add('term.months', n); // months that are not months of fees are the term
+      } else if (/confidential|surviv/.test(local) || !/\bterm\b/.test(local)) add('confidentiality.years', n);
       else add('term.months', n * 12);
     }
   }
@@ -284,10 +308,11 @@ function legalSentence(x: HeuristicSentence, st: LegalState): void {
   // signatures: fully executed, or some pages signed and the rest promised by a date
   if (/\bfully executed\b|\ball (?:\d+ |the )?(?:signature pages|pages) (?:are )?(?:attached|signed|enclosed)\b|\bcountersigned (?:copy|agreement|execution version) (?:is )?attached\b/i.test(s) && !NEGATED.test(s.slice(0, s.search(/fully executed|all|countersigned/i)))) {
     claim('signature.status', 'fully_executed', 'info');
-  } else if (/\bsigned pages?\b|\bsignature pages?\b[^.]{0,40}\b(?:attached|enclosed|here)\b/i.test(s) && /\b(?:attached|enclosed|here (?:are|is))\b/i.test(s) && !x.fromAttachment) {
+  } else if (!x.fromAttachment && /\b(?:signed|signature) pages?\b|\bpages? (?:is |are )?attached\b|\bhas signed\b/i.test(s) && /\b(?:attached|enclosed|here (?:are|is))\b/i.test(s)) {
     claim('signature.status', 'partially_signed', 'info');
   }
-  if (/\b(?:pages?|signatures?)\b[^.]{0,80}\b(?:will follow|to follow|follow|by|will be with you)\b/i.test(s) && /\b(?:remaining|rest|other|outstanding|for [A-Z])/i.test(s) && !x.fromAttachment) {
+  // the outstanding pages and when they come ("…, so it will sign on Thu Nov 12", "will follow by Thursday, Oct 22")
+  if (!x.fromAttachment && /\b(?:will|to|should|would) (?:sign|follow|be signed|countersign)\b|\bwill be with you\b/i.test(s) && !/\ball (?:\d+ )?(?:signature )?pages\b/i.test(s)) {
     const d = findDates(s, x.ref).at(-1);
     if (d) claim('signature.remaining_by', d.iso, 'info');
   }
@@ -342,7 +367,7 @@ export const legal: DomainPack = {
   bindingPatterns: BINDING_PATTERNS,
   verifiedSenderOnly: ['payment.', 'signature.'],
   documents: [
-    { kind: 'signature_pages', match: /signature page|signed page/i, mention: /signature pages?|signed pages?/i, multipart: true },
+    { kind: 'signature_pages', match: /signature page|signed page/i, mention: /signature pages?|signed pages?|\b(?:all )?\d+ pages\b/i, multipart: true },
     { kind: 'execution_version', match: /execution (?:version|copy)|clean (?:version|copy)|for signature/i, mention: /execution (?:version|copy)|clean (?:version|copy)|signature version/i },
     { kind: 'redline', match: /redline|mark-?up|draft\s*v?\d|_draft_|comments|\bv\d\b/i, mention: /\bredline\b|mark-?up|\bdraft\b|\bv\d\b/i },
     { kind: 'dpa', match: /data processing addendum|\bDPA\b/i, mention: /\bDPA\b|data processing addendum/i },
@@ -362,7 +387,7 @@ export const legal: DomainPack = {
     end: (st, emit) => legalEnd(st as LegalState, emit),
   },
   quantityOf(text) {
-    const m = text.match(/\b(?:all\s+)?(\d{1,2}|two|three|four|five|six)\s+(?:countersigned\s+|signed\s+)?(?:signature pages|pages|entities)\b/i);
+    const m = text.match(/\b(?:all\s+)?(\d{1,2}|two|three|four|five|six)\s+(?:countersigned\s+|signed\s+)?(?:[A-Z][\w&.,-]*\s+){0,4}(?:signature pages|pages|entities)\b/i);
     if (!m) return null;
     const n = NUM_WORDS[m[1].toLowerCase()] ?? Number(m[1]);
     return n > 1 ? n : null;

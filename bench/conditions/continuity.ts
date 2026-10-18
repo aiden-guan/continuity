@@ -82,13 +82,17 @@ function outboundInput(m: MailMessage, taskId: string): EventInput {
   };
 }
 
-/** Wraps an extractor: caches proposals on disk (per trial) and records provider usage as ingestion cost. */
+/** Wraps an extractor: caches proposals on disk (per trial) and records provider usage as ingestion cost.
+ *  The rule extractor is free and deterministic, so it is never cached (a cache keyed by its name would
+ *  serve stale proposals after its rules change). */
 function metered(inner: Extractor, cacheDir: string, trial: number, calls: CallRecord[]): Extractor {
+  if (inner.name.startsWith('heuristic')) return inner;
   mkdirSync(cacheDir, { recursive: true });
   return {
     name: inner.name,
     async extract(input) {
-      const key = createHash('sha256').update(JSON.stringify({ x: inner.name, trial, input: { ...input, event: { ...input.event, id: undefined, seq: undefined } } })).digest('hex');
+      // claimQuotes is derived from the same state as activeClaims; leaving it out keeps earlier cache entries valid
+      const key = createHash('sha256').update(JSON.stringify({ x: inner.name, trial, input: { ...input, claimQuotes: undefined, event: { ...input.event, id: undefined, seq: undefined } } })).digest('hex');
       const file = join(cacheDir, `extract-${key}.json`);
       const started = Date.now();
       let proposal;

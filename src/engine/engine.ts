@@ -272,6 +272,8 @@ export class Engine {
         senderRole: sender?.role ?? 'unknown',
         openObligations: snap.store.obligationsForTask(task.id).filter(isOpen),
         activeClaims: snap.store.claimsForTask(task.id).filter((c) => c.status === 'active' || c.status === 'contested'),
+        claimQuotes: Object.fromEntries(snap.store.claimsForTask(task.id).filter((c) => c.status === 'active' || c.status === 'contested')
+          .map((c) => [c.id, snap.store.claimEvidence(c.id).map((r) => r.quote)])),
       } as const;
 
       let proposal: Proposal;

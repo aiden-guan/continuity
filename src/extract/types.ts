@@ -77,6 +77,8 @@ export interface ExtractInput {
   senderRole: 'self' | 'counterparty' | 'internal' | 'unknown';
   openObligations: Obligation[];
   activeClaims: Claim[];
+  /** Every quote supporting each active claim (a term stated in an email and again in a document has both). */
+  claimQuotes?: Record<string, string[]>;
 }
 
 export interface Extractor {

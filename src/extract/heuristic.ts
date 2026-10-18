@@ -24,7 +24,7 @@ export function stripQuoted(body: string): string {
 export function sentences(text: string): string[] {
   return text
     .split(/\n+/)
-    .flatMap((line) => line.split(/(?<=[.!?])\s+(?=[A-Z0-9"'(])/))
+    .flatMap((line) => line.split(/(?<=[.!?])\s+(?=[A-Z0-9"'(§])/))
     .map((s) => s.trim())
     .filter((s) => s.length > 1);
 }
@@ -66,7 +66,7 @@ function extractFromText(text: string, input: ExtractInput, fromAttachment: stri
   const ref = event.occurred_at;
   const from = (event.from ?? '').toLowerCase();
   const senderAuthority = input.task.participants.find((x) => x.address.toLowerCase() === from)?.authority ?? [];
-  const known = input.activeClaims.map((c) => ({ key: c.key, evidence: c.evidence }));
+  const known = input.activeClaims.flatMap((c) => [c.evidence, ...(input.claimQuotes?.[c.id] ?? [])].map((evidence) => ({ key: c.key, evidence })));
   const body = fromAttachment ? text : stripQuoted(text);
   const correction = !fromAttachment && CORRECTION.test(body);
   const state = pack.heuristic?.begin();
@@ -128,7 +128,8 @@ function extractFromText(text: string, input: ExtractInput, fromAttachment: stri
       }
       continue;
     }
-    const promise = s.match(COMMITMENT);
+    // "I'm collecting signatures and will send all 3 pages Wednesday": a promise whose "I" came earlier
+    const promise = s.match(COMMITMENT) ?? (/^(?:i|we)\b/i.test(s) ? s.match(/\b(?:and|then|so) will\s+((?:send|return|deliver|share|provide|issue|circulate|get you|forward)\b.+?)[.!]?$/i) : null);
     if (promise && !hedged) {
       const action = promise[1].replace(/\s+/g, ' ').trim();
       addObligation(p, { kind: 'commitment', debtor: 'sender', text: action, topic_keys: topics, expects_artifact: expectsArtifact(action, pack), evidence: s, confidence: 0.8 });
