@@ -4,8 +4,8 @@
 // per grid cell, so at rest it reads as a halftone print of the heading. Every particle has
 // one number, t, between home (0) and the thread (1):
 //   · on load the letters rise out of the Fig. 1 thread (t falls from 1 to 0)
-//   · scrolling dissolves the line back down, right to left, each band pooling into one of the
-//     thread's event nodes
+//   · scrolling dissolves the line back down, right to left, pooling into the event nodes Fig. 1
+//     has already reached (lit ink) — so where the streams go depends on how far its loop has run
 //   · a few particles of "forget." keep drifting off and coming back
 //   · the pointer pushes particles aside; they spring home
 // Position is a pure function of t and the clock, so scrolling back up reassembles the line.
@@ -25,7 +25,7 @@ const INTRO_MS = 1500;   // one particle's trip from the thread to its letter
 const INTRO_SPREAD = 900; // first to last particle leaving the thread
 const PUSH_RADIUS = 90;
 
-export function setupHeroParticles({ hero, line, thread, nodes = [] }) {
+export function setupHeroParticles({ hero, line, thread, nodes = [], head = () => 1 }) {
   const canvas = document.createElement('canvas');
   canvas.className = 'hero-px';
   canvas.setAttribute('aria-hidden', 'true');
@@ -95,6 +95,8 @@ export function setupHeroParticles({ hero, line, thread, nodes = [] }) {
     const lineA = tb.left - box.left + margin;
     const lineB = tb.right - box.left - margin;
     view.lineY = lineY;
+    view.lineA = lineA;
+    view.lineB = lineB;
 
     const step = Math.max(2, Math.round(size / 42));
     dot = Math.max(1.3, step * 0.74);
@@ -104,18 +106,19 @@ export function setupHeroParticles({ hero, line, thread, nodes = [] }) {
     const span = Math.max(1, lineBox.width);
     const forgetFrom = line.querySelector('.pw:last-child').getBoundingClientRect().left - box.left;
 
+    const at0 = head(performance.now());
+    const lit0 = litNodes(at0);
     const next = [];
     for (let y = Math.floor(step / 2); y < off.height; y += step) {
       for (let x = Math.floor(step / 2); x < off.width; x += step) {
         if (data[(y * off.width + x) * 4 + 3] < 110) continue;
         const across = clamp01((x - left) / span);
-        // letters pool into the thread's event nodes, in order: each band of the line feeds one node
-        const node = nodes.length ? nodes[Math.min(nodes.length - 1, Math.floor(across * nodes.length))] : across;
-        const tx = lineA + node * (lineB - lineA) + (Math.random() - 0.5) * 3;
-        const ty = lineY + (Math.random() - 0.5) * 3;
+        const jx = (Math.random() - 0.5) * 3;
         next.push({
           hx: x, hy: y,
-          tx, ty,
+          across, jx,
+          tx: targetX(across, lit0, at0) + jx,
+          ty: lineY + (Math.random() - 0.5) * 3,
           // assembly runs left to right; dissolving starts at the end of "forget."
           inDelay: across * 0.55 + Math.random() * 0.45,
           outDelay: (1 - across) * 0.7 + Math.random() * 0.3,
@@ -130,6 +133,19 @@ export function setupHeroParticles({ hero, line, thread, nodes = [] }) {
       }
     }
     parts = next;
+  }
+
+  // ------------------------------------------------------------ targets
+  // only the nodes Fig. 1's playhead has passed (drawn in ink) take particles; before the first
+  // one is reached, everything pools at the playhead itself
+  const litNodes = (at) => nodes.filter((n) => n <= at);
+  function targetX(across, lit, at = 1) {
+    const { lineA, lineB } = view;
+    let node;
+    if (!nodes.length) node = across;
+    else if (!lit.length) node = at;
+    else node = lit[Math.min(lit.length - 1, Math.floor(across * lit.length))];
+    return lineA + node * (lineB - lineA);
   }
 
   // ------------------------------------------------------------ frame
@@ -147,6 +163,9 @@ export function setupHeroParticles({ hero, line, thread, nodes = [] }) {
     shown += (scrolled - shown) * (1 - Math.exp(-dt / 420));
     if (Math.abs(scrolled - shown) < 0.0005) shown = scrolled;
     const since = now - introAt;
+    const at = head(now);
+    const lit = litNodes(at);
+    const follow = 1 - Math.exp(-dt / 320); // in-flight particles drift to a newly lit node
 
     ctx.fillStyle = ink;
     ctx.beginPath(); // every fully opaque particle goes into one path
@@ -162,6 +181,9 @@ export function setupHeroParticles({ hero, line, thread, nodes = [] }) {
       }
       const t = Math.max(intro, out, flake);
       if (t > 0) moving = true;
+
+      const goal = targetX(p.across, lit, at) + p.jx;
+      p.tx = t > 0 ? p.tx + (goal - p.tx) * follow : goal;
 
       const e = easeInOut(t);
       const arc = Math.sin(Math.PI * t) * p.swirl;

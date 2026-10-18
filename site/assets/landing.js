@@ -299,6 +299,9 @@ function setupHeroThread(canvas) {
 
   document.fonts?.ready.then(kick);
   kick();
+
+  // where the playhead is now, so the hero particles can pool into the events it has reached
+  return { head: (now) => (stillMotion ? Math.min(1, 0.78 * 1.07) : Math.min(1, (((now - epoch) % HERO_LOOP_MS) / HERO_LOOP_MS) * 1.07)) };
 }
 
 // ============================================================ 3 · the replay (relay.js)
@@ -360,9 +363,9 @@ function setupWordmark() {
 
 setupTheme();
 setupChrome();
-setupHeroThread(one('#hero-thread'));
+const heroThread = setupHeroThread(one('#hero-thread'));
 if (document.documentElement.classList.contains('px')) {
-  setupHeroParticles({ hero: one('.hero'), line: one('.h-forget'), thread: one('#hero-thread'), nodes: HERO_EVENTS.map((e) => e.at) });
+  setupHeroParticles({ hero: one('.hero'), line: one('.h-forget'), thread: one('#hero-thread'), nodes: HERO_EVENTS.map((e) => e.at), head: heroThread.head });
 }
 setupMechanism(one('#mech'));
 setupTokenField(one('#field'));
