@@ -8,6 +8,7 @@ import type {
 import type { EventInput, StoredEvent, TaskSpec } from '../types.ts';
 import { stripAttachmentBytes } from './rows.ts';
 import { compareIso } from '../clock.ts';
+import { openApprovalTaskIds } from '../engine/approval-log.ts';
 
 const httpError = (message: string, status: number) => Object.assign(new Error(message), { status });
 const key = (...parts: (string | number)[]) => parts.join('\u0000');
@@ -40,10 +41,46 @@ export class MemoryBackend implements Backend {
     return s;
   }
 
-  /** A working copy of the whole org (memory orgs are small). */
-  #workingCopy(org: string): MemoryStore {
-    const w = this.org(org).clone();
+  /**
+   * A task's working set, copied out of the org: the same rows the SQLite and Postgres loaders read for a
+   * task (the task row, its events and their extractions, threads, artifacts, claims and their evidence,
+   * obligations, transitions, checks, flags and cursors), plus the org-wide id counters and meta. Other
+   * tasks and unlinked events stay behind, so a load costs the size of the task, not of the org.
+   */
+  #workingSet(org: string, taskId: string): MemoryStore {
+    const auth = this.org(org);
+    const w = this.#emptyWorkingSet(org);
+    const row = auth.tasks.get(taskId);
+    if (row) w.tasks.set(taskId, structuredClone(row));
+    const events = new Set<string>();
+    for (const e of auth.events.values()) {
+      if (e.task_id !== taskId) continue;
+      events.add(e.id);
+      w.events.set(e.id, structuredClone(e));
+      if (auth.raw.has(e.id)) w.raw.set(e.id, auth.raw.get(e.id));
+      if (auth.pending.has(e.id)) w.pending.add(e.id);
+      if (auth.failed.has(e.id)) w.failed.add(e.id);
+    }
+    for (const [id, t] of auth.threads) if (t.task_id === taskId) w.threads.set(id, { ...t });
+    w.extractions = auth.extractions.filter((x) => events.has(x.event_id)).map((x) => structuredClone(x));
+    for (const [id, a] of auth.artifacts) if (a.task_id === taskId) w.artifacts.set(id, { ...a });
+    for (const [id, c] of auth.claims) if (c.task_id === taskId) w.claims.set(id, structuredClone(c));
+    w.claimEv = auth.claimEv.filter((x) => w.claims.has(x.claim_id)).map((x) => ({ ...x }));
+    for (const [id, o] of auth.obligations) if (o.task_id === taskId) w.obligations.set(id, structuredClone(o));
+    w.transitions = auth.transitions.filter((t) => t.task_id === taskId).map((t) => structuredClone(t));
+    if (auth.checks.has(taskId)) w.checks.set(taskId, structuredClone(auth.checks.get(taskId)!));
+    w.flags = auth.flags.filter((f) => f.task_id === taskId).map((f) => ({ ...f }));
+    for (const [k, seq] of auth.cursors) if (k.endsWith(`\u0000${taskId}`)) w.cursors.set(k, seq);
     w.discardDelta();
+    return w;
+  }
+
+  /** A store with only the org-wide counters and meta (task creation starts from nothing, as in SQLite). */
+  #emptyWorkingSet(org: string): MemoryStore {
+    const auth = this.org(org);
+    const w = new MemoryStore();
+    for (const [k, v] of auth.counters) w.counters.set(k, v);
+    for (const [k, v] of auth.meta) w.meta.set(k, v);
     return w;
   }
 
@@ -52,7 +89,7 @@ export class MemoryBackend implements Backend {
   async createTask(org: string, spec: TaskSpec, at: string, init: (s: MemoryStore) => void) {
     const auth = this.org(org);
     if (auth.getTask(spec.id) || auth.getTask(spec.alias)) throw httpError(`task ${spec.id} exists`, 409);
-    const work = this.#workingCopy(org);
+    const work = this.#emptyWorkingSet(org);
     work.createTask(spec, at);
     init(work);
     applyDelta(auth, work.takeDelta());
@@ -143,8 +180,10 @@ export class MemoryBackend implements Backend {
   async loadTask(org: string, taskId: string): Promise<TaskSnapshot> {
     const auth = this.org(org);
     if (!auth.getTask(taskId)) throw httpError(`unknown task ${taskId}`, 404);
-    return { org, taskId, version: auth.stateVersion(taskId), store: this.#workingCopy(org) };
+    return { org, taskId, version: auth.stateVersion(taskId), store: this.#workingSet(org, taskId) };
   }
+
+  async openApprovalTaskIds(org: string) { return openApprovalTaskIds(this.org(org).transitions); }
 
   async commit<T>(snap: TaskSnapshot, mutate: (s: MemoryStore) => T, opts: CommitOptions = {}): Promise<CommitResult<T>> {
     const auth = this.org(snap.org);

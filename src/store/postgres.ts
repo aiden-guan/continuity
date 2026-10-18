@@ -35,7 +35,7 @@ const day = (v: unknown): string | null => {
 const numOrNull = (v: unknown): number | null => (v == null ? null : Number(v));
 const httpError = (message: string, status: number) => Object.assign(new Error(message), { status });
 
-const SCHEMA_VERSION = '20261017220000_continuity_signals';
+const SCHEMA_VERSION = '20261017233100_approval_notify_job';
 const EPOCH = new Date(0).toISOString();
 const ITEM_TABLES: Record<string, string> = { ev: 'events', cl: 'claims', ob: 'obligations', ar: 'artifacts' };
 
@@ -282,6 +282,19 @@ export class PostgresBackend implements Backend {
     if (meta[0]) s.meta.set('instance_id', meta[0].value);
     s.discardDelta();
     return s;
+  }
+
+  async openApprovalTaskIds(org: string): Promise<string[]> {
+    // a card stays open unless the latest decision/expiry naming it (after it, same task) closed it
+    const rows = await this.sql`select distinct o.task_id from continuity.transitions o
+      where o.org_id = ${org}
+        and (o.type = 'approval_requested' or (o.type = 'claim_held_for_verification' and o.subject_id is not null))
+        and coalesce((select c.type = 'approval_decided' and coalesce(c.detail->>'status', '') = 'held'
+          from continuity.transitions c
+          where c.org_id = o.org_id and c.type in ('approval_decided', 'approval_expired') and c.task_id = o.task_id and c.seq > o.seq
+            and coalesce(c.detail->>'approval_id', c.subject_id) = 'ap_' || o.seq
+          order by c.seq desc limit 1), true)`;
+    return rows.map((r) => r.task_id as string);
   }
 
   async #lockCounters(tx: Sql, org: string): Promise<Record<string, number>> {

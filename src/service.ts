@@ -12,6 +12,7 @@ import { modelBindingPhrases, type SendClassifier } from './engine/send-check.ts
 import { applyVerifiedClaim, buildCard, notifyApproval, optionsFor, rejectHeldClaim, renderCard, approvalLink, sendTitle, type OptionId } from './approvals.ts';
 import {
   approvalsForTask, openApprovals, recordDecision, recordExpired, requestApproval, stateFingerprint,
+  announcedApprovalIds, recordAnnounced, APPROVAL_NOTIFIED,
   type Approval, type ApprovalDraft, type ApprovalStatus,
 } from './engine/approval-log.ts';
 import { compileContext, estimateTokens, artifactSummary, TOKEN_UNIT, type ContextPurpose } from './compiler/compile.ts';
@@ -63,6 +64,9 @@ export interface DecisionInput {
 export interface ContextOptions { agentId?: string; party?: string; maxTokens?: number; asOf?: string; purpose?: ContextPurpose; historyLimit?: number }
 
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
+/** first retry of an announcement the approval webhook did not accept; the job queue backs off from there */
+const ANNOUNCE_RETRY_MS = 5_000;
+
 /** provider keys of sends a human approved: continuity:<instance>:<task>:approval:<ap_n>:... */
 const APPROVAL_KEY = /:approval:ap_\d+:/;
 /** an ambiguous send is retried at most this many attempts before reconciliation gives up */
@@ -97,8 +101,6 @@ export class Continuity {
   sendClassifier: SendClassifier | null;
   /** new approval cards are posted here (Slack-style {"text": ...}); CONTINUITY_APPROVAL_WEBHOOK */
   approvalWebhook: string | undefined;
-  /** verification cards already posted by this process */
-  #notified = new Set<string>();
 
   constructor(opts: {
     backend: Backend; extractor: Extractor; transport: Transport; webhookSecret: string | null; selfAddress?: string; requireStateVersion?: boolean; ingestOrg?: string; engine?: Engine;
@@ -114,9 +116,10 @@ export class Continuity {
     this.approvalWebhook = opts.approvalWebhook ?? process.env.CONTINUITY_APPROVAL_WEBHOOK;
     this.engine = opts.engine ?? new Engine(this.backend, opts.extractor, (ev, i, signal) => this.transport.fetchAttachment(ev, i, signal));
     this.engine.handlers.set('reconcile_action', (job) => this.#reconcileJob(job));
+    this.engine.handlers.set('notify_approval', (job) => this.#announceJob(job));
     // verification cards are raised by the resolver while interpreting mail; post the new ones
     this.engine.listeners.add((org, taskId) => {
-      if (this.approvalWebhook) void this.#notifyVerifications(org, taskId).catch(() => undefined);
+      if (this.approvalWebhook) void this.notifyVerifications(org, taskId).catch(() => undefined);
     });
   }
 
@@ -348,15 +351,15 @@ export class Continuity {
         && (a.draft.body === s.body || (guard.commitment && a.reasons.some((r) => r.startsWith('commitment')))));
       if (open) return { approval: open, existing: true };
       const id = requestApproval(w, task.id, at, { kind: 'send', title: sendTitle(task, to, guard.hold_reasons), reasons: guard.hold_reasons, gray_areas: guard.gray_areas, draft, claim_id: null });
-      return { approval: approvalsForTask(w, task.id, at).find((a) => a.id === id)!, existing: false };
+      const approval = approvalsForTask(w, task.id, at).find((a) => a.id === id)!;
+      // claimed for the webhook in the card's own commit: only this process posts it, and no extra version
+      if (this.approvalWebhook) recordAnnounced(w, task.id, at, approval);
+      return { approval, existing: false };
     });
     if (!c.ok) throw new HttpError(409, 'stale context: the task changed while the send was being prepared', { code: 'stale_context', state_version: c.version });
     const { approval, existing } = c.value;
     this.engine.notify(org, task.id);
-    if (!existing && this.approvalWebhook) {
-      const fresh = await this.backend.loadTask(org, task.id);
-      void notifyApproval(this.approvalWebhook, approval, buildCard(fresh.store, task, approval));
-    }
+    if (!existing && this.approvalWebhook) void this.#postCard(org, task, snap.store, approval).catch(() => undefined);
     return {
       __status: 202, held: true, status: 'held' as const, action_id: null, event_id: null, idempotent_replay: false,
       approval_id: approval.id, title: approval.title, reasons: approval.reasons, gray_areas: approval.gray_areas,
@@ -406,6 +409,8 @@ export class Continuity {
     };
     const isOwn = (t: { event_id: string | null; type: string; summary: string; detail: Record<string, unknown> }) => {
       if (t.event_id) return sentByThisAgent(t.event_id);
+      // bookkeeping, not a change to the deal: a card was announced to the approval webhook
+      if (t.type === APPROVAL_NOTIFIED) return true;
       // this agent's own held drafts are known to it, like its blocked ones
       if (t.type === 'approval_requested') return (t.detail as { draft?: { agent_id?: string } | null }).draft?.agent_id === s.agent_id;
       return t.type === 'send_blocked' && String(t.summary).includes(`from ${s.agent_id} `);
@@ -532,7 +537,12 @@ export class Continuity {
   /** Approvals with their cards: open ones (pending, or held to verify), or all with `all`. */
   async approvals(org: string, opts: { taskId?: string; all?: boolean; allowTask?: (taskId: string) => boolean } = {}) {
     const allow = opts.allowTask ?? (() => true);
-    const tasks = opts.taskId ? [await this.task(org, opts.taskId)] : (await this.backend.listTasks(org)).map((t) => t.spec);
+    let tasks = opts.taskId ? [await this.task(org, opts.taskId)] : (await this.backend.listTasks(org)).map((t) => t.spec);
+    if (!opts.taskId && !opts.all) {
+      // load only the tasks whose log has a card still open as recorded, not every task of the org
+      const candidates = new Set(await this.backend.openApprovalTaskIds(org));
+      tasks = tasks.filter((t) => candidates.has(t.id));
+    }
     const out: ReturnType<Continuity['approvalView']>[] = [];
     for (const task of tasks.filter((t) => allow(t.id))) {
       const snap = await this.backend.loadTask(org, task.id);
@@ -683,15 +693,52 @@ export class Continuity {
     return approvalsForTask(snap.store, task.id).find((a) => a.action_id === actionId) ?? null;
   }
 
-  /** Post verification cards the resolver raised while interpreting mail (each once per process). */
-  async #notifyVerifications(org: string, taskId: string) {
-    const { task, snap } = await this.snapshot(org, taskId);
-    for (const a of openApprovals(snap.store, task.id)) {
-      const key = `${org}\u0000${a.id}`;
-      if (a.kind !== 'verify_change' || this.#notified.has(key)) continue;
-      this.#notified.add(key);
-      await notifyApproval(this.approvalWebhook, a, buildCard(snap.store, task, a));
+  /**
+   * Post the verification cards the resolver raised while interpreting mail, each at most once across
+   * restarts and processes: the cards are claimed (approval_notified) in a version-checked commit before
+   * anything is posted, so of the processes that see a card unannounced only the one whose claim commits
+   * posts it. A stale commit means the task moved (perhaps another process claimed): look again.
+   * Returns the ids this call claimed.
+   */
+  async notifyVerifications(org: string, taskId: string): Promise<string[]> {
+    for (let tries = 0; tries < 5; tries++) {
+      const { task, snap } = await this.snapshot(org, taskId);
+      const at = nowIso();
+      const done = announcedApprovalIds(snap.store, task.id);
+      const due = openApprovals(snap.store, task.id, at).filter((a) => a.kind === 'verify_change' && !done.has(a.id));
+      if (!due.length) return [];
+      const c = await this.backend.commit(snap, (w) => { for (const a of due) recordAnnounced(w, task.id, at, a); });
+      if (!c.ok) continue;
+      for (const a of due) await this.#postCard(org, task, snap.store, a);
+      return due.map((a) => a.id);
     }
+    return [];
+  }
+
+  /**
+   * Post a claimed card. Failure policy: a post the webhook did not accept (error, timeout, non-2xx) is
+   * retried by a durable notify_approval job (backoff, then dead-lettered with the error on the job row);
+   * a crash between the claim and the post loses the announcement rather than doubling it — the card is
+   * still listed by GET /approvals, the dashboard, Signal and the agent's briefing.
+   */
+  async #postCard(org: string, task: TaskSpec, store: Store, a: Approval): Promise<boolean> {
+    if (await notifyApproval(this.approvalWebhook, a, buildCard(store, task, a))) return true;
+    await this.backend.enqueue(org, [{
+      kind: 'notify_approval', task_id: null, dedupe_key: `notify_approval:${a.id}`, payload: { task_id: task.id, approval_id: a.id },
+      run_after: new Date(Date.now() + ANNOUNCE_RETRY_MS).toISOString(), max_attempts: 10,
+    }]);
+    return false;
+  }
+
+  /** Retry a card's failed announcement, unless it was decided, expired or went stale in the meantime. */
+  async #announceJob(job: JobRow) {
+    const { task_id, approval_id } = job.payload as { task_id: string; approval_id: string };
+    const { task, snap } = await this.snapshot(job.org, task_id);
+    const a = openApprovals(snap.store, task.id).find((x) => x.id === approval_id);
+    if (a && this.approvalWebhook && !(await notifyApproval(this.approvalWebhook, a, buildCard(snap.store, task, a)))) {
+      throw new Error(`approval webhook did not accept ${approval_id}`); // the engine retries with backoff
+    }
+    await this.backend.finishJob(job.id, { status: 'done' });
   }
 
   // ------------------------------------------------------------------ context

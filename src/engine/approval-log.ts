@@ -8,6 +8,8 @@
 //   claim_held_for_verification   the resolver held a payment/identity detail from email: a verification card
 //   approval_decided              a human's decision (detail: approval_id, option, status, by, ...)
 //   approval_expired              recorded when an expired card is touched
+//   approval_notified             the card was claimed for the approval webhook (bookkeeping: it changes no
+//                                 approval's status and is left out of briefings, timelines and agent wake-ups)
 // An approval's id is "ap_<seq>" of the transition that opened it, unique within the organization.
 // Concurrency comes for free: a decision commits against the task's state version, so two people
 // deciding the same card at once cannot both win.
@@ -20,6 +22,7 @@ export const APPROVAL_REQUESTED = 'approval_requested';
 export const APPROVAL_DECIDED = 'approval_decided';
 export const APPROVAL_EXPIRED = 'approval_expired';
 export const HELD_FOR_VERIFICATION = 'claim_held_for_verification';
+export const APPROVAL_NOTIFIED = 'approval_notified';
 
 /** How long a card stays decidable (CONTINUITY_APPROVAL_TTL_H, default 48 hours). */
 export const approvalTtlHours = () => Number(process.env.CONTINUITY_APPROVAL_TTL_H || 48);
@@ -133,6 +136,28 @@ export function approvalsForTask(store: StateStore, taskId: string, now = nowIso
   return list;
 }
 
+/**
+ * The tasks whose transition log has a card that is open as recorded: opened, and not followed by an
+ * approval_expired or by an approval_decided other than "held" (the same fold as approvalsForTask).
+ * A superset of the tasks with open approvals: expiry by time and staleness are judged after loading.
+ * Backends answer the same question in SQL (Backend.openApprovalTaskIds); this is the reference.
+ */
+export function openApprovalTaskIds(transitions: Iterable<Transition>): string[] {
+  const cards = new Map<string, { task_id: string; open: boolean }>();
+  for (const t of [...transitions].sort((x, y) => x.seq - y.seq)) {
+    if (t.type === APPROVAL_REQUESTED || (t.type === HELD_FOR_VERIFICATION && t.subject_id)) {
+      cards.set(approvalId(t.seq), { task_id: t.task_id, open: true });
+      continue;
+    }
+    if (t.type !== APPROVAL_DECIDED && t.type !== APPROVAL_EXPIRED) continue;
+    const d = t.detail as { approval_id?: string; status?: string };
+    const card = cards.get(String(d.approval_id ?? t.subject_id ?? ''));
+    if (!card || card.task_id !== t.task_id) continue;
+    card.open = t.type === APPROVAL_DECIDED && d.status === 'held';
+  }
+  return [...new Set([...cards.values()].filter((c) => c.open).map((c) => c.task_id))];
+}
+
 /** Cards a human still has to decide (pending, or held while someone verifies). */
 export function openApprovals(store: StateStore, taskId: string, now = nowIso()): Approval[] {
   return approvalsForTask(store, taskId, now).filter((a) => OPEN_STATUSES.includes(a.status));
@@ -165,6 +190,22 @@ export function recordExpired(store: StateStore, taskId: string, at: string): st
     store.addTransition({ task_id: taskId, event_id: null, at, type: APPROVAL_EXPIRED, subject_id: a.id, summary: `Approval ${a.id} expired undecided: ${a.title.slice(0, 160)}`, detail: { approval_id: a.id } });
   }
   return expired.map((a) => a.id);
+}
+
+/** Cards already claimed for announcement to the approval webhook. */
+export function announcedApprovalIds(store: StateStore, taskId: string): Set<string> {
+  return new Set(store.transitionsForTask(taskId).filter((t) => t.type === APPROVAL_NOTIFIED).map((t) => String(t.subject_id)));
+}
+
+/**
+ * Claim a card for announcement. Committed (version-checked) before the post, so of all the processes
+ * that see the card unannounced exactly one commits the claim, and only that one posts it.
+ */
+export function recordAnnounced(store: StateStore, taskId: string, at: string, a: Pick<Approval, 'id' | 'kind'>, channel = 'webhook'): void {
+  store.addTransition({
+    task_id: taskId, event_id: null, at, type: APPROVAL_NOTIFIED, subject_id: a.id,
+    summary: `Approval ${a.id} announced to the approval ${channel}`, detail: { approval_id: a.id, kind: a.kind, channel },
+  });
 }
 
 /** Record a human's decision. */
