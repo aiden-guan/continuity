@@ -1,0 +1,441 @@
+{
+  "id": "P04",
+  "domain": "procurement",
+  "title": "Cap screw order: \"should be able to do $11.20, need mgr sign-off\" is tentative until the firm quote arrives",
+  "features": [
+    "hedged",
+    "terse_shorthand",
+    "quoted_history",
+    "distractor_numbers",
+    "answered_question",
+    "document_versions",
+    "acceptance"
+  ],
+  "task": {
+    "id": "task_p04",
+    "alias": "PO-5547",
+    "goal": "Buy 600 boxes of 3/8-16 x 2 Grade 8 cap screws for PO-5547. All 600 boxes must arrive by Fri Nov 20; unit price must not exceed $11.50 per box.",
+    "item": "3/8-16 x 2 in. Grade 8 hex cap screws, yellow zinc, box of 50",
+    "self_address": "purchasing@ridgeback-equip.primitive.email",
+    "domain": "procurement",
+    "participants": [
+      {
+        "address": "purchasing@ridgeback-equip.primitive.email",
+        "name": "Ridgeback Purchasing Agent",
+        "role": "self",
+        "label": "Ridgeback (us)",
+        "authority": [
+          "decision."
+        ]
+      },
+      {
+        "address": "t.ruggiero@ironhill-fastener.example",
+        "name": "Tony Ruggiero (Ironhill Fastener)",
+        "role": "counterparty",
+        "label": "supplier",
+        "authority": [
+          "price.",
+          "delivery.",
+          "order.",
+          "payment.",
+          "quote.",
+          "offer."
+        ],
+        "group": "ironhill"
+      },
+      {
+        "address": "p.nair@ridgeback-equip.example",
+        "name": "Priya Nair (Ridgeback Finance)",
+        "role": "internal",
+        "label": "finance",
+        "authority": [
+          "budget."
+        ]
+      }
+    ],
+    "requirements": [
+      {
+        "key": "requirement.quantity",
+        "value": 600,
+        "display": "600 boxes",
+        "hard": true
+      },
+      {
+        "key": "requirement.deliver_all_by",
+        "value": "2026-11-20",
+        "display": "Fri Nov 20",
+        "hard": true
+      },
+      {
+        "key": "requirement.max_unit_price",
+        "value": 11.5,
+        "display": "$11.50/box",
+        "hard": true
+      }
+    ]
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "outbound",
+      "from": "purchasing@ridgeback-equip.primitive.email",
+      "fromName": "Ridgeback Purchasing Agent",
+      "to": "t.ruggiero@ironhill-fastener.example",
+      "subject": "PO-5547 3/8-16 gr8 HCS",
+      "at": "2026-11-03T13:30:00Z",
+      "in_reply_to": null,
+      "body": "Tony -\n\nneed 600 bx of the 3/8-16 x 2 gr8 HCS yellow zinc (bx/50) for PO-5547, delivered Elkhart by fri 11/20. we paid 11.95/bx on PO-5390 in Aug which was high. what can you do?\n\nRidgeback Purchasing"
+    },
+    {
+      "id": "m2",
+      "direction": "inbound",
+      "from": "t.ruggiero@ironhill-fastener.example",
+      "fromName": "Tony Ruggiero",
+      "to": "purchasing@ridgeback-equip.primitive.email",
+      "subject": "RE: PO-5547 3/8-16 gr8 HCS",
+      "at": "2026-11-03T15:48:00Z",
+      "in_reply_to": "m1",
+      "body": "600 bx in stock Joliet. should be able to do $11.20/bx, need mgr sign-off - he's out til thurs. can get them to you tue 11/17. ship-to still Dock 4, 2210 Industrial Pkwy Elkhart?\n\ntr\nIronhill Fastener | 815-555-0124 x31\n\n -----Original Message-----\nFrom: \tRidgeback Purchasing\nSent:\tTuesday, November 03, 2026 8:30 AM\nTo:\tRuggiero, Tony\nSubject:\tPO-5547 3/8-16 gr8 HCS\n\nTony -\n\nneed 600 bx of the 3/8-16 x 2 gr8 HCS yellow zinc (bx/50) for PO-5547, delivered Elkhart by fri 11/20. we paid 11.95/bx on PO-5390 in Aug which was high. what can you do?\n\nRidgeback Purchasing"
+    },
+    {
+      "id": "m3",
+      "direction": "outbound",
+      "from": "purchasing@ridgeback-equip.primitive.email",
+      "fromName": "Ridgeback Purchasing Agent",
+      "to": "p.nair@ridgeback-equip.example",
+      "subject": "PO-5547 approval",
+      "at": "2026-11-03T16:00:00Z",
+      "in_reply_to": null,
+      "body": "Priya - approval needed up to $11.50/bx on PO-5547 (600 bx gr8 cap screws). thx"
+    },
+    {
+      "id": "m4",
+      "direction": "inbound",
+      "from": "p.nair@ridgeback-equip.example",
+      "fromName": "Priya Nair",
+      "to": "purchasing@ridgeback-equip.primitive.email",
+      "subject": "RE: PO-5547 approval",
+      "at": "2026-11-04T14:12:00Z",
+      "in_reply_to": "m3",
+      "body": "ok to 11.50/bx. gl 6120-300.\n-P\n\n -----Original Message-----\nFrom: \tRidgeback Purchasing\nSent:\tTuesday, November 03, 2026 11:00 AM\nTo:\tNair, Priya\nSubject:\tPO-5547 approval\n\nPriya - approval needed up to $11.50/bx on PO-5547 (600 bx gr8 cap screws). thx"
+    },
+    {
+      "id": "m5",
+      "direction": "outbound",
+      "from": "purchasing@ridgeback-equip.primitive.email",
+      "fromName": "Ridgeback Purchasing Agent",
+      "to": "t.ruggiero@ironhill-fastener.example",
+      "subject": "RE: PO-5547 3/8-16 gr8 HCS",
+      "at": "2026-11-04T14:30:00Z",
+      "in_reply_to": "m2",
+      "body": "yes ship-to is Dock 4, 2210 Industrial Pkwy. let me know when your mgr signs off on the 11.20 - can't cut the PO til it's firm.\n\nRP\n\n -----Original Message-----\nFrom: \tRuggiero, Tony\nSent:\tTuesday, November 03, 2026 10:48 AM\nTo:\tRidgeback Purchasing\nSubject:\tRE: PO-5547 3/8-16 gr8 HCS\n\n600 bx in stock Joliet. should be able to do $11.20/bx, need mgr sign-off - he's out til thurs. can get them to you tue 11/17. ship-to still Dock 4, 2210 Industrial Pkwy Elkhart?\n\ntr\nIronhill Fastener | 815-555-0124 x31\n\n -----Original Message-----\nFrom: \tRidgeback Purchasing\nSent:\tTuesday, November 03, 2026 8:30 AM\nTo:\tRuggiero, Tony\nSubject:\tPO-5547 3/8-16 gr8 HCS\n\nTony -\n\nneed 600 bx of the 3/8-16 x 2 gr8 HCS yellow zinc (bx/50) for PO-5547, delivered Elkhart by fri 11/20. we paid 11.95/bx on PO-5390 in Aug which was high. what can you do?\n\nRidgeback Purchasing"
+    },
+    {
+      "id": "m6",
+      "direction": "inbound",
+      "from": "t.ruggiero@ironhill-fastener.example",
+      "fromName": "Tony Ruggiero",
+      "to": "purchasing@ridgeback-equip.primitive.email",
+      "subject": "RE: PO-5547 3/8-16 gr8 HCS",
+      "at": "2026-11-05T17:22:00Z",
+      "in_reply_to": "m5",
+      "body": "mgr signed off. firm $11.20/bx for 600 bx, delivered tue 11/17 dock 4. net 30. quote IH-Q-22841 attached, good thru 11/30.\n\ntr\n\n -----Original Message-----\nFrom: \tRidgeback Purchasing\nSent:\tWednesday, November 04, 2026 9:30 AM\nTo:\tRuggiero, Tony\nSubject:\tRE: PO-5547 3/8-16 gr8 HCS\n\nyes ship-to is Dock 4, 2210 Industrial Pkwy. let me know when your mgr signs off on the 11.20 - can't cut the PO til it's firm.\n\nRP\n\n -----Original Message-----\nFrom: \tRuggiero, Tony\nSent:\tTuesday, November 03, 2026 10:48 AM\nTo:\tRidgeback Purchasing\nSubject:\tRE: PO-5547 3/8-16 gr8 HCS\n\n600 bx in stock Joliet. should be able to do $11.20/bx, need mgr sign-off - he's out til thurs. can get them to you tue 11/17. ship-to still Dock 4, 2210 Industrial Pkwy Elkhart?\n\ntr\nIronhill Fastener | 815-555-0124 x31\n\n -----Original Message-----\nFrom: \tRidgeback Purchasing\nSent:\tTuesday, November 03, 2026 8:30 AM\nTo:\tRuggiero, Tony\nSubject:\tPO-5547 3/8-16 gr8 HCS\n\nTony -\n\nneed 600 bx of the 3/8-16 x 2 gr8 HCS yellow zinc (bx/50) for PO-5547, delivered Elkhart by fri 11/20. we paid 11.95/bx on PO-5390 in Aug which was high. what can you do?\n\nRidgeback Purchasing",
+      "attachments": [
+        {
+          "filename": "Ironhill-Quote-IH-Q-22841.pdf",
+          "lines": [
+            "IRONHILL FASTENER - QUOTE IH-Q-22841",
+            "Bill to: Ridgeback Equipment (PO-5547)",
+            "Item: HCS 3/8-16 x 2 GR8 YZ, box of 50",
+            "Qty: 600 bx",
+            "Price: $11.20 per box",
+            "Delivery: Tue Nov 17, 2026 - Dock 4, 2210 Industrial Pkwy, Elkhart",
+            "Terms: Net 30",
+            "Valid through: Nov 30, 2026",
+            "Ext: $6,720.00"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m7",
+      "direction": "outbound",
+      "from": "purchasing@ridgeback-equip.primitive.email",
+      "fromName": "Ridgeback Purchasing Agent",
+      "to": "t.ruggiero@ironhill-fastener.example",
+      "subject": "RE: PO-5547 3/8-16 gr8 HCS",
+      "at": "2026-11-05T18:00:00Z",
+      "in_reply_to": "m6",
+      "body": "great - we accept IH-Q-22841 at $11.20/bx, 600 bx tue 11/17. PO-5547 going out tonight.\n\nRP\n\n -----Original Message-----\nFrom: \tRuggiero, Tony\nSent:\tThursday, November 05, 2026 12:22 PM\nTo:\tRidgeback Purchasing\nSubject:\tRE: PO-5547 3/8-16 gr8 HCS\n\nmgr signed off. firm $11.20/bx for 600 bx, delivered tue 11/17 dock 4. net 30. quote IH-Q-22841 attached, good thru 11/30.\n\ntr\n\n -----Original Message-----\nFrom: \tRidgeback Purchasing\nSent:\tWednesday, November 04, 2026 9:30 AM\nTo:\tRuggiero, Tony\nSubject:\tRE: PO-5547 3/8-16 gr8 HCS\n\nyes ship-to is Dock 4, 2210 Industrial Pkwy. let me know when your mgr signs off on the 11.20 - can't cut the PO til it's firm.\n\nRP\n\n -----Original Message-----\nFrom: \tRuggiero, Tony\nSent:\tTuesday, November 03, 2026 10:48 AM\nTo:\tRidgeback Purchasing\nSubject:\tRE: PO-5547 3/8-16 gr8 HCS\n\n600 bx in stock Joliet. should be able to do $11.20/bx, need mgr sign-off - he's out til thurs. can get them to you tue 11/17. ship-to still Dock 4, 2210 Industrial Pkwy Elkhart?\n\ntr\nIronhill Fastener | 815-555-0124 x31\n\n -----Original Message-----\nFrom: \tRidgeback Purchasing\nSent:\tTuesday, November 03, 2026 8:30 AM\nTo:\tRuggiero, Tony\nSubject:\tPO-5547 3/8-16 gr8 HCS\n\nTony -\n\nneed 600 bx of the 3/8-16 x 2 gr8 HCS yellow zinc (bx/50) for PO-5547, delivered Elkhart by fri 11/20. we paid 11.95/bx on PO-5390 in Aug which was high. what can you do?\n\nRidgeback Purchasing"
+    },
+    {
+      "id": "m8",
+      "direction": "inbound",
+      "from": "t.ruggiero@ironhill-fastener.example",
+      "fromName": "Tony Ruggiero",
+      "to": "purchasing@ridgeback-equip.primitive.email",
+      "subject": "RE: PO-5547 3/8-16 gr8 HCS",
+      "at": "2026-11-06T13:05:00Z",
+      "in_reply_to": "m7",
+      "body": "rcvd. SO 448120. thx\n\ntr"
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m4",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 600,
+          "stated_in": "m2",
+          "evidence": "600 bx in stock Joliet"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 600,
+              "date": "2026-11-17"
+            }
+          ],
+          "stated_in": "m2",
+          "evidence": "can get them to you tue 11/17"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 11.5,
+          "stated_in": "m4",
+          "evidence": "ok to 11.50/bx"
+        }
+      ],
+      "tentative": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 11.2,
+          "stated_in": "m2",
+          "evidence": "should be able to do $11.20/bx, need mgr sign-off",
+          "why": "hedged"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Ridgeback (us)",
+          "kind": "question",
+          "about": "best price for 600 bx",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "Ridgeback (us)",
+          "owed_to": "supplier",
+          "kind": "question",
+          "about": "confirm ship-to Dock 4, 2210 Industrial Pkwy",
+          "status": "open",
+          "opened_in": "m2"
+        },
+        {
+          "owed_by": "finance",
+          "owed_to": "Ridgeback (us)",
+          "kind": "question",
+          "about": "approve up to $11.50/bx",
+          "status": "answered",
+          "opened_in": "m3",
+          "resolved_in": "m4"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "unknown"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "supplier",
+        "must": [
+          "dock 4|2210|industrial|ship.?to",
+          "11\\.20"
+        ],
+        "must_not": [
+          "\\$?11\\.50",
+          "\\bwe accept\\b"
+        ]
+      }
+    },
+    {
+      "after": "m6",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 11.2,
+          "stated_in": "m6",
+          "evidence": "firm $11.20/bx for 600 bx"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 600,
+          "stated_in": "m6",
+          "evidence": "firm $11.20/bx for 600 bx"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 600,
+              "date": "2026-11-17"
+            }
+          ],
+          "stated_in": "m6",
+          "evidence": "delivered tue 11/17 dock 4"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m6",
+          "evidence": "net 30"
+        },
+        {
+          "party": "supplier",
+          "term": "quote.valid_until",
+          "value": "2026-11-30",
+          "stated_in": "m6",
+          "evidence": "good thru 11/30"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 11.5,
+          "stated_in": "m4",
+          "evidence": "ok to 11.50/bx"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "Ridgeback (us)",
+          "owed_to": "supplier",
+          "kind": "question",
+          "about": "confirm ship-to Dock 4, 2210 Industrial Pkwy",
+          "status": "answered",
+          "opened_in": "m2",
+          "resolved_in": "m5"
+        },
+        {
+          "owed_by": "supplier",
+          "owed_to": "Ridgeback (us)",
+          "kind": "question",
+          "about": "manager sign-off on $11.20",
+          "status": "answered",
+          "opened_in": "m5",
+          "resolved_in": "m6"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Ironhill-Quote-IH-Q-22841.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "supplier",
+        "must": [
+          "11\\.20",
+          "accept|confirm"
+        ],
+        "must_not": [
+          "11\\.50"
+        ]
+      }
+    },
+    {
+      "after": "m8",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 11.2,
+          "stated_in": "m6",
+          "evidence": "firm $11.20/bx for 600 bx"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 600,
+          "stated_in": "m6",
+          "evidence": "firm $11.20/bx for 600 bx"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 600,
+              "date": "2026-11-17"
+            }
+          ],
+          "stated_in": "m6",
+          "evidence": "delivered tue 11/17 dock 4"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m6",
+          "evidence": "net 30"
+        },
+        {
+          "party": "supplier",
+          "term": "quote.valid_until",
+          "value": "2026-11-30",
+          "stated_in": "m6",
+          "evidence": "good thru 11/30"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 11.5,
+          "stated_in": "m4",
+          "evidence": "ok to 11.50/bx"
+        },
+        {
+          "party": "Ridgeback (us)",
+          "term": "decision.order",
+          "value": "accepted",
+          "stated_in": "m7",
+          "evidence": "we accept IH-Q-22841 at $11.20/bx"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Ironhill-Quote-IH-Q-22841.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "none"
+    }
+  ],
+  "notes": "m2 gives the price only as a hedge (\"should be able to do $11.20/bx, need mgr sign-off\") -> tentative/hedged; there is no applied price at the m4 checkpoint, so price_budget is unknown and the agent must not accept yet (it owes the ship-to answer and should ask for a firm price). m6 makes the same number firm. The 11.95/bx we quote from PO-5390 is our own statement of a past price, not a supplier term. The m2 quantity and date are firm and are restated in m6 (same values, the m6 statement replaces the m2 one). Terse shorthand throughout (bx, gr8, HCS, tr, rcvd). Distractors: phone/extension, gl code, SO number, $6,720 extension."
+}

@@ -9,6 +9,9 @@
 //  - When two different parties disagree on a term, both claims become "contested"; neither wins,
 //    and one side revising does not settle it while the other still disagrees.
 //  - Hedged, low-confidence, or non-authoritative claims are kept as "proposed" and change nothing.
+//  - Our own decisions apply, and so do our offers on the terms the domain lets us offer on (a buyer's counter):
+//    our current position, per speaker, never standing in for the counterparty's terms. Accepting their terms
+//    retires an earlier offer of ours that differs from them.
 //  - A forwarded copy of older evidence is recorded but never overwrites the current claim; any other
 //    message wins by arrival order (its Date header is the sender's claim), with a date_skew flag.
 //    Likewise a forward older than the speaker's retraction (or offer withdrawal) never revives the
@@ -65,6 +68,9 @@ export function partyOf(task: TaskSpec, address: string): Participant | null {
   const wanted = address.toLowerCase();
   return task.participants.find((p) => p.address.toLowerCase() === wanted) ?? null;
 }
+
+/** The (first) recipient of a message, lowercased. */
+const recipientOf = (e: Pick<StoredEvent, 'to'>) => (e.to[0] ?? '').toLowerCase();
 
 export function labelOf(task: TaskSpec, address: string): string {
   return partyOf(task, address)?.label ?? address;
@@ -160,8 +166,21 @@ export function applyProposal(inp: ApplyInput) {
   }
 
   // ---- 1. artifacts: a newer doc of the same kind from the same owner replaces the older one
+  // a byte-identical copy of a document already replaced ("for your files", the original quote re-sent after
+  // the revision) is history: it is superseded on arrival, and nothing it says applies (see 2)
+  const staleCopies = new Map<string, Artifact>();
+  for (const incoming of inp.artifacts) {
+    const original = store.artifactsForTask(task.id).find((x) => x.id !== incoming.id && x.event_id !== incoming.event_id && x.sha256 === incoming.sha256 && x.status === 'superseded');
+    if (original) staleCopies.set(incoming.filename, original);
+  }
   for (const incoming of inp.artifacts) {
     log('artifact_added', `${who} sent ${incoming.filename} (${incoming.kind}${incoming.version_label ? ` ${incoming.version_label}` : ''})`, incoming.id);
+    const original = staleCopies.get(incoming.filename);
+    if (original) {
+      store.updateArtifact(incoming.id, 'superseded', original.superseded_by ?? null);
+      log('artifact_superseded', `${incoming.filename} is a copy of ${original.filename}, which was already replaced`, incoming.id, { by: original.superseded_by ?? null, copy_of: original.id });
+      continue;
+    }
     if (!verified) continue; // an unproven sender cannot retire the current document
     for (const earlier of store.artifactsForTask(task.id)) {
       if (earlier.id === incoming.id) continue;
@@ -246,6 +265,7 @@ export function applyProposal(inp: ApplyInput) {
     const artifact = pc.from_attachment ? artifactNamed.get(pc.from_attachment) ?? null : null;
     const artifactId = artifact?.id ?? null;
     const display = pack.displayValue(pc.key, value);
+    const staleCopy = pc.from_attachment ? staleCopies.get(pc.from_attachment) : undefined;
     const base = {
       task_id: task.id, key: pc.key, value, display, kind: pc.kind, speaker, source_event_id: event.id,
       source_artifact_id: artifactId, evidence: pc.evidence, superseded_by: null, supersede_reason: null,
@@ -254,13 +274,22 @@ export function applyProposal(inp: ApplyInput) {
     const attachEvidence = (claimId: string) => store.addClaimEvidence(claimId, event.id, artifactId, pc.evidence);
     const isLifecycle = lifecycleKeys.has(pc.key);
 
+    // 1'. read from a copy of a document that was already replaced: recorded as history, never applied
+    if (staleCopy) {
+      const late = store.insertClaim({ ...base, status: 'superseded', supersede_reason: `from ${pc.from_attachment}, a copy of ${staleCopy.filename}, which was already replaced` });
+      attachEvidence(late.id);
+      log('stale_evidence', `${pc.key} = ${display} from ${who}'s copy of the replaced ${staleCopy.filename}; not applied`, late.id);
+      continue;
+    }
+
     let authoritative = false;
     if (whoParty && verified) {
       // our own decisions count, except on a term someone on our side decides (a ceiling we quote is not finance's
       // approval); a counterparty owning the same term (a price both sides negotiate) does not take it away from us
       if (whoParty.role === 'self') {
-        authoritative = pc.kind === 'decision'
-          && !task.participants.some((p) => p.role === 'internal' && p.authority.some((prefix) => pc.key.startsWith(prefix)));
+        const ourSideDecides = task.participants.some((p) => p.role === 'internal' && p.authority.some((prefix) => pc.key.startsWith(prefix)));
+        const ourOffer = pc.kind === 'offer' && !!pack.ourOfferTerms?.some((prefix) => pc.key.startsWith(prefix));
+        authoritative = (pc.kind === 'decision' || ourOffer) && !ourSideDecides;
       }
       else if (isLifecycle) authoritative = whoParty.role === 'counterparty'; // any counterparty may withdraw its own offer
       else authoritative = whoParty.authority.some((prefix) => pc.key.startsWith(prefix));
@@ -420,6 +449,31 @@ export function applyProposal(inp: ApplyInput) {
       const agreeing = peers.find((d) => sameValue(d.value, value));
       log('claim_added', `${who}: ${pc.key} = ${display}${artifact ? ` (from ${artifact.filename})` : ''}`, added.id,
         { key: pc.key, corroborates: agreeing?.id ?? null });
+    }
+  }
+
+  // accepting their terms makes them our position: an earlier offer of ours that differs ("we offered
+  // $880,000") is replaced by the value we accepted (their $905,000), recorded from the acceptance itself,
+  // whether or not the acceptance restates it; an offer of ours they matched stays. Only an undisputed
+  // value of theirs is adopted, preferring the party we are writing to.
+  const acceptance = event.direction === 'outbound' && whoParty?.role === 'self' && pack.decisionKey
+    ? liveClaims().find((c) => c.key === pack.decisionKey && c.speaker === speaker && c.source_event_id === event.id && c.value !== 'declined')
+    : undefined;
+  if (acceptance && pack.ourOfferTerms) {
+    const live = liveClaims();
+    for (const ours of live.filter((c) => c.speaker === speaker && c.kind === 'offer' && c.source_event_id !== event.id)) {
+      const candidates = live.filter((c) => c.key === ours.key && c.status === 'active' && partyOf(task, c.speaker)?.role === 'counterparty');
+      const theirs = candidates.find((c) => c.speaker === recipientOf(event)) ?? candidates[0];
+      if (!theirs || sameValue(theirs.value, ours.value)) continue;
+      const adopted = store.insertClaim({
+        task_id: task.id, key: ours.key, value: theirs.value, display: theirs.display, kind: 'decision', speaker, source_event_id: event.id,
+        source_artifact_id: null, evidence: acceptance.evidence, superseded_by: null, supersede_reason: null, learned_at: at,
+        confidence: acceptance.confidence, extractor, status: 'active',
+      });
+      store.addClaimEvidence(adopted.id, event.id, null, acceptance.evidence);
+      store.updateClaim(ours.id, { status: 'superseded', superseded_by: adopted.id, supersede_reason: `replaced by our acceptance of ${nameOf(theirs.speaker)}'s ${ours.key} (${theirs.display}) in ${event.id}` });
+      log('claim_superseded', `${who} accepted ${nameOf(theirs.speaker)}'s ${ours.key}: our ${ours.display} → ${theirs.display}`, adopted.id,
+        { from: ours.id, to: adopted.id, from_display: ours.display, to_display: theirs.display, mode: 'acceptance' });
     }
   }
 

@@ -1,0 +1,645 @@
+{
+  "id": "R11",
+  "domain": "real_estate",
+  "title": "Inspection contingency extended to the 14th (not the 13th we asked for); closing explicitly unchanged",
+  "features": [
+    "partial_update",
+    "quoted_history",
+    "answered_question",
+    "document_versions",
+    "distractor_numbers",
+    "terse_shorthand",
+    "acceptance"
+  ],
+  "task": {
+    "id": "task_r11",
+    "alias": "PEL-9",
+    "goal": "Buy 9 Pelham Court for June Takahashi: price no more than $495,000 and within the appraisal, closing by Thu Dec 31.",
+    "item": "9 Pelham Court",
+    "domain": "real_estate",
+    "requirements": [
+      {
+        "key": "requirement.max_price",
+        "value": 495000,
+        "display": "$495,000",
+        "hard": true
+      },
+      {
+        "key": "requirement.close_by",
+        "value": "2026-12-31",
+        "display": "Thu Dec 31",
+        "hard": true
+      },
+      {
+        "key": "requirement.opening_offer",
+        "value": 470000,
+        "display": "$470,000",
+        "hard": false
+      }
+    ],
+    "participants": [
+      {
+        "address": "offers@stonecrest-agents.primitive.email",
+        "name": "Stonecrest Buyer Agent",
+        "role": "self",
+        "label": "buyer agent (us)",
+        "authority": [
+          "decision.",
+          "deal."
+        ]
+      },
+      {
+        "address": "v.amadi@cobalt-realty.example",
+        "name": "Victor Amadi (Cobalt Realty, listing agent)",
+        "role": "counterparty",
+        "label": "listing agent",
+        "authority": [
+          "price.",
+          "closing.",
+          "contingency.",
+          "decision.",
+          "deal."
+        ],
+        "group": "seller"
+      },
+      {
+        "address": "june.takahashi@takahashi-home.example",
+        "name": "June Takahashi (buyer)",
+        "role": "internal",
+        "label": "buyer",
+        "authority": [
+          "budget."
+        ]
+      },
+      {
+        "address": "valuation@meridian-homelending.example",
+        "name": "Meridian Home Lending (lender)",
+        "role": "internal",
+        "label": "lender",
+        "authority": [
+          "appraisal."
+        ]
+      },
+      {
+        "address": "office@ironwood-inspect.example",
+        "name": "Ironwood Inspections",
+        "role": "internal",
+        "label": "inspector",
+        "authority": [
+          "inspection."
+        ]
+      },
+      {
+        "address": "escrow@fairhaven-title.example",
+        "name": "Fairhaven Title (escrow)",
+        "role": "internal",
+        "label": "title company",
+        "authority": [
+          "payment."
+        ]
+      }
+    ],
+    "self_address": "offers@stonecrest-agents.primitive.email"
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "outbound",
+      "from": "offers@stonecrest-agents.primitive.email",
+      "fromName": "Stonecrest Buyer Agent",
+      "to": "v.amadi@cobalt-realty.example",
+      "subject": "Offer: 9 Pelham Court (PEL-9)",
+      "at": "2026-10-26T14:30:00Z",
+      "in_reply_to": null,
+      "body": "Victor,\n\nOn behalf of June Takahashi we offer $470,000 for 9 Pelham Court (MLS #PC-660193), closing by Thu Dec 31, $12,500 EMD.\n\nPlease let us know the seller's response.\n\nStonecrest Buyer Agent"
+    },
+    {
+      "id": "m2",
+      "direction": "inbound",
+      "from": "v.amadi@cobalt-realty.example",
+      "fromName": "Victor Amadi",
+      "to": "offers@stonecrest-agents.primitive.email",
+      "subject": "RE: Offer: 9 Pelham Court (PEL-9)",
+      "at": "2026-10-27T15:15:00Z",
+      "in_reply_to": "m1",
+      "body": "Seller counters at $489,000, closing Tuesday Dec 15. Inspection contingency until Monday Nov 9. Counter attached.\n\nCondo dues $412/mo incl. water.\n\nVictor Amadi\nCobalt Realty | 312-555-0158\n\n -----Original Message-----\nFrom: \tStonecrest Buyer Agent\nSent:\tMonday, October 26, 2026 9:30 AM\nTo:\tAmadi, Victor\nSubject:\tOffer: 9 Pelham Court (PEL-9)\n\nVictor,\n\nOn behalf of June Takahashi we offer $470,000 for 9 Pelham Court (MLS #PC-660193), closing by Thu Dec 31, $12,500 EMD.\n\nPlease let us know the seller's response.\n\nStonecrest Buyer Agent",
+      "attachments": [
+        {
+          "filename": "Cobalt-Counter-PEL-9.pdf",
+          "lines": [
+            "COBALT REALTY - SELLER COUNTER OFFER",
+            "Property: 9 Pelham Court    MLS #PC-660193    Ref: PEL-9",
+            "Purchase price: $489,000",
+            "Closing date: Tuesday, December 15, 2026",
+            "Inspection contingency until Monday, November 9, 2026",
+            "Earnest money deposit: $12,500"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m3",
+      "direction": "inbound",
+      "from": "june.takahashi@takahashi-home.example",
+      "fromName": "June Takahashi",
+      "to": "offers@stonecrest-agents.primitive.email",
+      "subject": "Pelham",
+      "at": "2026-10-27T20:40:00Z",
+      "in_reply_to": null,
+      "body": "Hi! 489 is fine with me. For the record I'm comfortable going up to $495,000 max.\n\nJune"
+    },
+    {
+      "id": "m4",
+      "direction": "outbound",
+      "from": "offers@stonecrest-agents.primitive.email",
+      "fromName": "Stonecrest Buyer Agent",
+      "to": "v.amadi@cobalt-realty.example",
+      "subject": "RE: Offer: 9 Pelham Court (PEL-9)",
+      "at": "2026-10-28T14:00:00Z",
+      "in_reply_to": "m2",
+      "body": "Victor - we accept the seller's counter at $489,000, closing Tuesday Dec 15. June signed the counter in DocuSign this morning (env. 4C7-118).\n\nStonecrest\n\n -----Original Message-----\nFrom: \tAmadi, Victor\nSent:\tTuesday, October 27, 2026 10:15 AM\nTo:\tStonecrest Buyer Agent\nSubject:\tRE: Offer: 9 Pelham Court (PEL-9)\n\nSeller counters at $489,000, closing Tuesday Dec 15. Inspection contingency until Monday Nov 9. Counter attached.\n\nCondo dues $412/mo incl. water.\n\nVictor Amadi\nCobalt Realty | 312-555-0158\n\n -----Original Message-----\nFrom: \tStonecrest Buyer Agent\nSent:\tMonday, October 26, 2026 9:30 AM\nTo:\tAmadi, Victor\nSubject:\tOffer: 9 Pelham Court (PEL-9)\n\nVictor,\n\nOn behalf of June Takahashi we offer $470,000 for 9 Pelham Court (MLS #PC-660193), closing by Thu Dec 31, $12,500 EMD.\n\nPlease let us know the seller's response.\n\nStonecrest Buyer Agent"
+    },
+    {
+      "id": "m5",
+      "direction": "inbound",
+      "from": "office@ironwood-inspect.example",
+      "fromName": "Ironwood Inspections",
+      "to": "offers@stonecrest-agents.primitive.email",
+      "subject": "Pelham Ct inspection",
+      "at": "2026-10-29T16:00:00Z",
+      "in_reply_to": null,
+      "body": "Earliest we can do 9 Pelham is Friday Nov 6 - the inspection is booked for 10am. Sewer scope sub ($275) is same day, his write-up usually takes 3-4 business days.\n\nIronwood Inspections  312-555-0110"
+    },
+    {
+      "id": "m6",
+      "direction": "outbound",
+      "from": "offers@stonecrest-agents.primitive.email",
+      "fromName": "Stonecrest Buyer Agent",
+      "to": "v.amadi@cobalt-realty.example",
+      "subject": "RE: Offer: 9 Pelham Court (PEL-9)",
+      "at": "2026-10-29T17:20:00Z",
+      "in_reply_to": "m4",
+      "body": "Victor,\n\nOur inspector's first opening is Fri Nov 6 and the sewer scope write-up takes a few business days after that. Can the seller extend the inspection contingency to Fri Nov 13? Everything else as agreed.\n\nStonecrest Buyer Agent\n\n -----Original Message-----\nFrom: \tStonecrest Buyer Agent\nSent:\tWednesday, October 28, 2026 9:00 AM\nTo:\tAmadi, Victor\nSubject:\tRE: Offer: 9 Pelham Court (PEL-9)\n\nVictor - we accept the seller's counter at $489,000, closing Tuesday Dec 15. June signed the counter in DocuSign this morning (env. 4C7-118).\n\nStonecrest\n\n -----Original Message-----\nFrom: \tAmadi, Victor\nSent:\tTuesday, October 27, 2026 10:15 AM\nTo:\tStonecrest Buyer Agent\nSubject:\tRE: Offer: 9 Pelham Court (PEL-9)\n\nSeller counters at $489,000, closing Tuesday Dec 15. Inspection contingency until Monday Nov 9. Counter attached.\n\nCondo dues $412/mo incl. water.\n\nVictor Amadi\nCobalt Realty | 312-555-0158\n\n -----Original Message-----\nFrom: \tStonecrest Buyer Agent\nSent:\tMonday, October 26, 2026 9:30 AM\nTo:\tAmadi, Victor\nSubject:\tOffer: 9 Pelham Court (PEL-9)\n\nVictor,\n\nOn behalf of June Takahashi we offer $470,000 for 9 Pelham Court (MLS #PC-660193), closing by Thu Dec 31, $12,500 EMD.\n\nPlease let us know the seller's response.\n\nStonecrest Buyer Agent"
+    },
+    {
+      "id": "m7",
+      "direction": "inbound",
+      "from": "v.amadi@cobalt-realty.example",
+      "fromName": "Victor Amadi",
+      "to": "offers@stonecrest-agents.primitive.email",
+      "subject": "RE: Offer: 9 Pelham Court (PEL-9)",
+      "at": "2026-10-30T15:45:00Z",
+      "in_reply_to": "m6",
+      "body": "Spoke w/ seller. We can extend the inspection period to the 14th - she'd rather give you the full week. Closing stays Dec 15, nothing else changes. I'll send the amendment Monday.\n\nV\n\n -----Original Message-----\nFrom: \tStonecrest Buyer Agent\nSent:\tThursday, October 29, 2026 12:20 PM\nTo:\tAmadi, Victor\nSubject:\tRE: Offer: 9 Pelham Court (PEL-9)\n\nVictor,\n\nOur inspector's first opening is Fri Nov 6 and the sewer scope write-up takes a few business days after that. Can the seller extend the inspection contingency to Fri Nov 13? Everything else as agreed.\n\nStonecrest Buyer Agent\n\n -----Original Message-----\nFrom: \tStonecrest Buyer Agent\nSent:\tWednesday, October 28, 2026 9:00 AM\nTo:\tAmadi, Victor\nSubject:\tRE: Offer: 9 Pelham Court (PEL-9)\n\nVictor - we accept the seller's counter at $489,000, closing Tuesday Dec 15. June signed the counter in DocuSign this morning (env. 4C7-118).\n\nStonecrest\n\n -----Original Message-----\nFrom: \tAmadi, Victor\nSent:\tTuesday, October 27, 2026 10:15 AM\nTo:\tStonecrest Buyer Agent\nSubject:\tRE: Offer: 9 Pelham Court (PEL-9)\n\nSeller counters at $489,000, closing Tuesday Dec 15. Inspection contingency until Monday Nov 9. Counter attached.\n\nCondo dues $412/mo incl. water.\n\nVictor Amadi\nCobalt Realty | 312-555-0158\n\n -----Original Message-----\nFrom: \tStonecrest Buyer Agent\nSent:\tMonday, October 26, 2026 9:30 AM\nTo:\tAmadi, Victor\nSubject:\tOffer: 9 Pelham Court (PEL-9)\n\nVictor,\n\nOn behalf of June Takahashi we offer $470,000 for 9 Pelham Court (MLS #PC-660193), closing by Thu Dec 31, $12,500 EMD.\n\nPlease let us know the seller's response.\n\nStonecrest Buyer Agent"
+    },
+    {
+      "id": "m8",
+      "direction": "inbound",
+      "from": "june.takahashi@takahashi-home.example",
+      "fromName": "June Takahashi",
+      "to": "offers@stonecrest-agents.primitive.email",
+      "subject": "Re: Pelham",
+      "at": "2026-10-30T19:10:00Z",
+      "in_reply_to": "m3",
+      "body": "did they agree to more time for the inspection? what's the deadline now and does closing move?\n\nJ\n\nOn Tue, Oct 27, 2026 at 3:40 PM June Takahashi <june.takahashi@takahashi-home.example> wrote:\n> Hi! 489 is fine with me. For the record I'm comfortable going up to $495,000 max.\n>\n> June"
+    },
+    {
+      "id": "m9",
+      "direction": "outbound",
+      "from": "offers@stonecrest-agents.primitive.email",
+      "fromName": "Stonecrest Buyer Agent",
+      "to": "june.takahashi@takahashi-home.example",
+      "subject": "Re: Pelham",
+      "at": "2026-10-30T19:40:00Z",
+      "in_reply_to": "m8",
+      "body": "June - yes. The inspection contingency now runs through Sat Nov 14. Closing does not move: still Tuesday Dec 15. Inspection is Fri Nov 6 at 10am.\n\nOn Fri, Oct 30, 2026 at 2:10 PM June Takahashi <june.takahashi@takahashi-home.example> wrote:\n> did they agree to more time for the inspection? what's the deadline now and does closing move?\n>\n> J\n>\n> On Tue, Oct 27, 2026 at 3:40 PM June Takahashi <june.takahashi@takahashi-home.example> wrote:\n> > Hi! 489 is fine with me. For the record I'm comfortable going up to $495,000 max.\n> >\n> > June"
+    },
+    {
+      "id": "m10",
+      "direction": "inbound",
+      "from": "v.amadi@cobalt-realty.example",
+      "fromName": "Victor Amadi",
+      "to": "offers@stonecrest-agents.primitive.email",
+      "subject": "RE: Offer: 9 Pelham Court (PEL-9)",
+      "at": "2026-11-02T16:05:00Z",
+      "in_reply_to": "m7",
+      "body": "Amendment attached, seller signed.\n\nVictor\n\n -----Original Message-----\nFrom: \tAmadi, Victor\nSent:\tFriday, October 30, 2026 10:45 AM\nTo:\tStonecrest Buyer Agent\nSubject:\tRE: Offer: 9 Pelham Court (PEL-9)\n\nSpoke w/ seller. We can extend the inspection period to the 14th - she'd rather give you the full week. Closing stays Dec 15, nothing else changes. I'll send the amendment Monday.\n\nV\n\n -----Original Message-----\nFrom: \tStonecrest Buyer Agent\nSent:\tThursday, October 29, 2026 12:20 PM\nTo:\tAmadi, Victor\nSubject:\tRE: Offer: 9 Pelham Court (PEL-9)\n\nVictor,\n\nOur inspector's first opening is Fri Nov 6 and the sewer scope write-up takes a few business days after that. Can the seller extend the inspection contingency to Fri Nov 13? Everything else as agreed.\n\nStonecrest Buyer Agent\n\n -----Original Message-----\nFrom: \tStonecrest Buyer Agent\nSent:\tWednesday, October 28, 2026 9:00 AM\nTo:\tAmadi, Victor\nSubject:\tRE: Offer: 9 Pelham Court (PEL-9)\n\nVictor - we accept the seller's counter at $489,000, closing Tuesday Dec 15. June signed the counter in DocuSign this morning (env. 4C7-118).\n\nStonecrest\n\n -----Original Message-----\nFrom: \tAmadi, Victor\nSent:\tTuesday, October 27, 2026 10:15 AM\nTo:\tStonecrest Buyer Agent\nSubject:\tRE: Offer: 9 Pelham Court (PEL-9)\n\nSeller counters at $489,000, closing Tuesday Dec 15. Inspection contingency until Monday Nov 9. Counter attached.\n\nCondo dues $412/mo incl. water.\n\nVictor Amadi\nCobalt Realty | 312-555-0158\n\n -----Original Message-----\nFrom: \tStonecrest Buyer Agent\nSent:\tMonday, October 26, 2026 9:30 AM\nTo:\tAmadi, Victor\nSubject:\tOffer: 9 Pelham Court (PEL-9)\n\nVictor,\n\nOn behalf of June Takahashi we offer $470,000 for 9 Pelham Court (MLS #PC-660193), closing by Thu Dec 31, $12,500 EMD.\n\nPlease let us know the seller's response.\n\nStonecrest Buyer Agent",
+      "attachments": [
+        {
+          "filename": "Cobalt-Amendment-1-PEL-9.pdf",
+          "lines": [
+            "COBALT REALTY - AMENDMENT #1 TO PURCHASE AGREEMENT",
+            "Property: 9 Pelham Court    Ref: PEL-9",
+            "Inspection contingency until Saturday, November 14, 2026 (extended)",
+            "All other terms unchanged."
+          ]
+        }
+      ]
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m6",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 489000,
+          "stated_in": "m2",
+          "evidence": "Seller counters at $489,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-15",
+          "stated_in": "m2",
+          "evidence": "closing Tuesday Dec 15"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-09",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until Monday Nov 9"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 495000,
+          "stated_in": "m3",
+          "evidence": "I'm comfortable going up to $495,000 max"
+        },
+        {
+          "party": "inspector",
+          "term": "inspection.date",
+          "value": "2026-11-06",
+          "stated_in": "m5",
+          "evidence": "Friday Nov 6 - the inspection is booked for 10am"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 489000,
+          "stated_in": "m4",
+          "evidence": "we accept the seller's counter at $489,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "decision.accept",
+          "value": "accepted",
+          "stated_in": "m4",
+          "evidence": "we accept the seller's counter at $489,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-15",
+          "stated_in": "m4",
+          "evidence": "closing Tuesday Dec 15"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 470000,
+          "stated_in": "m1",
+          "evidence": "we offer $470,000 for 9 Pelham Court",
+          "replaced_in": "m4"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-31",
+          "stated_in": "m1",
+          "evidence": "closing by Thu Dec 31",
+          "replaced_in": "m4"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "seller's response to the offer",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "extend the inspection contingency to Fri Nov 13",
+          "status": "open",
+          "opened_in": "m6"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Cobalt-Counter-PEL-9.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "unknown",
+        "price_approval": "pass"
+      },
+      "next_actor": "them"
+    },
+    {
+      "after": "m8",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 489000,
+          "stated_in": "m2",
+          "evidence": "Seller counters at $489,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-15",
+          "stated_in": "m2",
+          "evidence": "closing Tuesday Dec 15"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-14",
+          "stated_in": "m7",
+          "evidence": "We can extend the inspection period to the 14th"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 495000,
+          "stated_in": "m3",
+          "evidence": "I'm comfortable going up to $495,000 max"
+        },
+        {
+          "party": "inspector",
+          "term": "inspection.date",
+          "value": "2026-11-06",
+          "stated_in": "m5",
+          "evidence": "Friday Nov 6 - the inspection is booked for 10am"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 489000,
+          "stated_in": "m4",
+          "evidence": "we accept the seller's counter at $489,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "decision.accept",
+          "value": "accepted",
+          "stated_in": "m4",
+          "evidence": "we accept the seller's counter at $489,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-15",
+          "stated_in": "m4",
+          "evidence": "closing Tuesday Dec 15"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 470000,
+          "stated_in": "m1",
+          "evidence": "we offer $470,000 for 9 Pelham Court",
+          "replaced_in": "m4"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-09",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until Monday Nov 9",
+          "replaced_in": "m7"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-31",
+          "stated_in": "m1",
+          "evidence": "closing by Thu Dec 31",
+          "replaced_in": "m4"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "seller's response to the offer",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "extend the inspection contingency to Fri Nov 13",
+          "status": "answered",
+          "opened_in": "m6",
+          "resolved_in": "m7"
+        },
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "commitment",
+          "about": "send the amendment Monday",
+          "status": "open",
+          "opened_in": "m7"
+        },
+        {
+          "owed_by": "buyer agent (us)",
+          "owed_to": "buyer",
+          "kind": "question",
+          "about": "new inspection deadline and whether closing moves",
+          "status": "open",
+          "opened_in": "m8"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Cobalt-Counter-PEL-9.pdf",
+          "status": "partially_stale"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "unknown",
+        "price_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "buyer",
+        "must": [
+          "nov(ember)?\\.? 14|14th",
+          "dec(ember)?\\.? 15|15th"
+        ],
+        "must_not": [
+          "nov(ember)?\\.? 9\\b|9th",
+          "nov(ember)?\\.? 13|13th",
+          "closing (has )?mov(ed|es) to"
+        ]
+      }
+    },
+    {
+      "after": "m10",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 489000,
+          "stated_in": "m2",
+          "evidence": "Seller counters at $489,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-15",
+          "stated_in": "m2",
+          "evidence": "closing Tuesday Dec 15"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-14",
+          "stated_in": "m7",
+          "evidence": "We can extend the inspection period to the 14th"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 495000,
+          "stated_in": "m3",
+          "evidence": "I'm comfortable going up to $495,000 max"
+        },
+        {
+          "party": "inspector",
+          "term": "inspection.date",
+          "value": "2026-11-06",
+          "stated_in": "m5",
+          "evidence": "Friday Nov 6 - the inspection is booked for 10am"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 489000,
+          "stated_in": "m4",
+          "evidence": "we accept the seller's counter at $489,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "decision.accept",
+          "value": "accepted",
+          "stated_in": "m4",
+          "evidence": "we accept the seller's counter at $489,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-15",
+          "stated_in": "m4",
+          "evidence": "closing Tuesday Dec 15"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 470000,
+          "stated_in": "m1",
+          "evidence": "we offer $470,000 for 9 Pelham Court",
+          "replaced_in": "m4"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-11-09",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until Monday Nov 9",
+          "replaced_in": "m7"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-31",
+          "stated_in": "m1",
+          "evidence": "closing by Thu Dec 31",
+          "replaced_in": "m4"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "request",
+          "about": "seller's response to the offer",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "extend the inspection contingency to Fri Nov 13",
+          "status": "answered",
+          "opened_in": "m6",
+          "resolved_in": "m7"
+        },
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "commitment",
+          "about": "send the amendment Monday",
+          "status": "fulfilled",
+          "opened_in": "m7",
+          "resolved_in": "m10"
+        },
+        {
+          "owed_by": "buyer agent (us)",
+          "owed_to": "buyer",
+          "kind": "question",
+          "about": "new inspection deadline and whether closing moves",
+          "status": "answered",
+          "opened_in": "m8",
+          "resolved_in": "m9"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Cobalt-Counter-PEL-9.pdf",
+          "status": "partially_stale"
+        },
+        {
+          "filename": "Cobalt-Amendment-1-PEL-9.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "appraisal_gap": "unknown",
+        "price_approval": "pass"
+      },
+      "next_actor": "them"
+    }
+  ],
+  "notes": "After acceptance, we ask to extend the inspection contingency to Fri Nov 13. The listing agent answers \"we can extend the inspection period to the 14th\" and \"closing stays Dec 15\": only contingency.inspection_until changes (Nov 9 -> Nov 14), closing and price stay. The day number is bare (\"the 14th\"), and it is not the date we asked for. Our question (Nov 13) states nothing. The amendment PDF later confirms the 14th; the counter PDF becomes partially stale. Distractors: $12,500 EMD, MLS #, HOA, sewer-scope fee, phone numbers."
+}

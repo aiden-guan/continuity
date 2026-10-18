@@ -129,6 +129,13 @@ export interface DomainPack {
   expectedTerms?(task: TaskSpec): { party: Participant; keys: string[] }[];
   /** The term that records a decision of ours (acceptance, approval). */
   decisionKey: string | null;
+  /** Term-key prefixes on which our own offers are our current position (a buyer's offer and counters:
+   *  "we counter at $945,000, closing Dec 18"). Elsewhere what we write is an ask, not an offer, and only our
+   *  decisions apply. Never a term our own side decides (a ceiling we quote is not the approver's budget). */
+  ourOfferTerms?: string[];
+  /** What a deal still waits on from the other side once we have accepted ("the executed contract and closing");
+   *  unset when accepting finishes it (a confirmed order has nothing outstanding). */
+  afterAcceptance?: string;
   /** Term-key prefixes a withdrawal retracts (default: every offer term of the speaker). Withdrawing an
    *  early-payment offer does not withdraw the invoice it was made on. */
   withdrawable?: string[];
@@ -203,7 +210,7 @@ export function outcomeOf(pack: DomainPack, task: TaskSpec, active: Claim[]): 'a
   const ended = new Set(active.filter((c) => lifecycle.has(c.key)).map((c) => c.speaker));
   const counterparties = task.participants.filter((p) => p.role === 'counterparty').map((p) => p.address.toLowerCase());
   if (ended.has(self) || (counterparties.length > 0 && counterparties.every((a) => ended.has(a)))) return 'fell_through';
-  if (pack.decisionKey && active.some((c) => c.key === pack.decisionKey && c.speaker === self)) return 'accepted';
+  if (pack.decisionKey && active.some((c) => c.key === pack.decisionKey && c.speaker === self && c.value !== 'declined')) return 'accepted';
   return 'open';
 }
 

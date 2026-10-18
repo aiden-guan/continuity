@@ -1,0 +1,504 @@
+{
+  "id": "P02",
+  "domain": "procurement",
+  "title": "Stretch film order: second release slips in an Orig./Rev. table; gold schedule is the full resulting schedule, not just the moved lot",
+  "features": [
+    "partial_update",
+    "table",
+    "quoted_history",
+    "distractor_numbers",
+    "terse_shorthand",
+    "answered_question"
+  ],
+  "task": {
+    "id": "task_p02",
+    "alias": "PO-6233",
+    "goal": "Buy 900 rolls of PF-1880C 80ga cast stretch film for PO-6233. All 900 must arrive by Wed Nov 18; unit price must not exceed $21.50.",
+    "item": "PF-1880C 18 in. x 1,500 ft 80-gauge cast stretch film rolls",
+    "self_address": "buyer@kestrel-foods.primitive.email",
+    "domain": "procurement",
+    "participants": [
+      {
+        "address": "buyer@kestrel-foods.primitive.email",
+        "name": "Kestrel Purchasing Agent",
+        "role": "self",
+        "label": "Kestrel (us)",
+        "authority": [
+          "decision."
+        ]
+      },
+      {
+        "address": "a.medina@polaris-film.example",
+        "name": "Arlo Medina (Polaris Film Co.)",
+        "role": "counterparty",
+        "label": "supplier",
+        "authority": [
+          "price.",
+          "delivery.",
+          "order.",
+          "payment.",
+          "quote.",
+          "offer."
+        ],
+        "group": "polaris"
+      },
+      {
+        "address": "j.park@kestrel-foods.example",
+        "name": "Jun Park (Kestrel Finance)",
+        "role": "internal",
+        "label": "finance",
+        "authority": [
+          "budget."
+        ]
+      }
+    ],
+    "requirements": [
+      {
+        "key": "requirement.quantity",
+        "value": 900,
+        "display": "900 rolls",
+        "hard": true
+      },
+      {
+        "key": "requirement.deliver_all_by",
+        "value": "2026-11-18",
+        "display": "Wed Nov 18",
+        "hard": true
+      },
+      {
+        "key": "requirement.max_unit_price",
+        "value": 21.5,
+        "display": "$21.50",
+        "hard": true
+      }
+    ]
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "outbound",
+      "from": "buyer@kestrel-foods.primitive.email",
+      "fromName": "Kestrel Purchasing Agent",
+      "to": "a.medina@polaris-film.example",
+      "subject": "RFQ PO-6233 - 900 rolls 80ga stretch film",
+      "at": "2026-11-02T14:10:00Z",
+      "in_reply_to": null,
+      "body": "Arlo,\n\nPlease quote 900 rolls of 18\" x 1500' 80ga cast stretch film (your SKU PF-1880C) for PO-6233. All 900 need to be at our Fresno DC by Wed Nov 18. Split deliveries are fine. What's your best unit price and ship plan?\n\nThanks,\nKestrel Purchasing"
+    },
+    {
+      "id": "m2",
+      "direction": "outbound",
+      "from": "buyer@kestrel-foods.primitive.email",
+      "fromName": "Kestrel Purchasing Agent",
+      "to": "j.park@kestrel-foods.example",
+      "subject": "PO-6233 budget - stretch film",
+      "at": "2026-11-02T14:15:00Z",
+      "in_reply_to": null,
+      "body": "Jun - need approval up to $21.50/roll on PO-6233 (900 rolls stretch film, replaces the 63ga we were buying on PO-5871). ok?\n\nthx"
+    },
+    {
+      "id": "m3",
+      "direction": "inbound",
+      "from": "a.medina@polaris-film.example",
+      "fromName": "Arlo Medina",
+      "to": "buyer@kestrel-foods.primitive.email",
+      "subject": "RE: RFQ PO-6233 - 900 rolls 80ga stretch film",
+      "at": "2026-11-03T17:05:00Z",
+      "in_reply_to": "m1",
+      "body": "Hi,\n\nWe can supply the 900 rolls at $20.75 per roll, FOB your dock. Plan is 2 releases:\n\nRel.\tQty\tDeliver\n1\t500\tTue 11/10\n2\t400\tFri 11/13\n\nTerms Net 30. Quote PQ-21907 attached. Pallets are 30 rolls/pallet so 30 pallets total; we'll need 2 dock doors on the 10th.\n\nArlo Medina\nPolaris Film Co. | 559-555-0182 | cust # 40917\n\n -----Original Message-----\nFrom: \tKestrel Purchasing\nSent:\tMonday, November 02, 2026 9:10 AM\nTo:\tMedina, Arlo\nSubject:\tRFQ PO-6233 - 900 rolls 80ga stretch film\n\nArlo,\n\nPlease quote 900 rolls of 18\" x 1500' 80ga cast stretch film (your SKU PF-1880C) for PO-6233. All 900 need to be at our Fresno DC by Wed Nov 18. Split deliveries are fine. What's your best unit price and ship plan?\n\nThanks,\nKestrel Purchasing",
+      "attachments": [
+        {
+          "filename": "Polaris-Quote-PQ-21907.pdf",
+          "lines": [
+            "POLARIS FILM CO. - QUOTATION PQ-21907",
+            "Customer: Kestrel Foods (PO-6233)",
+            "Item: PF-1880C 18 in x 1,500 ft 80ga cast stretch film",
+            "Quantity: 900 rolls",
+            "Unit price: $20.75 per roll",
+            "Release 1: 500 rolls deliver Tue Nov 10, 2026",
+            "Release 2: 400 rolls deliver Fri Nov 13, 2026",
+            "Payment terms: Net 30",
+            "Total: $18,675.00"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m4",
+      "direction": "inbound",
+      "from": "j.park@kestrel-foods.example",
+      "fromName": "Jun Park",
+      "to": "buyer@kestrel-foods.primitive.email",
+      "subject": "RE: PO-6233 budget - stretch film",
+      "at": "2026-11-03T19:30:00Z",
+      "in_reply_to": "m2",
+      "body": "approved, up to $21.50 per roll. charge to 7720-PKG.\n\nJun\n\n -----Original Message-----\nFrom: \tKestrel Purchasing\nSent:\tMonday, November 02, 2026 9:15 AM\nTo:\tPark, Jun\nSubject:\tPO-6233 budget - stretch film\n\nJun - need approval up to $21.50/roll on PO-6233 (900 rolls stretch film, replaces the 63ga we were buying on PO-5871). ok?\n\nthx"
+    },
+    {
+      "id": "m5",
+      "direction": "outbound",
+      "from": "buyer@kestrel-foods.primitive.email",
+      "fromName": "Kestrel Purchasing Agent",
+      "to": "a.medina@polaris-film.example",
+      "subject": "RE: RFQ PO-6233 - 900 rolls 80ga stretch film",
+      "at": "2026-11-04T13:00:00Z",
+      "in_reply_to": "m3",
+      "body": "Arlo - we accept PQ-21907 at $20.75/roll, 500 on 11/10 and 400 on 11/13. PO-6233 will come from our system separately.\n\nKestrel Purchasing\n\n -----Original Message-----\nFrom: \tMedina, Arlo\nSent:\tTuesday, November 03, 2026 12:05 PM\nTo:\tKestrel Purchasing\nSubject:\tRE: RFQ PO-6233 - 900 rolls 80ga stretch film\n\nHi,\n\nWe can supply the 900 rolls at $20.75 per roll, FOB your dock. Plan is 2 releases:\n\nRel.\tQty\tDeliver\n1\t500\tTue 11/10\n2\t400\tFri 11/13\n\nTerms Net 30. Quote PQ-21907 attached. Pallets are 30 rolls/pallet so 30 pallets total; we'll need 2 dock doors on the 10th.\n\nArlo Medina\nPolaris Film Co. | 559-555-0182 | cust # 40917\n\n -----Original Message-----\nFrom: \tKestrel Purchasing\nSent:\tMonday, November 02, 2026 9:10 AM\nTo:\tMedina, Arlo\nSubject:\tRFQ PO-6233 - 900 rolls 80ga stretch film\n\nArlo,\n\nPlease quote 900 rolls of 18\" x 1500' 80ga cast stretch film (your SKU PF-1880C) for PO-6233. All 900 need to be at our Fresno DC by Wed Nov 18. Split deliveries are fine. What's your best unit price and ship plan?\n\nThanks,\nKestrel Purchasing"
+    },
+    {
+      "id": "m6",
+      "direction": "inbound",
+      "from": "a.medina@polaris-film.example",
+      "fromName": "Arlo Medina",
+      "to": "buyer@kestrel-foods.primitive.email",
+      "subject": "RE: RFQ PO-6233 - 900 rolls 80ga stretch film",
+      "at": "2026-11-06T21:40:00Z",
+      "in_reply_to": "m5",
+      "body": "Our 2nd cast line went down Wed night (gearbox), so release 2 slips. Release 1 is unaffected. Revised:\n\nRel.\tQty\tOrig.\tRev.\n1\t500\t11/10\t11/10\n2\t400\t11/13\t11/20\n\nSo the 500 still deliver Tue the 10th; the other 400 now ship Fri the 20th. Sorry for the hassle. Price unchanged.\n\nArlo\n\n -----Original Message-----\nFrom: \tKestrel Purchasing\nSent:\tWednesday, November 04, 2026 8:00 AM\nTo:\tMedina, Arlo\nSubject:\tRE: RFQ PO-6233 - 900 rolls 80ga stretch film\n\nArlo - we accept PQ-21907 at $20.75/roll, 500 on 11/10 and 400 on 11/13. PO-6233 will come from our system separately.\n\nKestrel Purchasing\n\n -----Original Message-----\nFrom: \tMedina, Arlo\nSent:\tTuesday, November 03, 2026 12:05 PM\nTo:\tKestrel Purchasing\nSubject:\tRE: RFQ PO-6233 - 900 rolls 80ga stretch film\n\nHi,\n\nWe can supply the 900 rolls at $20.75 per roll, FOB your dock. Plan is 2 releases:\n\nRel.\tQty\tDeliver\n1\t500\tTue 11/10\n2\t400\tFri 11/13\n\nTerms Net 30. Quote PQ-21907 attached. Pallets are 30 rolls/pallet so 30 pallets total; we'll need 2 dock doors on the 10th.\n\nArlo Medina\nPolaris Film Co. | 559-555-0182 | cust # 40917\n\n -----Original Message-----\nFrom: \tKestrel Purchasing\nSent:\tMonday, November 02, 2026 9:10 AM\nTo:\tMedina, Arlo\nSubject:\tRFQ PO-6233 - 900 rolls 80ga stretch film\n\nArlo,\n\nPlease quote 900 rolls of 18\" x 1500' 80ga cast stretch film (your SKU PF-1880C) for PO-6233. All 900 need to be at our Fresno DC by Wed Nov 18. Split deliveries are fine. What's your best unit price and ship plan?\n\nThanks,\nKestrel Purchasing"
+    },
+    {
+      "id": "m7",
+      "direction": "outbound",
+      "from": "buyer@kestrel-foods.primitive.email",
+      "fromName": "Kestrel Purchasing Agent",
+      "to": "a.medina@polaris-film.example",
+      "subject": "RE: RFQ PO-6233 - 900 rolls 80ga stretch film",
+      "at": "2026-11-09T14:20:00Z",
+      "in_reply_to": "m6",
+      "body": "Arlo,\n\nThe 20th doesn't work - the 400 have to be here by Wed 11/18, we're out of stock on the 19th (store reset for 41 stores). Can you run release 2 on another line or ship partial earlier? Nothing changes on release 1.\n\nKestrel Purchasing\n\n -----Original Message-----\nFrom: \tMedina, Arlo\nSent:\tFriday, November 06, 2026 4:40 PM\nTo:\tKestrel Purchasing\nSubject:\tRE: RFQ PO-6233 - 900 rolls 80ga stretch film\n\nOur 2nd cast line went down Wed night (gearbox), so release 2 slips. Release 1 is unaffected. Revised:\n\nRel.\tQty\tOrig.\tRev.\n1\t500\t11/10\t11/10\n2\t400\t11/13\t11/20\n\nSo the 500 still deliver Tue the 10th; the other 400 now ship Fri the 20th. Sorry for the hassle. Price unchanged.\n\nArlo\n\n -----Original Message-----\nFrom: \tKestrel Purchasing\nSent:\tWednesday, November 04, 2026 8:00 AM\nTo:\tMedina, Arlo\nSubject:\tRE: RFQ PO-6233 - 900 rolls 80ga stretch film\n\nArlo - we accept PQ-21907 at $20.75/roll, 500 on 11/10 and 400 on 11/13. PO-6233 will come from our system separately.\n\nKestrel Purchasing\n\n -----Original Message-----\nFrom: \tMedina, Arlo\nSent:\tTuesday, November 03, 2026 12:05 PM\nTo:\tKestrel Purchasing\nSubject:\tRE: RFQ PO-6233 - 900 rolls 80ga stretch film\n\nHi,\n\nWe can supply the 900 rolls at $20.75 per roll, FOB your dock. Plan is 2 releases:\n\nRel.\tQty\tDeliver\n1\t500\tTue 11/10\n2\t400\tFri 11/13\n\nTerms Net 30. Quote PQ-21907 attached. Pallets are 30 rolls/pallet so 30 pallets total; we'll need 2 dock doors on the 10th.\n\nArlo Medina\nPolaris Film Co. | 559-555-0182 | cust # 40917\n\n -----Original Message-----\nFrom: \tKestrel Purchasing\nSent:\tMonday, November 02, 2026 9:10 AM\nTo:\tMedina, Arlo\nSubject:\tRFQ PO-6233 - 900 rolls 80ga stretch film\n\nArlo,\n\nPlease quote 900 rolls of 18\" x 1500' 80ga cast stretch film (your SKU PF-1880C) for PO-6233. All 900 need to be at our Fresno DC by Wed Nov 18. Split deliveries are fine. What's your best unit price and ship plan?\n\nThanks,\nKestrel Purchasing"
+    },
+    {
+      "id": "m8",
+      "direction": "inbound",
+      "from": "a.medina@polaris-film.example",
+      "fromName": "Arlo Medina",
+      "to": "buyer@kestrel-foods.primitive.email",
+      "subject": "RE: RFQ PO-6233 - 900 rolls 80ga stretch film",
+      "at": "2026-11-10T16:55:00Z",
+      "in_reply_to": "m7",
+      "body": "ok - we moved it to line 1 on 2nd shift. 400 deliver Wed 11/18 AM. rel 1 (500) arrived your dock this morning, BOL 7731-0042.\n\nA\n\n -----Original Message-----\nFrom: \tKestrel Purchasing\nSent:\tMonday, November 09, 2026 9:20 AM\nTo:\tMedina, Arlo\nSubject:\tRE: RFQ PO-6233 - 900 rolls 80ga stretch film\n\nArlo,\n\nThe 20th doesn't work - the 400 have to be here by Wed 11/18, we're out of stock on the 19th (store reset for 41 stores). Can you run release 2 on another line or ship partial earlier? Nothing changes on release 1.\n\nKestrel Purchasing\n\n -----Original Message-----\nFrom: \tMedina, Arlo\nSent:\tFriday, November 06, 2026 4:40 PM\nTo:\tKestrel Purchasing\nSubject:\tRE: RFQ PO-6233 - 900 rolls 80ga stretch film\n\nOur 2nd cast line went down Wed night (gearbox), so release 2 slips. Release 1 is unaffected. Revised:\n\nRel.\tQty\tOrig.\tRev.\n1\t500\t11/10\t11/10\n2\t400\t11/13\t11/20\n\nSo the 500 still deliver Tue the 10th; the other 400 now ship Fri the 20th. Sorry for the hassle. Price unchanged.\n\nArlo\n\n -----Original Message-----\nFrom: \tKestrel Purchasing\nSent:\tWednesday, November 04, 2026 8:00 AM\nTo:\tMedina, Arlo\nSubject:\tRE: RFQ PO-6233 - 900 rolls 80ga stretch film\n\nArlo - we accept PQ-21907 at $20.75/roll, 500 on 11/10 and 400 on 11/13. PO-6233 will come from our system separately.\n\nKestrel Purchasing\n\n -----Original Message-----\nFrom: \tMedina, Arlo\nSent:\tTuesday, November 03, 2026 12:05 PM\nTo:\tKestrel Purchasing\nSubject:\tRE: RFQ PO-6233 - 900 rolls 80ga stretch film\n\nHi,\n\nWe can supply the 900 rolls at $20.75 per roll, FOB your dock. Plan is 2 releases:\n\nRel.\tQty\tDeliver\n1\t500\tTue 11/10\n2\t400\tFri 11/13\n\nTerms Net 30. Quote PQ-21907 attached. Pallets are 30 rolls/pallet so 30 pallets total; we'll need 2 dock doors on the 10th.\n\nArlo Medina\nPolaris Film Co. | 559-555-0182 | cust # 40917\n\n -----Original Message-----\nFrom: \tKestrel Purchasing\nSent:\tMonday, November 02, 2026 9:10 AM\nTo:\tMedina, Arlo\nSubject:\tRFQ PO-6233 - 900 rolls 80ga stretch film\n\nArlo,\n\nPlease quote 900 rolls of 18\" x 1500' 80ga cast stretch film (your SKU PF-1880C) for PO-6233. All 900 need to be at our Fresno DC by Wed Nov 18. Split deliveries are fine. What's your best unit price and ship plan?\n\nThanks,\nKestrel Purchasing"
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m4",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 20.75,
+          "stated_in": "m3",
+          "evidence": "at $20.75 per roll"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 900,
+          "stated_in": "m3",
+          "evidence": "Quantity: 900 rolls"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 500,
+              "date": "2026-11-10"
+            },
+            {
+              "qty": 400,
+              "date": "2026-11-13"
+            }
+          ],
+          "stated_in": "m3",
+          "evidence": "Rel. Qty Deliver 1 500 Tue 11/10 2 400 Fri 11/13"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m3",
+          "evidence": "Terms Net 30"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 21.5,
+          "stated_in": "m4",
+          "evidence": "approved, up to $21.50 per roll"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Kestrel (us)",
+          "kind": "question",
+          "about": "unit price and ship plan",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m3"
+        },
+        {
+          "owed_by": "finance",
+          "owed_to": "Kestrel (us)",
+          "kind": "question",
+          "about": "approve up to $21.50/roll",
+          "status": "answered",
+          "opened_in": "m2",
+          "resolved_in": "m4"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Polaris-Quote-PQ-21907.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "supplier",
+        "must": [
+          "20\\.75",
+          "accept|confirm|approve"
+        ],
+        "must_not": [
+          "\\$?21\\.50"
+        ]
+      }
+    },
+    {
+      "after": "m6",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 20.75,
+          "stated_in": "m3",
+          "evidence": "at $20.75 per roll"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 900,
+          "stated_in": "m3",
+          "evidence": "Quantity: 900 rolls"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 500,
+              "date": "2026-11-10"
+            },
+            {
+              "qty": 400,
+              "date": "2026-11-20"
+            }
+          ],
+          "stated_in": "m6",
+          "evidence": "the other 400 now ship Fri the 20th"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m3",
+          "evidence": "Terms Net 30"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 21.5,
+          "stated_in": "m4",
+          "evidence": "approved, up to $21.50 per roll"
+        },
+        {
+          "party": "Kestrel (us)",
+          "term": "decision.order",
+          "value": "accepted",
+          "stated_in": "m5",
+          "evidence": "we accept PQ-21907 at $20.75/roll"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 500,
+              "date": "2026-11-10"
+            },
+            {
+              "qty": 400,
+              "date": "2026-11-13"
+            }
+          ],
+          "stated_in": "m3",
+          "evidence": "Rel. Qty Deliver 1 500 Tue 11/10 2 400 Fri 11/13",
+          "replaced_in": "m6"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Polaris-Quote-PQ-21907.pdf",
+          "status": "partially_stale"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "fail",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "supplier",
+        "must": [
+          "(nov(ember)?\\.? ?18|11/18|18th)",
+          "400"
+        ],
+        "must_not": [
+          "\\baccept (the )?(revised|new) (date|schedule)",
+          "\\$?21\\.50"
+        ]
+      }
+    },
+    {
+      "after": "m8",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 20.75,
+          "stated_in": "m3",
+          "evidence": "at $20.75 per roll"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 900,
+          "stated_in": "m3",
+          "evidence": "Quantity: 900 rolls"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 500,
+              "date": "2026-11-10"
+            },
+            {
+              "qty": 400,
+              "date": "2026-11-18"
+            }
+          ],
+          "stated_in": "m8",
+          "evidence": "400 deliver Wed 11/18 AM"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m3",
+          "evidence": "Terms Net 30"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 21.5,
+          "stated_in": "m4",
+          "evidence": "approved, up to $21.50 per roll"
+        },
+        {
+          "party": "Kestrel (us)",
+          "term": "decision.order",
+          "value": "accepted",
+          "stated_in": "m5",
+          "evidence": "we accept PQ-21907 at $20.75/roll"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 500,
+              "date": "2026-11-10"
+            },
+            {
+              "qty": 400,
+              "date": "2026-11-13"
+            }
+          ],
+          "stated_in": "m3",
+          "evidence": "Rel. Qty Deliver 1 500 Tue 11/10 2 400 Fri 11/13",
+          "replaced_in": "m6"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 500,
+              "date": "2026-11-10"
+            },
+            {
+              "qty": 400,
+              "date": "2026-11-20"
+            }
+          ],
+          "stated_in": "m6",
+          "evidence": "the other 400 now ship Fri the 20th",
+          "replaced_in": "m8"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Kestrel (us)",
+          "kind": "request",
+          "about": "get release 2 (400 rolls) in by 11/18",
+          "status": "answered",
+          "opened_in": "m7",
+          "resolved_in": "m8"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Polaris-Quote-PQ-21907.pdf",
+          "status": "partially_stale"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "supplier",
+        "must": [
+          "11/18|nov(ember)?\\.? ?18|18th"
+        ],
+        "must_not": [
+          "11/20|nov(ember)?\\.? ?20\\b|20th"
+        ]
+      }
+    }
+  ],
+  "notes": "m6 only moves release 2 (\"the other 400 now ship Fri the 20th\") via an Orig./Rev. table; release 1 is restated unchanged. The gold delivery.schedule after m6 is the FULL schedule (500 on 11/10 + 400 on 11/20), not just the 400 lot, and that misses the Nov 18 deadline. m8 moves the same lot again to 11/18 (tersely, with a BOL number and \"rel 1 (500) arrived\" as distractors); the full schedule is again 500/11-10 + 400/11-18. The original dates keep appearing in the quoted history and in the PQ-21907 attachment, which becomes partially_stale. Distractors: phone, customer #, 30 pallets, 2 dock doors, $18,675 total, cost centre, PO-5871, 41 stores, BOL 7731-0042. Our acceptance in m5 is recorded as decision.order."
+}

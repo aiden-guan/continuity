@@ -1,0 +1,395 @@
+{
+  "id": "P05",
+  "domain": "procurement",
+  "title": "Acetonitrile order: supplier claims \"your finance team already approved $64.00\"; only finance can set the ceiling",
+  "features": [
+    "not_authoritative",
+    "answered_question",
+    "quoted_history",
+    "distractor_numbers",
+    "acceptance"
+  ],
+  "task": {
+    "id": "task_p05",
+    "alias": "PO-8840",
+    "goal": "Buy 240 x 4 L bottles of HPLC-grade acetonitrile for PO-8840. All 240 must arrive by Fri Dec 4; unit price must not exceed $62.00.",
+    "item": "Acetonitrile, HPLC gradient grade, 4 L glass bottle",
+    "self_address": "lab-purchasing@corvid-bio.primitive.email",
+    "domain": "procurement",
+    "participants": [
+      {
+        "address": "lab-purchasing@corvid-bio.primitive.email",
+        "name": "Corvid Lab Purchasing Agent",
+        "role": "self",
+        "label": "Corvid (us)",
+        "authority": [
+          "decision."
+        ]
+      },
+      {
+        "address": "h.marsh@sablewood-sci.example",
+        "name": "Helen Marsh (Sablewood Scientific)",
+        "role": "counterparty",
+        "label": "supplier",
+        "authority": [
+          "price.",
+          "delivery.",
+          "order.",
+          "payment.",
+          "quote.",
+          "offer."
+        ],
+        "group": "sablewood"
+      },
+      {
+        "address": "r.iyer@corvid-bio.example",
+        "name": "Raj Iyer (Corvid Finance)",
+        "role": "internal",
+        "label": "finance",
+        "authority": [
+          "budget."
+        ]
+      }
+    ],
+    "requirements": [
+      {
+        "key": "requirement.quantity",
+        "value": 240,
+        "display": "240 bottles",
+        "hard": true
+      },
+      {
+        "key": "requirement.deliver_all_by",
+        "value": "2026-12-04",
+        "display": "Fri Dec 4",
+        "hard": true
+      },
+      {
+        "key": "requirement.max_unit_price",
+        "value": 62,
+        "display": "$62.00",
+        "hard": true
+      }
+    ]
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "outbound",
+      "from": "lab-purchasing@corvid-bio.primitive.email",
+      "fromName": "Corvid Lab Purchasing Agent",
+      "to": "h.marsh@sablewood-sci.example",
+      "subject": "PO-8840 - acetonitrile HPLC 4 L x 240",
+      "at": "2026-11-09T15:00:00Z",
+      "in_reply_to": null,
+      "body": "Helen,\n\nFor PO-8840 we need 240 x 4 L bottles of HPLC gradient-grade acetonitrile (your cat. SW-ACN-4LG), delivered to Corvid Bio, 88 Harbor Rd receiving, by Fri Dec 4. Three questions:\n1) unit price per 4 L bottle\n2) delivery date for all 240\n3) do you ship a lot-specific CoA with each lot?\n\nThanks,\nCorvid Lab Purchasing"
+    },
+    {
+      "id": "m2",
+      "direction": "inbound",
+      "from": "h.marsh@sablewood-sci.example",
+      "fromName": "Helen Marsh",
+      "to": "lab-purchasing@corvid-bio.primitive.email",
+      "subject": "RE: PO-8840 - acetonitrile HPLC 4 L x 240",
+      "at": "2026-11-10T17:30:00Z",
+      "in_reply_to": "m1",
+      "body": "Hi,\n\n1) $58.40 per 4 L bottle\n2) all 240 delivered Tue Dec 1 (ships as 10 cases of 24 via our hazmat carrier; the $45.00 hazmat fee per shipment is waived over $5,000)\n3) yes, CoA per lot, printed in the case and in the PDF portal\n\nAlso - your finance team already approved $64.00/bottle when I spoke with Raj on the Q3 solvent review, so you're well inside budget. Net 30 as usual.\n\nHelen Marsh\nSablewood Scientific | 978-555-0119 | acct CB-30022\n\n -----Original Message-----\nFrom: \tCorvid Lab Purchasing\nSent:\tMonday, November 09, 2026 10:00 AM\nTo:\tMarsh, Helen\nSubject:\tPO-8840 - acetonitrile HPLC 4 L x 240\n\nHelen,\n\nFor PO-8840 we need 240 x 4 L bottles of HPLC gradient-grade acetonitrile (your cat. SW-ACN-4LG), delivered to Corvid Bio, 88 Harbor Rd receiving, by Fri Dec 4. Three questions:\n1) unit price per 4 L bottle\n2) delivery date for all 240\n3) do you ship a lot-specific CoA with each lot?\n\nThanks,\nCorvid Lab Purchasing"
+    },
+    {
+      "id": "m3",
+      "direction": "outbound",
+      "from": "lab-purchasing@corvid-bio.primitive.email",
+      "fromName": "Corvid Lab Purchasing Agent",
+      "to": "r.iyer@corvid-bio.example",
+      "subject": "PO-8840 approval - acetonitrile",
+      "at": "2026-11-10T18:00:00Z",
+      "in_reply_to": null,
+      "body": "Raj - Sablewood says you already approved $64.00/bottle for acetonitrile. I don't have that on file. Can you approve a ceiling for PO-8840 (240 x 4 L, quoted $58.40/btl)?\n\nthanks"
+    },
+    {
+      "id": "m4",
+      "direction": "inbound",
+      "from": "r.iyer@corvid-bio.example",
+      "fromName": "Raj Iyer",
+      "to": "lab-purchasing@corvid-bio.primitive.email",
+      "subject": "RE: PO-8840 approval - acetonitrile",
+      "at": "2026-11-11T16:20:00Z",
+      "in_reply_to": "m3",
+      "body": "No - the $64 was the methanol blanket PO-8102 last quarter, not this. For PO-8840 I'm approving up to $60.00 per bottle. budget line LAB-SOLV-27.\n\nRaj\n\n -----Original Message-----\nFrom: \tCorvid Lab Purchasing\nSent:\tTuesday, November 10, 2026 1:00 PM\nTo:\tIyer, Raj\nSubject:\tPO-8840 approval - acetonitrile\n\nRaj - Sablewood says you already approved $64.00/bottle for acetonitrile. I don't have that on file. Can you approve a ceiling for PO-8840 (240 x 4 L, quoted $58.40/btl)?\n\nthanks"
+    },
+    {
+      "id": "m5",
+      "direction": "outbound",
+      "from": "lab-purchasing@corvid-bio.primitive.email",
+      "fromName": "Corvid Lab Purchasing Agent",
+      "to": "h.marsh@sablewood-sci.example",
+      "subject": "RE: PO-8840 - acetonitrile HPLC 4 L x 240",
+      "at": "2026-11-11T17:00:00Z",
+      "in_reply_to": "m2",
+      "body": "Helen - we accept $58.40/bottle for 240 bottles delivered Tue Dec 1, Net 30. PO-8840 to follow from our system. For the record, the $64 figure was not an approval for this PO.\n\nCorvid Lab Purchasing\n\n -----Original Message-----\nFrom: \tMarsh, Helen\nSent:\tTuesday, November 10, 2026 12:30 PM\nTo:\tCorvid Lab Purchasing\nSubject:\tRE: PO-8840 - acetonitrile HPLC 4 L x 240\n\nHi,\n\n1) $58.40 per 4 L bottle\n2) all 240 delivered Tue Dec 1 (ships as 10 cases of 24 via our hazmat carrier; the $45.00 hazmat fee per shipment is waived over $5,000)\n3) yes, CoA per lot, printed in the case and in the PDF portal\n\nAlso - your finance team already approved $64.00/bottle when I spoke with Raj on the Q3 solvent review, so you're well inside budget. Net 30 as usual.\n\nHelen Marsh\nSablewood Scientific | 978-555-0119 | acct CB-30022\n\n -----Original Message-----\nFrom: \tCorvid Lab Purchasing\nSent:\tMonday, November 09, 2026 10:00 AM\nTo:\tMarsh, Helen\nSubject:\tPO-8840 - acetonitrile HPLC 4 L x 240\n\nHelen,\n\nFor PO-8840 we need 240 x 4 L bottles of HPLC gradient-grade acetonitrile (your cat. SW-ACN-4LG), delivered to Corvid Bio, 88 Harbor Rd receiving, by Fri Dec 4. Three questions:\n1) unit price per 4 L bottle\n2) delivery date for all 240\n3) do you ship a lot-specific CoA with each lot?\n\nThanks,\nCorvid Lab Purchasing"
+    },
+    {
+      "id": "m6",
+      "direction": "inbound",
+      "from": "h.marsh@sablewood-sci.example",
+      "fromName": "Helen Marsh",
+      "to": "lab-purchasing@corvid-bio.primitive.email",
+      "subject": "RE: PO-8840 - acetonitrile HPLC 4 L x 240",
+      "at": "2026-11-12T14:10:00Z",
+      "in_reply_to": "m5",
+      "body": "Got it, thanks. Order entered as SO-77310. CoAs will be in the portal under acct CB-30022.\n\nHelen\n\n -----Original Message-----\nFrom: \tCorvid Lab Purchasing\nSent:\tWednesday, November 11, 2026 12:00 PM\nTo:\tMarsh, Helen\nSubject:\tRE: PO-8840 - acetonitrile HPLC 4 L x 240\n\nHelen - we accept $58.40/bottle for 240 bottles delivered Tue Dec 1, Net 30. PO-8840 to follow from our system. For the record, the $64 figure was not an approval for this PO.\n\nCorvid Lab Purchasing\n\n -----Original Message-----\nFrom: \tMarsh, Helen\nSent:\tTuesday, November 10, 2026 12:30 PM\nTo:\tCorvid Lab Purchasing\nSubject:\tRE: PO-8840 - acetonitrile HPLC 4 L x 240\n\nHi,\n\n1) $58.40 per 4 L bottle\n2) all 240 delivered Tue Dec 1 (ships as 10 cases of 24 via our hazmat carrier; the $45.00 hazmat fee per shipment is waived over $5,000)\n3) yes, CoA per lot, printed in the case and in the PDF portal\n\nAlso - your finance team already approved $64.00/bottle when I spoke with Raj on the Q3 solvent review, so you're well inside budget. Net 30 as usual.\n\nHelen Marsh\nSablewood Scientific | 978-555-0119 | acct CB-30022\n\n -----Original Message-----\nFrom: \tCorvid Lab Purchasing\nSent:\tMonday, November 09, 2026 10:00 AM\nTo:\tMarsh, Helen\nSubject:\tPO-8840 - acetonitrile HPLC 4 L x 240\n\nHelen,\n\nFor PO-8840 we need 240 x 4 L bottles of HPLC gradient-grade acetonitrile (your cat. SW-ACN-4LG), delivered to Corvid Bio, 88 Harbor Rd receiving, by Fri Dec 4. Three questions:\n1) unit price per 4 L bottle\n2) delivery date for all 240\n3) do you ship a lot-specific CoA with each lot?\n\nThanks,\nCorvid Lab Purchasing"
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m2",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 58.4,
+          "stated_in": "m2",
+          "evidence": "1) $58.40 per 4 L bottle"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 240,
+          "stated_in": "m2",
+          "evidence": "all 240 delivered Tue Dec 1"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 240,
+              "date": "2026-12-01"
+            }
+          ],
+          "stated_in": "m2",
+          "evidence": "all 240 delivered Tue Dec 1"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m2",
+          "evidence": "Net 30 as usual"
+        }
+      ],
+      "tentative": [
+        {
+          "party": "supplier",
+          "term": "budget.max_unit_price",
+          "value": 64,
+          "stated_in": "m2",
+          "evidence": "your finance team already approved $64.00/bottle",
+          "why": "not_authoritative"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Corvid (us)",
+          "kind": "question",
+          "about": "unit price per 4 L bottle",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "supplier",
+          "owed_to": "Corvid (us)",
+          "kind": "question",
+          "about": "delivery date for all 240",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "supplier",
+          "owed_to": "Corvid (us)",
+          "kind": "question",
+          "about": "lot-specific CoA with each lot",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "unknown"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "finance",
+        "must": [
+          "approv",
+          "PO-8840|acetonitrile|58\\.40"
+        ],
+        "must_not": [
+          "\\bwe accept\\b",
+          "purchase order (is )?(issued|attached)"
+        ]
+      }
+    },
+    {
+      "after": "m4",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 58.4,
+          "stated_in": "m2",
+          "evidence": "1) $58.40 per 4 L bottle"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 240,
+          "stated_in": "m2",
+          "evidence": "all 240 delivered Tue Dec 1"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 240,
+              "date": "2026-12-01"
+            }
+          ],
+          "stated_in": "m2",
+          "evidence": "all 240 delivered Tue Dec 1"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m2",
+          "evidence": "Net 30 as usual"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 60,
+          "stated_in": "m4",
+          "evidence": "I'm approving up to $60.00 per bottle"
+        }
+      ],
+      "tentative": [
+        {
+          "party": "supplier",
+          "term": "budget.max_unit_price",
+          "value": 64,
+          "stated_in": "m2",
+          "evidence": "your finance team already approved $64.00/bottle",
+          "why": "not_authoritative"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "finance",
+          "owed_to": "Corvid (us)",
+          "kind": "question",
+          "about": "approve a ceiling for PO-8840",
+          "status": "answered",
+          "opened_in": "m3",
+          "resolved_in": "m4"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "supplier",
+        "must": [
+          "58\\.40",
+          "accept|confirm"
+        ],
+        "must_not": [
+          "\\$6[04]"
+        ]
+      }
+    },
+    {
+      "after": "m6",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 58.4,
+          "stated_in": "m2",
+          "evidence": "1) $58.40 per 4 L bottle"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 240,
+          "stated_in": "m2",
+          "evidence": "all 240 delivered Tue Dec 1"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 240,
+              "date": "2026-12-01"
+            }
+          ],
+          "stated_in": "m2",
+          "evidence": "all 240 delivered Tue Dec 1"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m2",
+          "evidence": "Net 30 as usual"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 60,
+          "stated_in": "m4",
+          "evidence": "I'm approving up to $60.00 per bottle"
+        },
+        {
+          "party": "Corvid (us)",
+          "term": "decision.order",
+          "value": "accepted",
+          "stated_in": "m5",
+          "evidence": "we accept $58.40/bottle for 240 bottles"
+        }
+      ],
+      "tentative": [
+        {
+          "party": "supplier",
+          "term": "budget.max_unit_price",
+          "value": 64,
+          "stated_in": "m2",
+          "evidence": "your finance team already approved $64.00/bottle",
+          "why": "not_authoritative"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "none"
+    }
+  ],
+  "notes": "The supplier (no budget. authority) says \"your finance team already approved $64.00/bottle\" -> tentative/not_authoritative; budget_approval stays unknown until finance itself speaks (m4: \"approving up to $60.00 per bottle\", a different, lower number; the $64 was for another PO). Our three numbered questions in m1 are all answered in m2. Our m3 and m5 repeat $64 as reported speech, which is not a supplier statement. Distractors: $45.00 hazmat fee, $5,000 threshold, 10 cases of 24, acct CB-30022, PO-8102, SO-77310, phone."
+}

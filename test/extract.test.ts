@@ -158,3 +158,12 @@ test('pdf writer/reader round-trip (Flate content stream)', () => {
   const roundTripped = pdfText(makePdf(lines));
   assert.equal(roundTripped, lines.join('\n'));
 });
+
+test('quoted history starts at indented Outlook, address-less From:, and Lotus Notes headers', () => {
+  assert.equal(stripQuoted('new $12.35\n\n -----Original Message-----\nFrom: \tCarver, Bill\nSent:\tTuesday\n\nold $12.60'), 'new $12.35\n');
+  assert.equal(stripQuoted('new\nFrom:\tCarver, Bill\nSent:\tMonday, November 02, 2026\nold'), 'new');
+  assert.equal(stripQuoted('new\n\nIan Mercer/BLUEFIN@BLUEFIN\n10/22/2026 02:40 PM\n\nold'), 'new\n');
+  assert.equal(stripQuoted('fyi\n---------------------- Forwarded by Becca Lund/KHR@KEELHARBOR on 11/02/2026 ----\nold'), 'fyi');
+  // an ordinary line that happens to start with From: or To: is not a header
+  assert.equal(stripQuoted('From: our side, Tuesday works.\nThanks'), 'From: our side, Tuesday works.\nThanks');
+});

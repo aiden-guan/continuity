@@ -16,6 +16,7 @@ import type {
   ActionRow, Backend, BlobIn, BlobRef, CommitOptions, CommitResult, JobInput, JobOutcome, JobRow, LinkLookup, Principal, ReceiveResult, SignalRow, TaskSnapshot,
 } from './backend.ts';
 import type { Artifact, Claim, EventInput, Obligation, StoredEvent, TaskSpec } from '../types.ts';
+import { participantAddresses } from '../ingest/link.ts';
 import { stripAttachmentBytes } from './rows.ts';
 import { redactUrl } from './index.ts';
 import { canonicalIso } from '../clock.ts';
@@ -140,7 +141,7 @@ export class PostgresBackend implements Backend {
           taskForThread: async (t) => (await tx`select task_id from continuity.task_threads where org_id = ${org} and thread_id = ${t}`)[0]?.task_id ?? null,
           eventByPrimitiveEmailId: async (pid) => this.#eventBy(tx, org, 'primitive_email_id', pid),
           eventByMessageId: async (mid) => this.#eventBy(tx, org, 'message_id', mid),
-          tasks: async () => (await tx`select id, alias, goal from continuity.tasks where org_id = ${org} order by created_at`).map((r) => ({ id: r.id as string, alias: r.alias as string, goal: r.goal as string })),
+          tasks: async () => (await tx`select id, alias, goal, spec from continuity.tasks where org_id = ${org} order by created_at`).map((r) => ({ id: r.id as string, alias: r.alias as string, goal: r.goal as string, participants: participantAddresses(r.spec as TaskSpec) })),
         });
         const seq = input.preserve_seq
           ? Number((await tx`update continuity.counters set value = greatest(value, ${input.preserve_seq}) where org_id = ${org} and name = 'ev'

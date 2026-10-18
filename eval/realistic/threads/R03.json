@@ -1,0 +1,515 @@
+{
+  "id": "R03",
+  "domain": "real_estate",
+  "title": "27 Birchwood Ct: listing agent says close Dec 18, the seller's attorney says Dec 29 - same side, contested",
+  "features": [
+    "contested",
+    "quoted_history",
+    "subject_drift",
+    "distractor_numbers",
+    "acceptance",
+    "answered_question"
+  ],
+  "task": {
+    "id": "deal_birch27",
+    "alias": "BIRCH-27",
+    "goal": "Buy 27 Birchwood Ct for our buyer: price no more than $920,000 and within the appraisal, closing by Tue Dec 22.",
+    "item": "27 Birchwood Ct",
+    "self_address": "agent@finch-buyers.primitive.email",
+    "domain": "real_estate",
+    "participants": [
+      {
+        "address": "agent@finch-buyers.primitive.email",
+        "name": "Finch Buyer Agent",
+        "role": "self",
+        "label": "buyer agent (us)",
+        "authority": [
+          "decision.",
+          "deal."
+        ]
+      },
+      {
+        "address": "r.ng@summitlane-realty.example",
+        "name": "Rachel Ng (Summit Lane Realty, listing agent)",
+        "role": "counterparty",
+        "label": "listing agent",
+        "authority": [
+          "price.",
+          "closing.",
+          "contingency.",
+          "decision.",
+          "deal."
+        ],
+        "group": "seller"
+      },
+      {
+        "address": "g.halvorsen@halvorsen-fam.example",
+        "name": "Greta Halvorsen (buyer)",
+        "role": "internal",
+        "label": "buyer",
+        "authority": [
+          "budget."
+        ]
+      },
+      {
+        "address": "loans@blueridge-mortgage.example",
+        "name": "Blue Ridge Mortgage (lender)",
+        "role": "internal",
+        "label": "lender",
+        "authority": [
+          "appraisal."
+        ]
+      },
+      {
+        "address": "office@cornerstone-inspect.example",
+        "name": "Cornerstone Inspections",
+        "role": "internal",
+        "label": "inspector",
+        "authority": [
+          "inspection."
+        ]
+      },
+      {
+        "address": "escrow@meridian-title.example",
+        "name": "Meridian Title (escrow)",
+        "role": "internal",
+        "label": "title company",
+        "authority": [
+          "payment."
+        ]
+      },
+      {
+        "address": "d.ferrante@ferrante-cole.example",
+        "name": "David Ferrante (Ferrante & Cole, seller attorney)",
+        "role": "counterparty",
+        "label": "seller's attorney",
+        "authority": [
+          "closing.",
+          "contingency."
+        ],
+        "group": "seller"
+      }
+    ],
+    "requirements": [
+      {
+        "key": "requirement.max_price",
+        "value": 920000,
+        "display": "$920,000",
+        "hard": true
+      },
+      {
+        "key": "requirement.close_by",
+        "value": "2026-12-22",
+        "display": "Tue Dec 22",
+        "hard": true
+      },
+      {
+        "key": "requirement.opening_offer",
+        "value": 880000,
+        "display": "$880,000",
+        "hard": false
+      }
+    ]
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "outbound",
+      "from": "agent@finch-buyers.primitive.email",
+      "fromName": "Finch Buyer Agent",
+      "to": "r.ng@summitlane-realty.example",
+      "subject": "27 Birchwood Ct - offer (BIRCH-27)",
+      "at": "2026-11-09T15:30:00Z",
+      "in_reply_to": null,
+      "body": "Rachel,\n\nMy buyer, Greta Halvorsen, offers $880,000 for 27 Birchwood Ct, closing on or before Fri Dec 18, inspection contingency to Dec 1, $25,000 EMD.\n\nFinch Buyer Agent"
+    },
+    {
+      "id": "m2",
+      "direction": "inbound",
+      "from": "r.ng@summitlane-realty.example",
+      "fromName": "Rachel Ng",
+      "to": "agent@finch-buyers.primitive.email",
+      "subject": "RE: 27 Birchwood Ct - offer (BIRCH-27)",
+      "at": "2026-11-10T17:00:00Z",
+      "in_reply_to": "m1",
+      "body": "Hi - seller counters at $905,000, closing Friday, December 18. Everything else as offered. Counter attached.\n\nRachel Ng\nSummit Lane Realty | 503-555-0181\n\n -----Original Message-----\nFrom: \tFinch Buyer Agent\nSent:\tMonday, November 09, 2026 9:30 AM\nTo:\tNg, Rachel\nSubject:\t27 Birchwood Ct - offer (BIRCH-27)\n\nRachel,\n\nMy buyer, Greta Halvorsen, offers $880,000 for 27 Birchwood Ct, closing on or before Fri Dec 18, inspection contingency to Dec 1, $25,000 EMD.\n\nFinch Buyer Agent",
+      "attachments": [
+        {
+          "filename": "SummitLane-Counter-BIRCH-27.pdf",
+          "lines": [
+            "SUMMIT LANE REALTY - SELLER COUNTER OFFER",
+            "Property: 27 Birchwood Ct   Ref: BIRCH-27",
+            "Purchase price: $905,000",
+            "Closing date: Friday, December 18, 2026",
+            "Inspection contingency until: Dec 1, 2026",
+            "Earnest money: $25,000"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m3",
+      "direction": "inbound",
+      "from": "g.halvorsen@halvorsen-fam.example",
+      "fromName": "Greta Halvorsen",
+      "to": "agent@finch-buyers.primitive.email",
+      "subject": "Birchwood counter",
+      "at": "2026-11-10T20:30:00Z",
+      "in_reply_to": null,
+      "body": "905 is fine, my limit is $920,000. Please accept.\n\nGreta"
+    },
+    {
+      "id": "m4",
+      "direction": "outbound",
+      "from": "agent@finch-buyers.primitive.email",
+      "fromName": "Finch Buyer Agent",
+      "to": "r.ng@summitlane-realty.example",
+      "subject": "RE: 27 Birchwood Ct - offer (BIRCH-27)",
+      "at": "2026-11-10T21:00:00Z",
+      "in_reply_to": "m2",
+      "body": "Rachel - buyer accepts the counter at $905,000. Signed copy coming via DocuSign.\n\nFinch Buyer Agent\n\n -----Original Message-----\nFrom: \tNg, Rachel\nSent:\tTuesday, November 10, 2026 11:00 AM\nTo:\tFinch Buyer Agent\nSubject:\tRE: 27 Birchwood Ct - offer (BIRCH-27)\n\nHi - seller counters at $905,000, closing Friday, December 18. Everything else as offered. Counter attached.\n\nRachel Ng\nSummit Lane Realty | 503-555-0181\n\n -----Original Message-----\nFrom: \tFinch Buyer Agent\nSent:\tMonday, November 09, 2026 9:30 AM\nTo:\tNg, Rachel\nSubject:\t27 Birchwood Ct - offer (BIRCH-27)\n\nRachel,\n\nMy buyer, Greta Halvorsen, offers $880,000 for 27 Birchwood Ct, closing on or before Fri Dec 18, inspection contingency to Dec 1, $25,000 EMD.\n\nFinch Buyer Agent"
+    },
+    {
+      "id": "m5",
+      "direction": "inbound",
+      "from": "d.ferrante@ferrante-cole.example",
+      "fromName": "David Ferrante",
+      "to": "agent@finch-buyers.primitive.email",
+      "subject": "27 Birchwood Ct - Contract / Closing",
+      "at": "2026-11-25T16:15:00Z",
+      "in_reply_to": null,
+      "body": "Good morning,\n\nThis office represents the sellers of 27 Birchwood Ct. We have reviewed the executed contract. Please note that closing will be held Tuesday, December 29 at our office, 400 Alder St., Suite 1200, as the sellers' 1031 exchange requires the additional time. Kindly direct closing logistics to my paralegal, Ana Ruiz, at 503-555-0172.\n\nDavid Ferrante\nFerrante & Cole LLP"
+    },
+    {
+      "id": "m6",
+      "direction": "outbound",
+      "from": "agent@finch-buyers.primitive.email",
+      "fromName": "Finch Buyer Agent",
+      "to": "r.ng@summitlane-realty.example",
+      "subject": "RE: 27 Birchwood Ct - offer (BIRCH-27)",
+      "at": "2026-11-25T17:40:00Z",
+      "in_reply_to": "m4",
+      "body": "Rachel - the seller's attorney (David Ferrante) just told us closing is Tue Dec 29; the counter you sent says Fri Dec 18. Which is it? Our buyer has to close by Dec 22, so Dec 29 doesn't work for us.\n\nFinch Buyer Agent\n\n -----Original Message-----\nFrom: \tFinch Buyer Agent\nSent:\tTuesday, November 10, 2026 3:00 PM\nTo:\tNg, Rachel\nSubject:\tRE: 27 Birchwood Ct - offer (BIRCH-27)\n\nRachel - buyer accepts the counter at $905,000. Signed copy coming via DocuSign.\n\nFinch Buyer Agent\n\n -----Original Message-----\nFrom: \tNg, Rachel\nSent:\tTuesday, November 10, 2026 11:00 AM\nTo:\tFinch Buyer Agent\nSubject:\tRE: 27 Birchwood Ct - offer (BIRCH-27)\n\nHi - seller counters at $905,000, closing Friday, December 18. Everything else as offered. Counter attached.\n\nRachel Ng\nSummit Lane Realty | 503-555-0181\n\n -----Original Message-----\nFrom: \tFinch Buyer Agent\nSent:\tMonday, November 09, 2026 9:30 AM\nTo:\tNg, Rachel\nSubject:\t27 Birchwood Ct - offer (BIRCH-27)\n\nRachel,\n\nMy buyer, Greta Halvorsen, offers $880,000 for 27 Birchwood Ct, closing on or before Fri Dec 18, inspection contingency to Dec 1, $25,000 EMD.\n\nFinch Buyer Agent"
+    },
+    {
+      "id": "m7",
+      "direction": "inbound",
+      "from": "r.ng@summitlane-realty.example",
+      "fromName": "Rachel Ng",
+      "to": "agent@finch-buyers.primitive.email",
+      "subject": "RE: 27 Birchwood Ct - offer (BIRCH-27)",
+      "at": "2026-11-25T19:05:00Z",
+      "in_reply_to": "m6",
+      "body": "We're still on for Fri Dec 18 as far as I know - that's what's in the contract. I'll check with David tomorrow and get back to you.\n\nR\n\n -----Original Message-----\nFrom: \tFinch Buyer Agent\nSent:\tWednesday, November 25, 2026 11:40 AM\nTo:\tNg, Rachel\nSubject:\tRE: 27 Birchwood Ct - offer (BIRCH-27)\n\nRachel - the seller's attorney (David Ferrante) just told us closing is Tue Dec 29; the counter you sent says Fri Dec 18. Which is it? Our buyer has to close by Dec 22, so Dec 29 doesn't work for us.\n\nFinch Buyer Agent\n\n -----Original Message-----\nFrom: \tFinch Buyer Agent\nSent:\tTuesday, November 10, 2026 3:00 PM\nTo:\tNg, Rachel\nSubject:\tRE: 27 Birchwood Ct - offer (BIRCH-27)\n\nRachel - buyer accepts the counter at $905,000. Signed copy coming via DocuSign.\n\nFinch Buyer Agent\n\n -----Original Message-----\nFrom: \tNg, Rachel\nSent:\tTuesday, November 10, 2026 11:00 AM\nTo:\tFinch Buyer Agent\nSubject:\tRE: 27 Birchwood Ct - offer (BIRCH-27)\n\nHi - seller counters at $905,000, closing Friday, December 18. Everything else as offered. Counter attached.\n\nRachel Ng\nSummit Lane Realty | 503-555-0181\n\n -----Original Message-----\nFrom: \tFinch Buyer Agent\nSent:\tMonday, November 09, 2026 9:30 AM\nTo:\tNg, Rachel\nSubject:\t27 Birchwood Ct - offer (BIRCH-27)\n\nRachel,\n\nMy buyer, Greta Halvorsen, offers $880,000 for 27 Birchwood Ct, closing on or before Fri Dec 18, inspection contingency to Dec 1, $25,000 EMD.\n\nFinch Buyer Agent"
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m4",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 905000,
+          "stated_in": "m2",
+          "evidence": "seller counters at $905,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m2",
+          "evidence": "closing Friday, December 18"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-12-01",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until: Dec 1, 2026"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 920000,
+          "stated_in": "m3",
+          "evidence": "my limit is $920,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "decision.accept",
+          "value": "accepted",
+          "stated_in": "m4",
+          "evidence": "buyer accepts the counter at $905,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 905000,
+          "stated_in": "m4",
+          "evidence": "buyer accepts the counter at $905,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m1",
+          "evidence": "closing on or before Fri Dec 18"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "contingency.inspection_until",
+          "value": "2026-12-01",
+          "stated_in": "m1",
+          "evidence": "inspection contingency to Dec 1"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "SummitLane-Counter-BIRCH-27.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "pass",
+        "price_approval": "pass"
+      },
+      "next_actor": "them",
+      "superseded": [
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 880000,
+          "stated_in": "m1",
+          "evidence": "offers $880,000",
+          "replaced_in": "m4"
+        }
+      ]
+    },
+    {
+      "after": "m5",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 905000,
+          "stated_in": "m2",
+          "evidence": "seller counters at $905,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-12-01",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until: Dec 1, 2026"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 920000,
+          "stated_in": "m3",
+          "evidence": "my limit is $920,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "decision.accept",
+          "value": "accepted",
+          "stated_in": "m4",
+          "evidence": "buyer accepts the counter at $905,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 905000,
+          "stated_in": "m4",
+          "evidence": "buyer accepts the counter at $905,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m1",
+          "evidence": "closing on or before Fri Dec 18"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "contingency.inspection_until",
+          "value": "2026-12-01",
+          "stated_in": "m1",
+          "evidence": "inspection contingency to Dec 1"
+        }
+      ],
+      "contested": [
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m2",
+          "evidence": "closing Friday, December 18"
+        },
+        {
+          "party": "seller's attorney",
+          "term": "closing.date",
+          "value": "2026-12-29",
+          "stated_in": "m5",
+          "evidence": "closing will be held Tuesday, December 29"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "SummitLane-Counter-BIRCH-27.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "unknown",
+        "price_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "listing agent",
+        "must": [
+          "dec(ember)?\\.? ?18|12/18",
+          "dec(ember)?\\.? ?29|12/29"
+        ],
+        "must_not": [
+          "(agree|confirm|accept|fine|works)\\w*.{0,40}(dec(ember)?\\.? ?29|12/29)"
+        ]
+      },
+      "superseded": [
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 880000,
+          "stated_in": "m1",
+          "evidence": "offers $880,000",
+          "replaced_in": "m4"
+        }
+      ]
+    },
+    {
+      "after": "m7",
+      "active": [
+        {
+          "party": "listing agent",
+          "term": "price.purchase",
+          "value": 905000,
+          "stated_in": "m2",
+          "evidence": "seller counters at $905,000"
+        },
+        {
+          "party": "listing agent",
+          "term": "contingency.inspection_until",
+          "value": "2026-12-01",
+          "stated_in": "m2",
+          "evidence": "Inspection contingency until: Dec 1, 2026"
+        },
+        {
+          "party": "buyer",
+          "term": "budget.max_price",
+          "value": 920000,
+          "stated_in": "m3",
+          "evidence": "my limit is $920,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "decision.accept",
+          "value": "accepted",
+          "stated_in": "m4",
+          "evidence": "buyer accepts the counter at $905,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 905000,
+          "stated_in": "m4",
+          "evidence": "buyer accepts the counter at $905,000"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m1",
+          "evidence": "closing on or before Fri Dec 18"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "contingency.inspection_until",
+          "value": "2026-12-01",
+          "stated_in": "m1",
+          "evidence": "inspection contingency to Dec 1"
+        }
+      ],
+      "contested": [
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m7",
+          "evidence": "We're still on for Fri Dec 18"
+        },
+        {
+          "party": "seller's attorney",
+          "term": "closing.date",
+          "value": "2026-12-29",
+          "stated_in": "m5",
+          "evidence": "closing will be held Tuesday, December 29"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "listing agent",
+          "term": "closing.date",
+          "value": "2026-12-18",
+          "stated_in": "m2",
+          "evidence": "closing Friday, December 18",
+          "replaced_in": "m7"
+        },
+        {
+          "party": "buyer agent (us)",
+          "term": "price.purchase",
+          "value": 880000,
+          "stated_in": "m1",
+          "evidence": "offers $880,000",
+          "replaced_in": "m4"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "question",
+          "about": "which closing date - Dec 18 or Dec 29",
+          "status": "answered",
+          "opened_in": "m6",
+          "resolved_in": "m7"
+        },
+        {
+          "owed_by": "listing agent",
+          "owed_to": "buyer agent (us)",
+          "kind": "commitment",
+          "about": "check with the seller's attorney and get back",
+          "status": "open",
+          "opened_in": "m7",
+          "resolved_in": null
+        }
+      ],
+      "documents": [
+        {
+          "filename": "SummitLane-Counter-BIRCH-27.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "price_budget": "pass",
+        "closing_deadline": "unknown",
+        "price_approval": "pass"
+      },
+      "next_actor": "them"
+    }
+  ],
+  "notes": "The listing agent (m2, restated m7) and the seller's attorney (m5, a separate thread under a new subject) are both on the seller side with closing authority and give different dates: Dec 18 vs Dec 29. Same side, different values: both contested, neither active, closing_deadline unknown. The agent must not take the attorney's later date as an update (Dec 29 would also fail the Dec 22 deadline) and must not settle it on its own; it should put both dates to the listing agent. m7 restating Dec 18 does not resolve the conflict. Distractors: $25,000 EMD, 1031 exchange, suite 1200 address, paralegal phone, $880k opening offer."
+}

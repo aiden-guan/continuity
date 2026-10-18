@@ -1,0 +1,573 @@
+{
+  "id": "P15",
+  "domain": "procurement",
+  "title": "Pump order: 11-message thread with a price change, a split delivery, a late finance approval and our acceptance",
+  "features": [
+    "long_thread",
+    "acceptance",
+    "quoted_history",
+    "from_to_change",
+    "partial_update",
+    "document_versions",
+    "noise_mail",
+    "distractor_numbers",
+    "answered_question"
+  ],
+  "task": {
+    "id": "task_p15",
+    "alias": "PO-3390",
+    "goal": "Buy 250 SP-220 solenoid pumps (rev C) for PO-3390. All 250 must arrive by Fri Dec 11; unit price must not exceed $48.00.",
+    "item": "SP-220 solenoid pumps",
+    "self_address": "purchasing@corvane.primitive.email",
+    "domain": "procurement",
+    "participants": [
+      {
+        "address": "purchasing@corvane.primitive.email",
+        "name": "Corvane Purchasing Agent",
+        "role": "self",
+        "label": "Corvane (us)",
+        "authority": [
+          "decision."
+        ]
+      },
+      {
+        "address": "i.holm@pemberton-fluid.example",
+        "name": "Ingrid Holm (Pemberton Fluid Systems)",
+        "role": "counterparty",
+        "label": "supplier",
+        "authority": [
+          "price.",
+          "delivery.",
+          "order.",
+          "payment.",
+          "quote.",
+          "offer."
+        ],
+        "group": "pemberton"
+      },
+      {
+        "address": "r.patel@corvane-eng.example",
+        "name": "Ravi Patel (Corvane Finance)",
+        "role": "internal",
+        "label": "finance",
+        "authority": [
+          "budget."
+        ]
+      },
+      {
+        "address": "e.diaz@corvane-eng.example",
+        "name": "Elena Diaz (Corvane Engineering)",
+        "role": "internal",
+        "label": "engineering",
+        "authority": []
+      }
+    ],
+    "requirements": [
+      {
+        "key": "requirement.quantity",
+        "value": 250,
+        "display": "250 units",
+        "hard": true
+      },
+      {
+        "key": "requirement.deliver_all_by",
+        "value": "2026-12-11",
+        "display": "Fri Dec 11",
+        "hard": true
+      },
+      {
+        "key": "requirement.max_unit_price",
+        "value": 48,
+        "display": "$48.00",
+        "hard": true
+      }
+    ]
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "outbound",
+      "from": "purchasing@corvane.primitive.email",
+      "fromName": "Corvane Purchasing Agent",
+      "to": "i.holm@pemberton-fluid.example",
+      "subject": "RFQ PO-3390 - 250 SP-220 solenoid pumps",
+      "at": "2026-11-02T15:00:00Z",
+      "in_reply_to": null,
+      "body": "Ingrid,\n\nWe need 250 SP-220 solenoid pumps (rev C, 24VDC) on PO-3390, all delivered to our Dayton plant by Fri Dec 11. Please quote unit price, delivery and terms.\n\nThanks,\nCorvane Purchasing"
+    },
+    {
+      "id": "m2",
+      "direction": "inbound",
+      "from": "i.holm@pemberton-fluid.example",
+      "fromName": "Ingrid Holm",
+      "to": "purchasing@corvane.primitive.email",
+      "subject": "RE: RFQ PO-3390 - 250 SP-220 solenoid pumps",
+      "at": "2026-11-03T16:40:00Z",
+      "in_reply_to": "m1",
+      "body": "Hello,\n\nThanks for the RFQ. We can supply the 250 at $46.50 per unit, all 250 delivered by Fri Dec 4. Terms are Net 30. Quote PF-1187 attached.\n\nBest,\nIngrid Holm\nPemberton Fluid Systems | 937-555-0166\n\n -----Original Message-----\nFrom: \tCorvane Purchasing\nSent:\tMonday, November 02, 2026 9:00 AM\nTo:\tHolm, Ingrid\nSubject:\tRFQ PO-3390 - 250 SP-220 solenoid pumps\n\nIngrid,\n\nWe need 250 SP-220 solenoid pumps (rev C, 24VDC) on PO-3390, all delivered to our Dayton plant by Fri Dec 11. Please quote unit price, delivery and terms.\n\nThanks,\nCorvane Purchasing",
+      "attachments": [
+        {
+          "filename": "Pemberton-Quote-PF-1187.pdf",
+          "lines": [
+            "PEMBERTON FLUID SYSTEMS - QUOTATION PF-1187",
+            "Customer: Corvane Engineering   Ref: PO-3390",
+            "Item: SP-220 solenoid pump, 24VDC",
+            "Quantity: 250 units",
+            "Unit price: $46.50",
+            "Extended: $11,625.00",
+            "Delivery: 250 units by Fri Dec 4, 2026",
+            "Terms: Net 30",
+            "Valid until: Nov 20, 2026"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m3",
+      "direction": "outbound",
+      "from": "purchasing@corvane.primitive.email",
+      "fromName": "Corvane Purchasing Agent",
+      "to": "r.patel@corvane-eng.example",
+      "subject": "Approval needed - PO-3390",
+      "at": "2026-11-03T17:00:00Z",
+      "in_reply_to": null,
+      "body": "Ravi - can you approve up to $48.00/unit for 250 SP-220 pumps on PO-3390? Pemberton quoted $46.50.\n\nthx"
+    },
+    {
+      "id": "m4",
+      "direction": "inbound",
+      "from": "r.patel@corvane-eng.example",
+      "fromName": "Ravi Patel",
+      "to": "purchasing@corvane.primitive.email",
+      "subject": "Out of Office: Approval needed - PO-3390",
+      "at": "2026-11-03T17:01:00Z",
+      "in_reply_to": "m3",
+      "body": "I am out of the office until Mon Nov 9 with limited access to email. For urgent approvals please contact Finance at ext 4410.\n\nRavi Patel"
+    },
+    {
+      "id": "m5",
+      "direction": "inbound",
+      "from": "e.diaz@corvane-eng.example",
+      "fromName": "Elena Diaz",
+      "to": "purchasing@corvane.primitive.email",
+      "subject": "SP-220 rev",
+      "at": "2026-11-04T14:20:00Z",
+      "in_reply_to": null,
+      "body": "fyi - eng signed off on SP-220 rev C (ECN 26-114). make sure they ship rev C not rev B, B has the 1/4\" port. also I think Pemberton can do these by end of Nov if you push.\n\nE"
+    },
+    {
+      "id": "m6",
+      "direction": "inbound",
+      "from": "i.holm@pemberton-fluid.example",
+      "fromName": "Ingrid Holm",
+      "to": "purchasing@corvane.primitive.email",
+      "subject": "RE: RFQ PO-3390 - 250 SP-220 solenoid pumps",
+      "at": "2026-11-06T15:30:00Z",
+      "in_reply_to": "m2",
+      "body": "Pricing update on PF-1187: our motor vendor raised costs, so the unit price goes from $46.50 to $47.25. Sorry about this.\n\nIngrid\n\n -----Original Message-----\nFrom: \tHolm, Ingrid\nSent:\tTuesday, November 03, 2026 10:40 AM\nTo:\tCorvane Purchasing\nSubject:\tRE: RFQ PO-3390 - 250 SP-220 solenoid pumps\n\nHello,\n\nThanks for the RFQ. We can supply the 250 at $46.50 per unit, all 250 delivered by Fri Dec 4. Terms are Net 30. Quote PF-1187 attached.\n\nBest,\nIngrid Holm\nPemberton Fluid Systems | 937-555-0166\n\n -----Original Message-----\nFrom: \tCorvane Purchasing\nSent:\tMonday, November 02, 2026 9:00 AM\nTo:\tHolm, Ingrid\nSubject:\tRFQ PO-3390 - 250 SP-220 solenoid pumps\n\nIngrid,\n\nWe need 250 SP-220 solenoid pumps (rev C, 24VDC) on PO-3390, all delivered to our Dayton plant by Fri Dec 11. Please quote unit price, delivery and terms.\n\nThanks,\nCorvane Purchasing"
+    },
+    {
+      "id": "m7",
+      "direction": "outbound",
+      "from": "purchasing@corvane.primitive.email",
+      "fromName": "Corvane Purchasing Agent",
+      "to": "i.holm@pemberton-fluid.example",
+      "subject": "RE: RFQ PO-3390 - 250 SP-220 solenoid pumps",
+      "at": "2026-11-06T16:10:00Z",
+      "in_reply_to": "m6",
+      "body": "Ingrid - understood on the 47.25. Can you confirm these ship as rev C (ECN 26-114)?\n\nCorvane Purchasing\n\n -----Original Message-----\nFrom: \tHolm, Ingrid\nSent:\tFriday, November 06, 2026 9:30 AM\nTo:\tCorvane Purchasing\nSubject:\tRE: RFQ PO-3390 - 250 SP-220 solenoid pumps\n\nPricing update on PF-1187: our motor vendor raised costs, so the unit price goes from $46.50 to $47.25. Sorry about this.\n\nIngrid\n\n -----Original Message-----\nFrom: \tHolm, Ingrid\nSent:\tTuesday, November 03, 2026 10:40 AM\nTo:\tCorvane Purchasing\nSubject:\tRE: RFQ PO-3390 - 250 SP-220 solenoid pumps\n\nHello,\n\nThanks for the RFQ. We can supply the 250 at $46.50 per unit, all 250 delivered by Fri Dec 4. Terms are Net 30. Quote PF-1187 attached.\n\nBest,\nIngrid Holm\nPemberton Fluid Systems | 937-555-0166\n\n -----Original Message-----\nFrom: \tCorvane Purchasing\nSent:\tMonday, November 02, 2026 9:00 AM\nTo:\tHolm, Ingrid\nSubject:\tRFQ PO-3390 - 250 SP-220 solenoid pumps\n\nIngrid,\n\nWe need 250 SP-220 solenoid pumps (rev C, 24VDC) on PO-3390, all delivered to our Dayton plant by Fri Dec 11. Please quote unit price, delivery and terms.\n\nThanks,\nCorvane Purchasing"
+    },
+    {
+      "id": "m8",
+      "direction": "inbound",
+      "from": "i.holm@pemberton-fluid.example",
+      "fromName": "Ingrid Holm",
+      "to": "purchasing@corvane.primitive.email",
+      "subject": "RE: RFQ PO-3390 - 250 SP-220 solenoid pumps",
+      "at": "2026-11-10T14:00:00Z",
+      "in_reply_to": "m7",
+      "body": "Yes, rev C. One more change - our assembly line is backed up, so delivery moves to 150 by Fri Dec 4 and the balance of 100 by Wed Dec 9. Revised quote PF-1187-R1 attached.\n\nIngrid\n\n -----Original Message-----\nFrom: \tCorvane Purchasing\nSent:\tFriday, November 06, 2026 10:10 AM\nTo:\tHolm, Ingrid\nSubject:\tRE: RFQ PO-3390 - 250 SP-220 solenoid pumps\n\nIngrid - understood on the 47.25. Can you confirm these ship as rev C (ECN 26-114)?\n\nCorvane Purchasing\n\n -----Original Message-----\nFrom: \tHolm, Ingrid\nSent:\tFriday, November 06, 2026 9:30 AM\nTo:\tCorvane Purchasing\nSubject:\tRE: RFQ PO-3390 - 250 SP-220 solenoid pumps\n\nPricing update on PF-1187: our motor vendor raised costs, so the unit price goes from $46.50 to $47.25. Sorry about this.\n\nIngrid\n\n -----Original Message-----\nFrom: \tHolm, Ingrid\nSent:\tTuesday, November 03, 2026 10:40 AM\nTo:\tCorvane Purchasing\nSubject:\tRE: RFQ PO-3390 - 250 SP-220 solenoid pumps\n\nHello,\n\nThanks for the RFQ. We can supply the 250 at $46.50 per unit, all 250 delivered by Fri Dec 4. Terms are Net 30. Quote PF-1187 attached.\n\nBest,\nIngrid Holm\nPemberton Fluid Systems | 937-555-0166\n\n -----Original Message-----\nFrom: \tCorvane Purchasing\nSent:\tMonday, November 02, 2026 9:00 AM\nTo:\tHolm, Ingrid\nSubject:\tRFQ PO-3390 - 250 SP-220 solenoid pumps\n\nIngrid,\n\nWe need 250 SP-220 solenoid pumps (rev C, 24VDC) on PO-3390, all delivered to our Dayton plant by Fri Dec 11. Please quote unit price, delivery and terms.\n\nThanks,\nCorvane Purchasing",
+      "attachments": [
+        {
+          "filename": "Pemberton-Quote-PF-1187-R1.pdf",
+          "lines": [
+            "PEMBERTON FLUID SYSTEMS - QUOTATION PF-1187 REV 1",
+            "Customer: Corvane Engineering   Ref: PO-3390",
+            "Item: SP-220 solenoid pump, 24VDC, rev C",
+            "Unit price: $47.25",
+            "Delivery: 150 units by Fri Dec 4, 2026; 100 units by Wed Dec 9, 2026",
+            "Extended: $11,812.50"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m9",
+      "direction": "inbound",
+      "from": "r.patel@corvane-eng.example",
+      "fromName": "Ravi Patel",
+      "to": "purchasing@corvane.primitive.email",
+      "subject": "RE: Approval needed - PO-3390",
+      "at": "2026-11-10T15:45:00Z",
+      "in_reply_to": "m3",
+      "body": "Back today. Approved up to $48.00 per unit for PO-3390. Budget line 7700-12.\n\nRavi\n\n -----Original Message-----\nFrom: \tCorvane Purchasing\nSent:\tTuesday, November 03, 2026 11:00 AM\nTo:\tPatel, Ravi\nSubject:\tApproval needed - PO-3390\n\nRavi - can you approve up to $48.00/unit for 250 SP-220 pumps on PO-3390? Pemberton quoted $46.50.\n\nthx"
+    },
+    {
+      "id": "m10",
+      "direction": "outbound",
+      "from": "purchasing@corvane.primitive.email",
+      "fromName": "Corvane Purchasing Agent",
+      "to": "i.holm@pemberton-fluid.example",
+      "subject": "RE: RFQ PO-3390 - 250 SP-220 solenoid pumps",
+      "at": "2026-11-10T17:30:00Z",
+      "in_reply_to": "m8",
+      "body": "Ingrid,\n\nWe accept PF-1187-R1: 250 SP-220 (rev C) at $47.25/unit, 150 by Dec 4 and 100 by Dec 9, Net 30. PO-3390 is being issued today.\n\nThanks,\nCorvane Purchasing\n\n -----Original Message-----\nFrom: \tHolm, Ingrid\nSent:\tTuesday, November 10, 2026 8:00 AM\nTo:\tCorvane Purchasing\nSubject:\tRE: RFQ PO-3390 - 250 SP-220 solenoid pumps\n\nYes, rev C. One more change - our assembly line is backed up, so delivery moves to 150 by Fri Dec 4 and the balance of 100 by Wed Dec 9. Revised quote PF-1187-R1 attached.\n\nIngrid\n\n -----Original Message-----\nFrom: \tCorvane Purchasing\nSent:\tFriday, November 06, 2026 10:10 AM\nTo:\tHolm, Ingrid\nSubject:\tRE: RFQ PO-3390 - 250 SP-220 solenoid pumps\n\nIngrid - understood on the 47.25. Can you confirm these ship as rev C (ECN 26-114)?\n\nCorvane Purchasing\n\n -----Original Message-----\nFrom: \tHolm, Ingrid\nSent:\tFriday, November 06, 2026 9:30 AM\nTo:\tCorvane Purchasing\nSubject:\tRE: RFQ PO-3390 - 250 SP-220 solenoid pumps\n\nPricing update on PF-1187: our motor vendor raised costs, so the unit price goes from $46.50 to $47.25. Sorry about this.\n\nIngrid\n\n -----Original Message-----\nFrom: \tHolm, Ingrid\nSent:\tTuesday, November 03, 2026 10:40 AM\nTo:\tCorvane Purchasing\nSubject:\tRE: RFQ PO-3390 - 250 SP-220 solenoid pumps\n\nHello,\n\nThanks for the RFQ. We can supply the 250 at $46.50 per unit, all 250 delivered by Fri Dec 4. Terms are Net 30. Quote PF-1187 attached.\n\nBest,\nIngrid Holm\nPemberton Fluid Systems | 937-555-0166\n\n -----Original Message-----\nFrom: \tCorvane Purchasing\nSent:\tMonday, November 02, 2026 9:00 AM\nTo:\tHolm, Ingrid\nSubject:\tRFQ PO-3390 - 250 SP-220 solenoid pumps\n\nIngrid,\n\nWe need 250 SP-220 solenoid pumps (rev C, 24VDC) on PO-3390, all delivered to our Dayton plant by Fri Dec 11. Please quote unit price, delivery and terms.\n\nThanks,\nCorvane Purchasing"
+    },
+    {
+      "id": "m11",
+      "direction": "inbound",
+      "from": "i.holm@pemberton-fluid.example",
+      "fromName": "Ingrid Holm",
+      "to": "purchasing@corvane.primitive.email",
+      "subject": "RE: RFQ PO-3390 - 250 SP-220 solenoid pumps",
+      "at": "2026-11-11T13:15:00Z",
+      "in_reply_to": "m10",
+      "body": "Thanks - got it. I'll send the order acknowledgment tomorrow once it's entered.\n\nIngrid\n\n -----Original Message-----\nFrom: \tCorvane Purchasing\nSent:\tTuesday, November 10, 2026 11:30 AM\nTo:\tHolm, Ingrid\nSubject:\tRE: RFQ PO-3390 - 250 SP-220 solenoid pumps\n\nIngrid,\n\nWe accept PF-1187-R1: 250 SP-220 (rev C) at $47.25/unit, 150 by Dec 4 and 100 by Dec 9, Net 30. PO-3390 is being issued today.\n\nThanks,\nCorvane Purchasing\n\n -----Original Message-----\nFrom: \tHolm, Ingrid\nSent:\tTuesday, November 10, 2026 8:00 AM\nTo:\tCorvane Purchasing\nSubject:\tRE: RFQ PO-3390 - 250 SP-220 solenoid pumps\n\nYes, rev C. One more change - our assembly line is backed up, so delivery moves to 150 by Fri Dec 4 and the balance of 100 by Wed Dec 9. Revised quote PF-1187-R1 attached.\n\nIngrid\n\n -----Original Message-----\nFrom: \tCorvane Purchasing\nSent:\tFriday, November 06, 2026 10:10 AM\nTo:\tHolm, Ingrid\nSubject:\tRE: RFQ PO-3390 - 250 SP-220 solenoid pumps\n\nIngrid - understood on the 47.25. Can you confirm these ship as rev C (ECN 26-114)?\n\nCorvane Purchasing\n\n -----Original Message-----\nFrom: \tHolm, Ingrid\nSent:\tFriday, November 06, 2026 9:30 AM\nTo:\tCorvane Purchasing\nSubject:\tRE: RFQ PO-3390 - 250 SP-220 solenoid pumps\n\nPricing update on PF-1187: our motor vendor raised costs, so the unit price goes from $46.50 to $47.25. Sorry about this.\n\nIngrid\n\n -----Original Message-----\nFrom: \tHolm, Ingrid\nSent:\tTuesday, November 03, 2026 10:40 AM\nTo:\tCorvane Purchasing\nSubject:\tRE: RFQ PO-3390 - 250 SP-220 solenoid pumps\n\nHello,\n\nThanks for the RFQ. We can supply the 250 at $46.50 per unit, all 250 delivered by Fri Dec 4. Terms are Net 30. Quote PF-1187 attached.\n\nBest,\nIngrid Holm\nPemberton Fluid Systems | 937-555-0166\n\n -----Original Message-----\nFrom: \tCorvane Purchasing\nSent:\tMonday, November 02, 2026 9:00 AM\nTo:\tHolm, Ingrid\nSubject:\tRFQ PO-3390 - 250 SP-220 solenoid pumps\n\nIngrid,\n\nWe need 250 SP-220 solenoid pumps (rev C, 24VDC) on PO-3390, all delivered to our Dayton plant by Fri Dec 11. Please quote unit price, delivery and terms.\n\nThanks,\nCorvane Purchasing"
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m6",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 47.25,
+          "stated_in": "m6",
+          "evidence": "unit price goes from $46.50 to $47.25"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 250,
+          "stated_in": "m2",
+          "evidence": "Quantity: 250 units"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 250,
+              "date": "2026-12-04"
+            }
+          ],
+          "stated_in": "m2",
+          "evidence": "all 250 delivered by Fri Dec 4"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m2",
+          "evidence": "Terms are Net 30"
+        },
+        {
+          "party": "supplier",
+          "term": "quote.valid_until",
+          "value": "2026-11-20",
+          "stated_in": "m2",
+          "evidence": "Valid until: Nov 20, 2026"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 46.5,
+          "stated_in": "m2",
+          "evidence": "$46.50 per unit",
+          "replaced_in": "m6"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Corvane (us)",
+          "kind": "question",
+          "about": "unit price, delivery and terms",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "finance",
+          "owed_to": "Corvane (us)",
+          "kind": "question",
+          "about": "approve up to $48.00/unit",
+          "status": "open",
+          "opened_in": "m3",
+          "resolved_in": null
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Pemberton-Quote-PF-1187.pdf",
+          "status": "partially_stale"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "unknown"
+      },
+      "next_actor": "them"
+    },
+    {
+      "after": "m9",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 47.25,
+          "stated_in": "m6",
+          "evidence": "unit price goes from $46.50 to $47.25"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 250,
+          "stated_in": "m2",
+          "evidence": "Quantity: 250 units"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 150,
+              "date": "2026-12-04"
+            },
+            {
+              "qty": 100,
+              "date": "2026-12-09"
+            }
+          ],
+          "stated_in": "m8",
+          "evidence": "150 by Fri Dec 4 and the balance of 100 by Wed Dec 9"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m2",
+          "evidence": "Terms are Net 30"
+        },
+        {
+          "party": "supplier",
+          "term": "quote.valid_until",
+          "value": "2026-11-20",
+          "stated_in": "m2",
+          "evidence": "Valid until: Nov 20, 2026"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 48,
+          "stated_in": "m9",
+          "evidence": "Approved up to $48.00 per unit"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 46.5,
+          "stated_in": "m2",
+          "evidence": "$46.50 per unit",
+          "replaced_in": "m6"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 250,
+              "date": "2026-12-04"
+            }
+          ],
+          "stated_in": "m2",
+          "evidence": "all 250 delivered by Fri Dec 4",
+          "replaced_in": "m8"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "finance",
+          "owed_to": "Corvane (us)",
+          "kind": "question",
+          "about": "approve up to $48.00/unit",
+          "status": "answered",
+          "opened_in": "m3",
+          "resolved_in": "m9"
+        },
+        {
+          "owed_by": "supplier",
+          "owed_to": "Corvane (us)",
+          "kind": "question",
+          "about": "confirm rev C",
+          "status": "answered",
+          "opened_in": "m7",
+          "resolved_in": "m8"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Pemberton-Quote-PF-1187.pdf",
+          "status": "superseded"
+        },
+        {
+          "filename": "Pemberton-Quote-PF-1187-R1.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "supplier",
+        "must": [
+          "accept|confirm",
+          "47\\.25",
+          "dec(ember)?\\.? ?9|12/9"
+        ],
+        "must_not": [
+          "46\\.50",
+          "48\\.00",
+          "250 (units )?by (fri(day)?,? )?dec(ember)?\\.? ?4"
+        ]
+      }
+    },
+    {
+      "after": "m11",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 47.25,
+          "stated_in": "m6",
+          "evidence": "unit price goes from $46.50 to $47.25"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 250,
+          "stated_in": "m2",
+          "evidence": "Quantity: 250 units"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 150,
+              "date": "2026-12-04"
+            },
+            {
+              "qty": 100,
+              "date": "2026-12-09"
+            }
+          ],
+          "stated_in": "m8",
+          "evidence": "150 by Fri Dec 4 and the balance of 100 by Wed Dec 9"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m2",
+          "evidence": "Terms are Net 30"
+        },
+        {
+          "party": "supplier",
+          "term": "quote.valid_until",
+          "value": "2026-11-20",
+          "stated_in": "m2",
+          "evidence": "Valid until: Nov 20, 2026"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 48,
+          "stated_in": "m9",
+          "evidence": "Approved up to $48.00 per unit"
+        },
+        {
+          "party": "Corvane (us)",
+          "term": "decision.order",
+          "value": "accepted",
+          "stated_in": "m10",
+          "evidence": "We accept PF-1187-R1"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 46.5,
+          "stated_in": "m2",
+          "evidence": "$46.50 per unit",
+          "replaced_in": "m6"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 250,
+              "date": "2026-12-04"
+            }
+          ],
+          "stated_in": "m2",
+          "evidence": "all 250 delivered by Fri Dec 4",
+          "replaced_in": "m8"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Corvane (us)",
+          "kind": "commitment",
+          "about": "send the order acknowledgment",
+          "status": "open",
+          "opened_in": "m11",
+          "resolved_in": null
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Pemberton-Quote-PF-1187.pdf",
+          "status": "superseded"
+        },
+        {
+          "filename": "Pemberton-Quote-PF-1187-R1.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "them"
+    }
+  ],
+  "notes": "Long thread mixing four kinds of change: price from/to (m6), a split delivery that replaces the single-lot date (m8, partial in shape: 150 + 100), a finance approval that only arrives after an out-of-office (m4 is noise; budget_approval is unknown until m9), and our own acceptance in m10, which makes decision.order 'accepted' and hands the next move to the supplier. m5 is an engineering note with no authority ('I think Pemberton can do these by end of Nov' states no term). Old $46.50 and 'all 250 by Dec 4' persist in every quote. Distractors: ECN 26-114, ext 4410, budget line 7700-12, phone, $11,625 / $11,812.50 extended. PF-1187 is superseded by PF-1187-R1 (same kind, same party)."
+}

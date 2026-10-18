@@ -8,15 +8,37 @@ import '../domain/index.ts';
 import type { ExtractInput, Extractor, Proposal, ProposedClaim, ProposedObligation } from './types.ts';
 import { emptyProposal } from './types.ts';
 
-const QUOTE_HEADER = [/^\s*On .{3,120}wrote:\s*$/i, /^-{2,}\s*Original Message\s*-{2,}/i, /^From: .+@.+/i];
+// Where quoted history starts. Real mail indents Outlook's separator (" -----Original Message-----"), writes
+// "From:" without an address when the sender is in the directory, and Lotus Notes heads a quote with
+// "Name/ORG@ORG" on one line and the date on the next.
+const QUOTE_HEADER = [
+  /^\s*On .{3,120}wrote:\s*$/i,
+  /^\s*-{2,}\s*Original Message\s*-{2,}/i,
+  /^\s*-{3,}\s*Forwarded (?:message|by)\b/i,
+  /^\s*From: .+@.+/i,
+];
+const OUTLOOK_FROM = /^\s*From:\s*\S/i;
+const OUTLOOK_NEXT = /^\s*(?:Sent|Date|To):/i;
+const NOTES_FROM = /^\s*[^\s:][^:]*\/[\w .-]+@[\w.-]+\s*$/;
+const NOTES_DATE = /^\s*\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2}/;
 
-/** Drop quoted reply history: "> …" lines, and everything after "On <date>, X wrote:". */
+/** Does quoted history start at line i? */
+function quoteStartsAt(lines: string[], i: number): boolean {
+  const line = lines[i];
+  if (QUOTE_HEADER.some((rx) => rx.test(line))) return true;
+  if (OUTLOOK_FROM.test(line) && lines.slice(i + 1, i + 3).some((l) => OUTLOOK_NEXT.test(l))) return true;
+  return NOTES_FROM.test(line) && NOTES_DATE.test(lines[i + 1] ?? '');
+}
+
+/** Drop quoted reply history: "> …" lines, and everything from the first quote header ("On <date>, X wrote:",
+ *  an Outlook or Lotus Notes header, a forwarded-message separator) on. */
 export function stripQuoted(body: string): string {
+  const lines = body.replace(/\r\n/g, '\n').split('\n');
   const kept: string[] = [];
-  for (const line of body.replace(/\r\n/g, '\n').split('\n')) {
-    if (QUOTE_HEADER.some((rx) => rx.test(line))) break;
-    if (/^\s*>/.test(line)) continue;
-    kept.push(line);
+  for (let i = 0; i < lines.length; i++) {
+    if (quoteStartsAt(lines, i)) break;
+    if (/^\s*>/.test(lines[i])) continue;
+    kept.push(lines[i]);
   }
   return kept.join('\n');
 }

@@ -147,6 +147,14 @@ export function policyDecide(ctx: CompiledContext): Decision {
       lines.push(`Please treat this email as our order confirmation${doc ? ` against ${doc.filename}` : ''}, and send the invoice and shipping details.`);
     }
 
+    // their terms are waiting on us and nothing else above answers them: acknowledge, restating what we have
+    if (ofKind('respond_to_offer').length && !accepting.length && !conflictsRaised.length) {
+      const terms = activeTermsOf(ctx, party.label);
+      relied.push(...terms.map((x) => x.claim_id));
+      const summary = terms.map((x) => `${x.term} ${x.value}`).join(', ');
+      lines.push(`Thanks for the updated terms${summary ? ` (${summary})` : ''}. We're reviewing them and will come back to you shortly.`);
+    }
+
     for (const a of ofKind('follow_up_unanswered')) {
       relied.push(a.obligation_id!);
       const q = quotedPart(a.action) ?? '';
@@ -165,6 +173,10 @@ export function policyDecide(ctx: CompiledContext): Decision {
       const promised = quotedPart(a.action) ?? '';
       relied.push(a.obligation_id!);
       const thing = promisedThing(promised) || 'item';
+      if (/MISSING ATTACHMENT/.test(a.action)) {
+        lines.push(`Your last email said the ${thing} was attached, but no attachment came through on our side. Could you resend it?`);
+        continue;
+      }
       // a reminder that is the whole email gets its own opening rather than an "Also"
       if (lines.length <= 2) {
         const overdue = /OVERDUE \(due (\d{4}-\d{2}-\d{2})\)/.exec(a.action)?.[1];

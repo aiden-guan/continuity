@@ -1,0 +1,331 @@
+{
+  "id": "P01",
+  "domain": "procurement",
+  "title": "Valve order: price changed with a from/to line buried above quoted history; old price keeps reappearing in quotes",
+  "features": [
+    "quoted_history",
+    "buried_correction",
+    "from_to_change",
+    "distractor_numbers",
+    "table",
+    "terse_shorthand",
+    "answered_question"
+  ],
+  "task": {
+    "id": "task_p01",
+    "alias": "PO-5120",
+    "goal": "Buy 1,200 BV-40 ball valves for PO-5120. All 1,200 must arrive by Wed Nov 18; unit price must not exceed $14.25.",
+    "item": "BV-40 ball valves",
+    "self_address": "purchasing@marlow-mfg.primitive.email",
+    "domain": "procurement",
+    "participants": [
+      {
+        "address": "purchasing@marlow-mfg.primitive.email",
+        "name": "Marlow Purchasing Agent",
+        "role": "self",
+        "label": "Marlow (us)",
+        "authority": [
+          "decision."
+        ]
+      },
+      {
+        "address": "k.osei@tidewater-valve.example",
+        "name": "Kwame Osei (Tidewater Valve)",
+        "role": "counterparty",
+        "label": "supplier",
+        "authority": [
+          "price.",
+          "delivery.",
+          "order.",
+          "payment.",
+          "quote.",
+          "offer."
+        ],
+        "group": "tidewater"
+      },
+      {
+        "address": "l.brandt@marlow-mfg.example",
+        "name": "Lena Brandt (Marlow Finance)",
+        "role": "internal",
+        "label": "finance",
+        "authority": [
+          "budget."
+        ]
+      }
+    ],
+    "requirements": [
+      {
+        "key": "requirement.quantity",
+        "value": 1200,
+        "display": "1,200 units",
+        "hard": true
+      },
+      {
+        "key": "requirement.deliver_all_by",
+        "value": "2026-11-18",
+        "display": "Wed Nov 18",
+        "hard": true
+      },
+      {
+        "key": "requirement.max_unit_price",
+        "value": 14.25,
+        "display": "$14.25",
+        "hard": true
+      }
+    ]
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "outbound",
+      "from": "purchasing@marlow-mfg.primitive.email",
+      "fromName": "Marlow Purchasing Agent",
+      "to": "k.osei@tidewater-valve.example",
+      "subject": "RFQ PO-5120 - 1,200 x BV-40",
+      "at": "2026-11-02T14:00:00Z",
+      "in_reply_to": null,
+      "body": "Kwame,\n\nWe need 1,200 BV-40 ball valves on PO-5120, all delivered by Wed Nov 18. Can you quote a unit price and confirm the delivery date?\n\nThanks,\nMarlow Purchasing"
+    },
+    {
+      "id": "m2",
+      "direction": "outbound",
+      "from": "purchasing@marlow-mfg.primitive.email",
+      "fromName": "Marlow Purchasing Agent",
+      "to": "l.brandt@marlow-mfg.example",
+      "subject": "Budget for PO-5120",
+      "at": "2026-11-02T14:03:00Z",
+      "in_reply_to": null,
+      "body": "Lena - can you approve up to $14.25/unit for the BV-40 valves on PO-5120 (1,200 units)?\n\nthx"
+    },
+    {
+      "id": "m3",
+      "direction": "inbound",
+      "from": "k.osei@tidewater-valve.example",
+      "fromName": "Kwame Osei",
+      "to": "purchasing@marlow-mfg.primitive.email",
+      "subject": "RE: RFQ PO-5120 - 1,200 x BV-40",
+      "at": "2026-11-03T16:20:00Z",
+      "in_reply_to": "m1",
+      "body": "We can do the 1200 at $13.90 per unit, all 1,200 delivered by Monday, Nov 16. Quote Q-4471 attached. Terms Net 30.\n\nKwame Osei\nTidewater Valve | 832-555-0147 | acct #TW-20931\n\n -----Original Message-----\nFrom: \tMarlow Purchasing\nSent:\tMonday, November 02, 2026 9:00 AM\nTo:\tOsei, Kwame\nSubject:\tRFQ PO-5120 - 1,200 x BV-40\n\nKwame,\n\nWe need 1,200 BV-40 ball valves on PO-5120, all delivered by Wed Nov 18. Can you quote a unit price and confirm the delivery date?\n\nThanks,\nMarlow Purchasing",
+      "attachments": [
+        {
+          "filename": "Tidewater-Quote-Q-4471.pdf",
+          "lines": [
+            "TIDEWATER VALVE - QUOTATION Q-4471",
+            "Customer: Marlow Mfg (PO-5120)",
+            "Item: BV-40 ball valve",
+            "Quantity: 1,200 units",
+            "Unit price: $13.90 per unit",
+            "Delivery: 1,200 units by Monday, Nov 16, 2026",
+            "Payment terms: Net 30",
+            "Total: $16,680.00"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m4",
+      "direction": "inbound",
+      "from": "l.brandt@marlow-mfg.example",
+      "fromName": "Lena Brandt",
+      "to": "purchasing@marlow-mfg.primitive.email",
+      "subject": "RE: Budget for PO-5120",
+      "at": "2026-11-03T18:45:00Z",
+      "in_reply_to": "m2",
+      "body": "approved up to $14.25 per unit. cost ctr 4410.\n\nL\n\n -----Original Message-----\nFrom: \tMarlow Purchasing\nSent:\tMonday, November 02, 2026 9:03 AM\nTo:\tBrandt, Lena\nSubject:\tBudget for PO-5120\n\nLena - can you approve up to $14.25/unit for the BV-40 valves on PO-5120 (1,200 units)?\n\nthx"
+    },
+    {
+      "id": "m5",
+      "direction": "inbound",
+      "from": "k.osei@tidewater-valve.example",
+      "fromName": "Kwame Osei",
+      "to": "purchasing@marlow-mfg.primitive.email",
+      "subject": "RE: RFQ PO-5120 - 1,200 x BV-40",
+      "at": "2026-11-05T15:10:00Z",
+      "in_reply_to": "m3",
+      "body": "Our brass surcharge went in this week. Please change the price on Q-4471 from $13.90 to $14.10 per unit. Delivery is unchanged.\n\nK\n\n -----Original Message-----\nFrom: \tOsei, Kwame\nSent:\tTuesday, November 03, 2026 11:20 AM\nTo:\tMarlow Purchasing\nSubject:\tRE: RFQ PO-5120 - 1,200 x BV-40\n\nWe can do the 1200 at $13.90 per unit, all 1,200 delivered by Monday, Nov 16. Quote Q-4471 attached. Terms Net 30.\n\nKwame Osei\nTidewater Valve | 832-555-0147 | acct #TW-20931\n\n -----Original Message-----\nFrom: \tMarlow Purchasing\nSent:\tMonday, November 02, 2026 9:00 AM\nTo:\tOsei, Kwame\nSubject:\tRFQ PO-5120 - 1,200 x BV-40\n\nKwame,\n\nWe need 1,200 BV-40 ball valves on PO-5120, all delivered by Wed Nov 18. Can you quote a unit price and confirm the delivery date?\n\nThanks,\nMarlow Purchasing"
+    },
+    {
+      "id": "m6",
+      "direction": "inbound",
+      "from": "k.osei@tidewater-valve.example",
+      "fromName": "Kwame Osei",
+      "to": "purchasing@marlow-mfg.primitive.email",
+      "subject": "FW: RE: RFQ PO-5120 - 1,200 x BV-40",
+      "at": "2026-11-05T15:40:00Z",
+      "in_reply_to": "m5",
+      "body": "forgot the summary:\n\nLine\tQty\tOld $/ea\tNew $/ea\tExt.\n1\t1200\t13.90\t14.10\t16,920.00\n\nticket 88-1302 for our credit dept.\n\n -----Original Message-----\nFrom: \tOsei, Kwame\nSent:\tThursday, November 05, 2026 10:10 AM\nTo:\tMarlow Purchasing\nSubject:\tRE: RFQ PO-5120 - 1,200 x BV-40\n\nOur brass surcharge went in this week. Please change the price on Q-4471 from $13.90 to $14.10 per unit. Delivery is unchanged."
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m4",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 13.9,
+          "stated_in": "m3",
+          "evidence": "at $13.90 per unit"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 1200,
+              "date": "2026-11-16"
+            }
+          ],
+          "stated_in": "m3",
+          "evidence": "all 1,200 delivered by Monday, Nov 16"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 1200,
+          "stated_in": "m3",
+          "evidence": "Quantity: 1,200 units"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m3",
+          "evidence": "Terms Net 30"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 14.25,
+          "stated_in": "m4",
+          "evidence": "approved up to $14.25 per unit"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Marlow (us)",
+          "kind": "question",
+          "about": "unit price and delivery date",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m3"
+        },
+        {
+          "owed_by": "finance",
+          "owed_to": "Marlow (us)",
+          "kind": "question",
+          "about": "approve budget",
+          "status": "answered",
+          "opened_in": "m2",
+          "resolved_in": "m4"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Tidewater-Quote-Q-4471.pdf",
+          "status": "current"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "supplier",
+        "must": [
+          "accept|confirm",
+          "13\\.90"
+        ],
+        "must_not": [
+          "14\\.10"
+        ]
+      }
+    },
+    {
+      "after": "m6",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 14.1,
+          "stated_in": "m5",
+          "evidence": "from $13.90 to $14.10 per unit"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 1200,
+              "date": "2026-11-16"
+            }
+          ],
+          "stated_in": "m3",
+          "evidence": "all 1,200 delivered by Monday, Nov 16"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 1200,
+          "stated_in": "m3",
+          "evidence": "Quantity: 1,200 units"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m3",
+          "evidence": "Terms Net 30"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 14.25,
+          "stated_in": "m4",
+          "evidence": "approved up to $14.25 per unit"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 13.9,
+          "stated_in": "m3",
+          "evidence": "at $13.90 per unit",
+          "replaced_in": "m5"
+        }
+      ],
+      "documents": [
+        {
+          "filename": "Tidewater-Quote-Q-4471.pdf",
+          "status": "partially_stale"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "supplier",
+        "must": [
+          "14\\.10",
+          "accept|confirm"
+        ],
+        "must_not": [
+          "\\$?13\\.90 per unit"
+        ]
+      }
+    }
+  ],
+  "notes": "The new price appears only as 'change the price … from $13.90 to $14.10'; the old price is still present in the quoted history of m5 and m6, and the m6 table repeats both. Distractors: phone number, account number, cost centre, ticket number, the $16,680 / $16,920 totals."
+}

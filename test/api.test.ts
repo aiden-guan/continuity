@@ -117,6 +117,23 @@ test('offline agent policy: waits when only others owe us something', async () =
   assert.match(decision.rationale, /finance/);
 });
 
+test('their new offer is our move until we reply to it', async () => {
+  const h = new Harness(procurementTask(addr));
+  const rfq = await h.out(addr.supplier, 'RFQ — PO-4817', 'Hi Dana, can you deliver all 500 units by Friday, Oct 23, and what is your unit price?', '2026-10-19T09:00:00Z');
+  await h.in(counterparty.supplierOffer(addr, { messageId: rfq.messageId, subject: rfq.subject }));
+  const waiting = h.context();
+  assert.equal(waiting.next_actor, 'us');
+  const respond = waiting.suggested_actions.find((a) => a.kind === 'respond_to_offer');
+  assert.equal(respond?.priority, 1);
+  assert.equal(respond?.to_address, addr.supplier);
+  assert.match(policyDecide(waiting).messages[0]?.body ?? '', /Thanks for the updated terms \(.*price\.unit \$11\.40/);
+
+  await h.out(addr.supplier, 'Re: RFQ — PO-4817', 'Thanks Dana, reviewing.', '2026-10-19T15:00:00Z', { messageId: rfq.messageId });
+  const replied = h.context();
+  assert.notEqual(replied.next_actor, 'us');
+  assert.ok(!replied.suggested_actions.some((a) => a.kind === 'respond_to_offer'));
+});
+
 test('live receiver path: the server fetches the EmailDetail by id, normalizes and links it', async () => {
   const emailDetail = {
     id: 'em_test_detail_1',

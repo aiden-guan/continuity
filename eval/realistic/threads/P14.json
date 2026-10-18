@@ -1,0 +1,384 @@
+{
+  "id": "P14",
+  "domain": "procurement",
+  "title": "Sensor housings: very terse lowercase thread; a transposed-digit price fix buried mid-message",
+  "features": [
+    "terse_shorthand",
+    "buried_correction",
+    "quoted_history",
+    "distractor_numbers",
+    "acceptance",
+    "answered_question"
+  ],
+  "task": {
+    "id": "task_p14",
+    "alias": "PO-9145",
+    "goal": "Buy 400 TK-3 sensor housings for PO-9145. All 400 must arrive by Mon Nov 30; unit price must not exceed $13.00.",
+    "item": "TK-3 sensor housings",
+    "self_address": "purchasing@ardent.primitive.email",
+    "domain": "procurement",
+    "participants": [
+      {
+        "address": "purchasing@ardent.primitive.email",
+        "name": "Ardent Purchasing Agent",
+        "role": "self",
+        "label": "Ardent (us)",
+        "authority": [
+          "decision."
+        ]
+      },
+      {
+        "address": "benny@kestrel-supply.example",
+        "name": "Benny Okafor (Kestrel Supply)",
+        "role": "counterparty",
+        "label": "supplier",
+        "authority": [
+          "price.",
+          "delivery.",
+          "order.",
+          "payment.",
+          "quote.",
+          "offer."
+        ],
+        "group": "kestrel"
+      },
+      {
+        "address": "m.lowe@ardent-labs.example",
+        "name": "Mira Lowe (Ardent Finance)",
+        "role": "internal",
+        "label": "finance",
+        "authority": [
+          "budget."
+        ]
+      }
+    ],
+    "requirements": [
+      {
+        "key": "requirement.quantity",
+        "value": 400,
+        "display": "400 units",
+        "hard": true
+      },
+      {
+        "key": "requirement.deliver_all_by",
+        "value": "2026-11-30",
+        "display": "Mon Nov 30",
+        "hard": true
+      },
+      {
+        "key": "requirement.max_unit_price",
+        "value": 13,
+        "display": "$13.00",
+        "hard": true
+      }
+    ]
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "outbound",
+      "from": "purchasing@ardent.primitive.email",
+      "fromName": "Ardent Purchasing Agent",
+      "to": "benny@kestrel-supply.example",
+      "subject": "po-9145 tk-3",
+      "at": "2026-11-16T15:00:00Z",
+      "in_reply_to": null,
+      "body": "benny - 400 tk-3 sensor housings, po-9145, need all by mon 11/30. price + date pls"
+    },
+    {
+      "id": "m2",
+      "direction": "inbound",
+      "from": "benny@kestrel-supply.example",
+      "fromName": "Benny Okafor",
+      "to": "purchasing@ardent.primitive.email",
+      "subject": "re: po-9145 tk-3",
+      "at": "2026-11-16T19:20:00Z",
+      "in_reply_to": "m1",
+      "body": "400 @ 12.48/ea, all 400 fri 11/27. net 30.\n-b\n\n\n\nArdent Purchasing@ARDENT\n11/16/2026 09:00 AM\nTo: Okafor, Benny\ncc: \nSubject: po-9145 tk-3\n\nbenny - 400 tk-3 sensor housings, po-9145, need all by mon 11/30. price + date pls"
+    },
+    {
+      "id": "m3",
+      "direction": "outbound",
+      "from": "purchasing@ardent.primitive.email",
+      "fromName": "Ardent Purchasing Agent",
+      "to": "m.lowe@ardent-labs.example",
+      "subject": "9145",
+      "at": "2026-11-16T19:45:00Z",
+      "in_reply_to": null,
+      "body": "mira - ok to go to 13.00/ea on po-9145? 400 tk-3. kestrel at 12.48"
+    },
+    {
+      "id": "m4",
+      "direction": "inbound",
+      "from": "m.lowe@ardent-labs.example",
+      "fromName": "Mira Lowe",
+      "to": "purchasing@ardent.primitive.email",
+      "subject": "RE: 9145",
+      "at": "2026-11-17T13:10:00Z",
+      "in_reply_to": "m3",
+      "body": "yes 13.00/ea max. cc 5120\n\n -----Original Message-----\nFrom: \tArdent Purchasing\nSent:\tMonday, November 16, 2026 1:45 PM\nTo:\tLowe, Mira\nSubject:\t9145\n\nmira - ok to go to 13.00/ea on po-9145? 400 tk-3. kestrel at 12.48"
+    },
+    {
+      "id": "m5",
+      "direction": "inbound",
+      "from": "benny@kestrel-supply.example",
+      "fromName": "Benny Okafor",
+      "to": "purchasing@ardent.primitive.email",
+      "subject": "re: po-9145 tk-3",
+      "at": "2026-11-17T14:05:00Z",
+      "in_reply_to": "m2",
+      "body": "fyi lot # on these is KS-22817, coc ships w/ the goods. ups ground, 2 cartons ~38 lb. also should read 12.84/ea not 12.48 on the 400 - my typo, sorry. rest same. we're closed thurs-fri 11/26-27 for the holiday but the truck still runs.\n-b\n\n\n\nBenny Okafor@KESTREL\n11/16/2026 01:20 PM\nTo: Ardent Purchasing\ncc: \nSubject: re: po-9145 tk-3\n\n400 @ 12.48/ea, all 400 fri 11/27. net 30.\n-b\n\n\n\nArdent Purchasing@ARDENT\n11/16/2026 09:00 AM\nTo: Okafor, Benny\ncc: \nSubject: po-9145 tk-3\n\nbenny - 400 tk-3 sensor housings, po-9145, need all by mon 11/30. price + date pls"
+    },
+    {
+      "id": "m6",
+      "direction": "outbound",
+      "from": "purchasing@ardent.primitive.email",
+      "fromName": "Ardent Purchasing Agent",
+      "to": "benny@kestrel-supply.example",
+      "subject": "re: po-9145 tk-3",
+      "at": "2026-11-17T15:30:00Z",
+      "in_reply_to": "m5",
+      "body": "k - 12.84 ok. we accept, release 400 @ 12.84, 11/27.\n\n\n\nBenny Okafor@KESTREL\n11/17/2026 08:05 AM\nTo: Ardent Purchasing\ncc: \nSubject: re: po-9145 tk-3\n\nfyi lot # on these is KS-22817, coc ships w/ the goods. ups ground, 2 cartons ~38 lb. also should read 12.84/ea not 12.48 on the 400 - my typo, sorry. rest same. we're closed thurs-fri 11/26-27 for the holiday but the truck still runs.\n-b\n\n\n\nBenny Okafor@KESTREL\n11/16/2026 01:20 PM\nTo: Ardent Purchasing\ncc: \nSubject: re: po-9145 tk-3\n\n400 @ 12.48/ea, all 400 fri 11/27. net 30.\n-b\n\n\n\nArdent Purchasing@ARDENT\n11/16/2026 09:00 AM\nTo: Okafor, Benny\ncc: \nSubject: po-9145 tk-3\n\nbenny - 400 tk-3 sensor housings, po-9145, need all by mon 11/30. price + date pls"
+    },
+    {
+      "id": "m7",
+      "direction": "inbound",
+      "from": "benny@kestrel-supply.example",
+      "fromName": "Benny Okafor",
+      "to": "purchasing@ardent.primitive.email",
+      "subject": "re: po-9145 tk-3",
+      "at": "2026-11-17T16:02:00Z",
+      "in_reply_to": "m6",
+      "body": "done. trk # to follow.\n-b\n\n\n\nArdent Purchasing@ARDENT\n11/17/2026 09:30 AM\nTo: Okafor, Benny\ncc: \nSubject: re: po-9145 tk-3\n\nk - 12.84 ok. we accept, release 400 @ 12.84, 11/27.\n\n\n\nBenny Okafor@KESTREL\n11/17/2026 08:05 AM\nTo: Ardent Purchasing\ncc: \nSubject: re: po-9145 tk-3\n\nfyi lot # on these is KS-22817, coc ships w/ the goods. ups ground, 2 cartons ~38 lb. also should read 12.84/ea not 12.48 on the 400 - my typo, sorry. rest same. we're closed thurs-fri 11/26-27 for the holiday but the truck still runs.\n-b\n\n\n\nBenny Okafor@KESTREL\n11/16/2026 01:20 PM\nTo: Ardent Purchasing\ncc: \nSubject: re: po-9145 tk-3\n\n400 @ 12.48/ea, all 400 fri 11/27. net 30.\n-b\n\n\n\nArdent Purchasing@ARDENT\n11/16/2026 09:00 AM\nTo: Okafor, Benny\ncc: \nSubject: po-9145 tk-3\n\nbenny - 400 tk-3 sensor housings, po-9145, need all by mon 11/30. price + date pls"
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m4",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 12.48,
+          "stated_in": "m2",
+          "evidence": "400 @ 12.48/ea"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 400,
+          "stated_in": "m2",
+          "evidence": "400 @ 12.48/ea"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 400,
+              "date": "2026-11-27"
+            }
+          ],
+          "stated_in": "m2",
+          "evidence": "all 400 fri 11/27"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m2",
+          "evidence": "net 30"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 13,
+          "stated_in": "m4",
+          "evidence": "yes 13.00/ea max"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Ardent (us)",
+          "kind": "question",
+          "about": "price + date",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        },
+        {
+          "owed_by": "finance",
+          "owed_to": "Ardent (us)",
+          "kind": "question",
+          "about": "ok to go to 13.00/ea",
+          "status": "answered",
+          "opened_in": "m3",
+          "resolved_in": "m4"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "us"
+    },
+    {
+      "after": "m5",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 12.84,
+          "stated_in": "m5",
+          "evidence": "should read 12.84/ea not 12.48"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 400,
+          "stated_in": "m2",
+          "evidence": "400 @ 12.48/ea"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 400,
+              "date": "2026-11-27"
+            }
+          ],
+          "stated_in": "m2",
+          "evidence": "all 400 fri 11/27"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m2",
+          "evidence": "net 30"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 13,
+          "stated_in": "m4",
+          "evidence": "yes 13.00/ea max"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 12.48,
+          "stated_in": "m2",
+          "evidence": "400 @ 12.48/ea",
+          "replaced_in": "m5"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "supplier",
+        "must": [
+          "12\\.84",
+          "accept|confirm|go ahead|release|ok"
+        ],
+        "must_not": [
+          "(@|at) ?\\$?12\\.48",
+          "13\\.00"
+        ]
+      }
+    },
+    {
+      "after": "m7",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 12.84,
+          "stated_in": "m5",
+          "evidence": "should read 12.84/ea not 12.48"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 400,
+          "stated_in": "m2",
+          "evidence": "400 @ 12.48/ea"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 400,
+              "date": "2026-11-27"
+            }
+          ],
+          "stated_in": "m2",
+          "evidence": "all 400 fri 11/27"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m2",
+          "evidence": "net 30"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 13,
+          "stated_in": "m4",
+          "evidence": "yes 13.00/ea max"
+        },
+        {
+          "party": "Ardent (us)",
+          "term": "decision.order",
+          "value": "accepted",
+          "stated_in": "m6",
+          "evidence": "we accept, release 400 @ 12.84"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 12.48,
+          "stated_in": "m2",
+          "evidence": "400 @ 12.48/ea",
+          "replaced_in": "m5"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Ardent (us)",
+          "kind": "commitment",
+          "about": "send tracking number",
+          "status": "open",
+          "opened_in": "m7",
+          "resolved_in": null
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "them"
+    }
+  ],
+  "notes": "Lotus-style quoting throughout. The price fix in m5 ('should read 12.84/ea not 12.48') is buried mid-paragraph between lot/shipping chatter and a holiday note; both numbers sit next to each other and 12.48 also stays in quotes. 12.84 is still under the $13.00 budget, so the right move is to accept at 12.84, not 12.48. The '11/26-27' closure is not a delivery change ('the truck still runs', 'rest same'). Distractors: lot # KS-22817, cost center 5120, 2 cartons ~38 lb, trk #."
+}

@@ -1,0 +1,396 @@
+{
+  "id": "P09",
+  "domain": "procurement",
+  "title": "HDPE resin order: price raised in a new thread whose subject is only the PO number",
+  "features": [
+    "subject_drift",
+    "quoted_history",
+    "distractor_numbers",
+    "answered_question",
+    "terse_shorthand"
+  ],
+  "task": {
+    "id": "task_p09",
+    "alias": "PO-3392",
+    "goal": "Buy 40,000 lb of HD-5502 HDPE resin for PO-3392. All 40,000 lb must arrive by Fri Dec 11; unit price must not exceed $0.74/lb.",
+    "item": "HD-5502 HDPE injection-molding resin, bulk hopper truck",
+    "self_address": "purchasing@talon-molding.primitive.email",
+    "domain": "procurement",
+    "participants": [
+      {
+        "address": "purchasing@talon-molding.primitive.email",
+        "name": "Talon Purchasing Agent",
+        "role": "self",
+        "label": "Talon (us)",
+        "authority": [
+          "decision."
+        ]
+      },
+      {
+        "address": "v.almeida@gulfport-poly.example",
+        "name": "Victor Almeida (Gulfport Polymers)",
+        "role": "counterparty",
+        "label": "supplier",
+        "authority": [
+          "price.",
+          "delivery.",
+          "order.",
+          "payment.",
+          "quote.",
+          "offer."
+        ],
+        "group": "gulfport"
+      },
+      {
+        "address": "m.tanaka@talon-molding.example",
+        "name": "Mei Tanaka (Talon Finance)",
+        "role": "internal",
+        "label": "finance",
+        "authority": [
+          "budget."
+        ]
+      }
+    ],
+    "requirements": [
+      {
+        "key": "requirement.quantity",
+        "value": 40000,
+        "display": "40,000 lb",
+        "hard": true
+      },
+      {
+        "key": "requirement.deliver_all_by",
+        "value": "2026-12-11",
+        "display": "Fri Dec 11",
+        "hard": true
+      },
+      {
+        "key": "requirement.max_unit_price",
+        "value": 0.74,
+        "display": "$0.74/lb",
+        "hard": true
+      }
+    ]
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "direction": "outbound",
+      "from": "purchasing@talon-molding.primitive.email",
+      "fromName": "Talon Purchasing Agent",
+      "to": "v.almeida@gulfport-poly.example",
+      "subject": "RFQ: HD-5502 HDPE, 40,000 lb bulk",
+      "at": "2026-11-16T14:30:00Z",
+      "in_reply_to": null,
+      "body": "Victor,\n\nLooking for 40,000 lb of HD-5502 (MFI 8.0 g/10 min, density 0.952) in one bulk hopper truck, delivered to our Dalton, GA silo #2 by Fri 12/11. This will be PO-3392. Price per lb?\n\nTalon Purchasing"
+    },
+    {
+      "id": "m2",
+      "direction": "inbound",
+      "from": "v.almeida@gulfport-poly.example",
+      "fromName": "Victor Almeida",
+      "to": "purchasing@talon-molding.primitive.email",
+      "subject": "RE: RFQ: HD-5502 HDPE, 40,000 lb bulk",
+      "at": "2026-11-17T15:00:00Z",
+      "in_reply_to": "m1",
+      "body": "Can do $0.69/lb delivered, 40,000 lb one truck, deliver Tue 12/8. Lot will come off railcar GPLX 20871. Net 30.\n\nVictor Almeida\nGulfport Polymers | 409-555-0161\n\n -----Original Message-----\nFrom: \tTalon Purchasing\nSent:\tMonday, November 16, 2026 9:30 AM\nTo:\tAlmeida, Victor\nSubject:\tRFQ: HD-5502 HDPE, 40,000 lb bulk\n\nVictor,\n\nLooking for 40,000 lb of HD-5502 (MFI 8.0 g/10 min, density 0.952) in one bulk hopper truck, delivered to our Dalton, GA silo #2 by Fri 12/11. This will be PO-3392. Price per lb?\n\nTalon Purchasing"
+    },
+    {
+      "id": "m3",
+      "direction": "outbound",
+      "from": "purchasing@talon-molding.primitive.email",
+      "fromName": "Talon Purchasing Agent",
+      "to": "m.tanaka@talon-molding.example",
+      "subject": "PO-3392 resin approval",
+      "at": "2026-11-17T15:30:00Z",
+      "in_reply_to": null,
+      "body": "Mei - approve up to $0.74/lb on PO-3392 (40,000 lb HDPE, ~$29.6K at the cap)? thx"
+    },
+    {
+      "id": "m4",
+      "direction": "inbound",
+      "from": "m.tanaka@talon-molding.example",
+      "fromName": "Mei Tanaka",
+      "to": "purchasing@talon-molding.primitive.email",
+      "subject": "RE: PO-3392 resin approval",
+      "at": "2026-11-18T13:40:00Z",
+      "in_reply_to": "m3",
+      "body": "yes, approved to $0.74/lb. opex 5020.\n\nMei\n\n -----Original Message-----\nFrom: \tTalon Purchasing\nSent:\tTuesday, November 17, 2026 10:30 AM\nTo:\tTanaka, Mei\nSubject:\tPO-3392 resin approval\n\nMei - approve up to $0.74/lb on PO-3392 (40,000 lb HDPE, ~$29.6K at the cap)? thx"
+    },
+    {
+      "id": "m5",
+      "direction": "outbound",
+      "from": "purchasing@talon-molding.primitive.email",
+      "fromName": "Talon Purchasing Agent",
+      "to": "v.almeida@gulfport-poly.example",
+      "subject": "RE: RFQ: HD-5502 HDPE, 40,000 lb bulk",
+      "at": "2026-11-18T14:00:00Z",
+      "in_reply_to": "m2",
+      "body": "Thanks Victor, looks good. Getting PO-3392 through our system, should have it to you by Fri.\n\nTalon Purchasing\n\n -----Original Message-----\nFrom: \tAlmeida, Victor\nSent:\tTuesday, November 17, 2026 10:00 AM\nTo:\tTalon Purchasing\nSubject:\tRE: RFQ: HD-5502 HDPE, 40,000 lb bulk\n\nCan do $0.69/lb delivered, 40,000 lb one truck, deliver Tue 12/8. Lot will come off railcar GPLX 20871. Net 30.\n\nVictor Almeida\nGulfport Polymers | 409-555-0161\n\n -----Original Message-----\nFrom: \tTalon Purchasing\nSent:\tMonday, November 16, 2026 9:30 AM\nTo:\tAlmeida, Victor\nSubject:\tRFQ: HD-5502 HDPE, 40,000 lb bulk\n\nVictor,\n\nLooking for 40,000 lb of HD-5502 (MFI 8.0 g/10 min, density 0.952) in one bulk hopper truck, delivered to our Dalton, GA silo #2 by Fri 12/11. This will be PO-3392. Price per lb?\n\nTalon Purchasing"
+    },
+    {
+      "id": "m6",
+      "direction": "inbound",
+      "from": "v.almeida@gulfport-poly.example",
+      "fromName": "Victor Almeida",
+      "to": "purchasing@talon-molding.primitive.email",
+      "subject": "PO-3392",
+      "at": "2026-11-19T21:10:00Z",
+      "in_reply_to": null,
+      "body": "Talon team -\n\nHeads up before your PO comes through: ethylene contract settled up 4.5 cents for December. I have to move PO-3392 to $0.725/lb. Delivery still Tue 12/8, same railcar.\n\nVictor"
+    },
+    {
+      "id": "m7",
+      "direction": "outbound",
+      "from": "purchasing@talon-molding.primitive.email",
+      "fromName": "Talon Purchasing Agent",
+      "to": "v.almeida@gulfport-poly.example",
+      "subject": "RE: PO-3392",
+      "at": "2026-11-20T14:00:00Z",
+      "in_reply_to": "m6",
+      "body": "Victor - that's a big jump on a quote 2 days old. Can you hold $0.70?\n\nTalon Purchasing\n\n -----Original Message-----\nFrom: \tAlmeida, Victor\nSent:\tThursday, November 19, 2026 4:10 PM\nTo:\tTalon Purchasing\nSubject:\tPO-3392\n\nTalon team -\n\nHeads up before your PO comes through: ethylene contract settled up 4.5 cents for December. I have to move PO-3392 to $0.725/lb. Delivery still Tue 12/8, same railcar.\n\nVictor"
+    },
+    {
+      "id": "m8",
+      "direction": "inbound",
+      "from": "v.almeida@gulfport-poly.example",
+      "fromName": "Victor Almeida",
+      "to": "purchasing@talon-molding.primitive.email",
+      "subject": "RE: PO-3392",
+      "at": "2026-11-20T17:30:00Z",
+      "in_reply_to": "m7",
+      "body": "I can meet you at $0.71/lb, that's final - I'm eating part of the increase. 12/8 delivery holds.\n\nV\n\n -----Original Message-----\nFrom: \tTalon Purchasing\nSent:\tFriday, November 20, 2026 9:00 AM\nTo:\tAlmeida, Victor\nSubject:\tRE: PO-3392\n\nVictor - that's a big jump on a quote 2 days old. Can you hold $0.70?\n\nTalon Purchasing\n\n -----Original Message-----\nFrom: \tAlmeida, Victor\nSent:\tThursday, November 19, 2026 4:10 PM\nTo:\tTalon Purchasing\nSubject:\tPO-3392\n\nTalon team -\n\nHeads up before your PO comes through: ethylene contract settled up 4.5 cents for December. I have to move PO-3392 to $0.725/lb. Delivery still Tue 12/8, same railcar.\n\nVictor"
+    }
+  ],
+  "checkpoints": [
+    {
+      "after": "m4",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 0.69,
+          "stated_in": "m2",
+          "evidence": "Can do $0.69/lb delivered"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 40000,
+          "stated_in": "m2",
+          "evidence": "40,000 lb one truck"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 40000,
+              "date": "2026-12-08"
+            }
+          ],
+          "stated_in": "m2",
+          "evidence": "40,000 lb one truck, deliver Tue 12/8"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m2",
+          "evidence": "Net 30"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 0.74,
+          "stated_in": "m4",
+          "evidence": "approved to $0.74/lb"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "us",
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Talon (us)",
+          "kind": "question",
+          "about": "price per lb",
+          "status": "answered",
+          "opened_in": "m1",
+          "resolved_in": "m2"
+        }
+      ]
+    },
+    {
+      "after": "m6",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 0.725,
+          "stated_in": "m6",
+          "evidence": "I have to move PO-3392 to $0.725/lb"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 40000,
+          "stated_in": "m2",
+          "evidence": "40,000 lb one truck"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 40000,
+              "date": "2026-12-08"
+            }
+          ],
+          "stated_in": "m6",
+          "evidence": "Delivery still Tue 12/8"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m2",
+          "evidence": "Net 30"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 0.74,
+          "stated_in": "m4",
+          "evidence": "approved to $0.74/lb"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 0.69,
+          "stated_in": "m2",
+          "evidence": "Can do $0.69/lb delivered",
+          "replaced_in": "m6"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "supplier",
+        "must": [
+          "0?\\.725"
+        ],
+        "must_not": [
+          "\\$?0?\\.74\\b"
+        ]
+      }
+    },
+    {
+      "after": "m8",
+      "active": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 0.71,
+          "stated_in": "m8",
+          "evidence": "I can meet you at $0.71/lb"
+        },
+        {
+          "party": "supplier",
+          "term": "order.quantity",
+          "value": 40000,
+          "stated_in": "m2",
+          "evidence": "40,000 lb one truck"
+        },
+        {
+          "party": "supplier",
+          "term": "delivery.schedule",
+          "value": [
+            {
+              "qty": 40000,
+              "date": "2026-12-08"
+            }
+          ],
+          "stated_in": "m8",
+          "evidence": "12/8 delivery holds"
+        },
+        {
+          "party": "supplier",
+          "term": "payment.terms",
+          "value": "Net 30",
+          "stated_in": "m2",
+          "evidence": "Net 30"
+        },
+        {
+          "party": "finance",
+          "term": "budget.max_unit_price",
+          "value": 0.74,
+          "stated_in": "m4",
+          "evidence": "approved to $0.74/lb"
+        }
+      ],
+      "superseded": [
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 0.69,
+          "stated_in": "m2",
+          "evidence": "Can do $0.69/lb delivered",
+          "replaced_in": "m6"
+        },
+        {
+          "party": "supplier",
+          "term": "price.unit",
+          "value": 0.725,
+          "stated_in": "m6",
+          "evidence": "I have to move PO-3392 to $0.725/lb",
+          "replaced_in": "m8"
+        }
+      ],
+      "obligations": [
+        {
+          "owed_by": "supplier",
+          "owed_to": "Talon (us)",
+          "kind": "question",
+          "about": "hold $0.70/lb",
+          "status": "answered",
+          "opened_in": "m7",
+          "resolved_in": "m8"
+        }
+      ],
+      "checks": {
+        "delivery_deadline": "pass",
+        "quantity": "pass",
+        "price_budget": "pass",
+        "budget_approval": "pass"
+      },
+      "next_actor": "us",
+      "handoff": {
+        "expect": "send",
+        "to": "supplier",
+        "must": [
+          "0?\\.71\\b",
+          "accept|confirm|agree|go ahead"
+        ],
+        "must_not": [
+          "\\$?0?\\.725",
+          "\\$0?\\.69\\b"
+        ]
+      }
+    }
+  ],
+  "notes": "The quote thread is \"RFQ: HD-5502 HDPE, 40,000 lb bulk\". The supplier raises the price in a brand-new email (in_reply_to null) whose subject is only \"PO-3392\"; the engine must tie it to the same deal via the PO alias and supersede $0.69 with $0.725, then $0.71 in the reply under \"RE: PO-3392\". Our \"can you hold $0.70?\" is a question, not a term. Distractors: MFI 8.0 g/10 min, density 0.952, silo #2, railcar GPLX 20871, \"up 4.5 cents\", ~$29.6K, opex 5020, phone. All prices stay under the $0.74 cap; the m6 handoff must not reveal the cap."
+}

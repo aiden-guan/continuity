@@ -3,7 +3,7 @@
 import type { CheckResult, Claim, Participant, TaskSpec } from '../types.ts';
 import { findDates, prettyDate } from '../extract/dates.ts';
 import { registerDomain, sameValue, termOf, type DomainPack, type HeuristicSentence, type TermDef } from './pack.ts';
-import { displayTyped as displayShared, mergePartialLots, normalizeTyped, type Lot } from './values.ts';
+import { canonicalDecision, displayTyped as displayShared, mergePartialLots, normalizeTyped, type Lot } from './values.ts';
 
 export type { Lot };
 
@@ -15,7 +15,7 @@ export const TERMS: TermDef[] = [
   { key: 'quote.valid_until', type: 'date', description: 'Date the quote expires', topics: ['valid', 'expire', 'expiry'], events: { default: 'quote_expiry_set' }, deadline: true },
   { key: 'offer.status', type: 'enum', values: ['withdrawn'], lifecycle: true, description: 'The counterparty withdrew/cancelled its offer or cannot supply (value "withdrawn"). History is kept; the offer is no longer available.', topics: ['withdraw', 'cancel', 'disregard', 'rescind'], events: { default: 'offer_withdrawn' } },
   { key: 'budget.max_unit_price', type: 'money', description: 'Internally approved maximum unit price (a decision by finance/approver)', topics: ['budget', 'approve', 'approval', 'authoriz', 'sign off', 'sign-off'], events: { default: 'budget_approved' } },
-  { key: 'decision.order', type: 'text', description: 'A party accepting/declining/placing the order', topics: ['accept', 'confirm the order', 'place the order', 'go ahead', 'po '], events: { self: 'order_accepted', default: 'order_confirmed' } },
+  { key: 'decision.order', type: 'text', description: 'A party accepting/declining/placing the order: value "accepted" or "declined"', topics: ['accept', 'confirm the order', 'place the order', 'go ahead', 'po '], events: { self: 'order_accepted', default: 'order_confirmed' } },
 ];
 
 export const TERM_KEYS = new Set(TERMS.map((t) => t.key));
@@ -26,6 +26,7 @@ export function termDef(key: string): TermDef | undefined {
 
 /** Validate a proposed value against its term and put it in canonical form; null when unusable. */
 export function normalizeValue(key: string, value: unknown): unknown | null {
+  if (key === 'decision.order') return canonicalDecision(value);
   const def = termDef(key);
   if (!def) return typeof value === 'string' || typeof value === 'number' ? value : null;
   return normalizeTyped(def, value);
@@ -339,7 +340,7 @@ export const procurement: DomainPack = {
       }
     }
 
-    const accepted = live.some((c) => c.key === 'decision.order' && c.speaker === self);
+    const accepted = live.some((c) => c.key === 'decision.order' && c.speaker === self && c.value === 'accepted');
     const allPass = checks.length > 0 && checks.every((c) => c.status === 'pass') && !contested.length;
     if (allPass && !accepted) {
       const supplier = task.participants.find((p) => p.role === 'counterparty');
