@@ -39,6 +39,7 @@ function setupChrome() {
       const label = el.matches('.sec-k') && one('.t', el);
       if (label) scramble(label, label.textContent, { duration: 650, delay: 120 });
       if (el.matches('.bench')) all('.col b', el).forEach((b, i) => countUp(b, { delay: 200 + i * 120 }));
+      if (el.matches('.stat')) all('b', el).forEach((b) => countUp(b, { delay: 150, duration: 1600 }));
       if (el.matches('.ledger')) all('code', el).forEach((c, i) => scramble(c, c.textContent, { duration: 600, delay: 400 + i * 140 }));
     }
   }, { rootMargin: '0px 0px -8% 0px' });
