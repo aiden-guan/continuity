@@ -8,7 +8,7 @@ import type { CheckResult, Claim, TaskSpec } from '../types.ts';
 import { findDates, prettyDate } from '../extract/dates.ts';
 import { registerDomain, type DomainPack, type HeuristicSentence, type TermDef } from './pack.ts';
 import { displayTyped, mergePartialLots, normalizeTyped, usd, type Lot } from './values.ts';
-import { amounts, bankAccount, fieldValue, labelAmount, toNumber } from './text.ts';
+import { accountEnding, amounts, bankAccount, bankName, fieldValue, labelAmount, toNumber } from './text.ts';
 import { expectedFrom, ownClaim, partiesFor, requirementOf, standardActions } from './common.ts';
 
 export const TERMS: TermDef[] = [
@@ -27,7 +27,7 @@ export const TERMS: TermDef[] = [
   { key: 'receipt.quantity', type: 'number', range: 'nonnegative', description: 'Units physically received and accepted, as confirmed by Acme purchasing / receiving', topics: ['receive', 'received', 'receipt', 'what did we get', 'arrived', 'accepted'] },
   { key: 'offer.status', type: 'enum', values: ['withdrawn'], lifecycle: true, description: 'The vendor withdrew a discount or settlement offer (value "withdrawn")', topics: ['withdraw', 'disregard'] },
   { key: 'approval.max_amount', type: 'money', description: "Maximum payment the controller approved (for this invoice, or for this week's early-payment budget), in USD", topics: ['approve', 'approval', 'sign off', 'ok to pay', 'ok to accept', 'can we pay', 'go in this week', 'payment run'] },
-  { key: 'decision.payment', type: 'text', description: 'A decision to approve / schedule / hold / short-pay a payment', topics: ['scheduled', 'when will it be paid', 'when will you pay', 'payment status'] },
+  { key: 'decision.payment', type: 'text', description: 'A decision to approve / schedule / hold / short-pay a payment', topics: ['scheduled', 'when will it be paid', 'when will you pay', 'when will we be paid', 'payment status', 'payment date', 'approved for payment', 'be paid', 'paid yet', 'pay it this week', 'in this week', 'payment run', 'pay the invoice', 'go out', 'ready to pay', 'pay it', 'in full this week'] },
 ];
 
 const termDef = (key: string) => TERMS.find((t) => t.key === key);
@@ -82,14 +82,20 @@ export function runChecks(task: TaskSpec, active: Claim[]): CheckResult[] {
       const poAmount = Number(match.value);
       if (quantity && receipt) {
         const credited = credit && unit ? Math.round(Number(credit.value) / unit) : 0;
+        // the invoice still bills its line quantity unless the vendor restated the total down to what was received
+        const restated = amount && unit ? Math.abs(Number(quantity.value) * unit - Number(amount.value)) > 0.01 : false;
+        const payableAmount = billed !== null && unit ? billed : null;
+        const allowedAmount = unit ? Number(receipt.value) * unit : null;
         const payable = Number(quantity.value) - credited;
-        const ok = payable <= Number(receipt.value);
+        const ok = restated && payableAmount !== null && allowedAmount !== null ? payableAmount <= allowedAmount + 0.01 : payable <= Number(receipt.value);
         results.push({
-          id: `three_way_match:${who}`, label: 'Billed units match units received', party: who, requirement_key: match.key,
-          status: ok ? 'pass' : 'fail', evidence: [quantity.id, receipt.id, ...(credit ? [credit.id] : [])],
+          id: `${restated ? 'received_amount' : 'three_way_match'}:${who}`, label: 'Billed goods match goods received', party: who, requirement_key: match.key,
+          status: ok ? 'pass' : 'fail', evidence: [restated ? amount!.id : quantity.id, receipt.id, ...(credit ? [credit.id] : [])],
           detail: ok
             ? `${quantity.value} billed${credited ? `, ${credited} credited` : ''}; ${receipt.value} received`
-            : `${payable - Number(receipt.value)} units are billed but neither received nor credited (${quantity.value} billed${credited ? `, ${credited} credited` : ''}, ${receipt.value} received)`,
+            : restated
+              ? `${fmt(payableAmount!)} billed for ${receipt.value} received units worth ${fmt(allowedAmount!)}`
+              : `${payable - Number(receipt.value)} units are billed but neither received nor credited (${quantity.value} billed${credited ? `, ${credited} credited` : ''}, ${receipt.value} received)`,
         });
       }
       const gross = amount ? Number(amount.value) : billed!;
@@ -151,19 +157,19 @@ export function runChecks(task: TaskSpec, active: Claim[]): CheckResult[] {
 // --------------------------------------------------------------------------------- offline extraction
 
 const MONEY_LABELS: [string, RegExp][] = [
-  ['invoice.amount', /\b(?:total(?: due)?|invoice total|invoiced|amount due|total of|corrected total|revised total|new total|billed)\b/i],
-  ['balance.due', /\b(?:balance(?: due| outstanding| owed)?|outstanding|you owe|still owe|owed|remains? (?:due|outstanding|owing)|due in full|settle(?: [\w-]+)? (?:at|for)|settlement amount|amount payable under this offer|payable under)\b/i],
-  ['credit.memo_amount', /\b(?:credit(?: memo| note)?(?: amount)?|credited)\b/i],
+  ['invoice.amount', /\b(?:total(?: due)?|invoice total|invoiced|amount due|total of|corrected total|revised total|new total|billed|agreed to|stays? at|back to|still)\b/i],
+  ['balance.due', /\b(?:balance(?: due| outstanding| owed)?|outstanding|you owe|still owe|owed|remains? (?:due|outstanding|owing)|due in full|(?:please )?just pay|please pay only|pay only|settle(?: [\w-]+)? (?:at|for)|settlement amount|amount payable under this offer|payable under)\b/i],
+  ['credit.memo_amount', /\b(?:credit (?:memo|note)(?: amount)?|credit amount|credited|credit (?:of|for)|(?:a|the|first|second|last) credit)\b/i],
 ];
 const APPROVAL = /\b(approv\w*|ok from me|okay from me|sign(?:ed)? off|cleared|go ahead|budget for|up to|max(?:imum)?|cap|ceiling|limit)\b/i;
 const NEGATED = /\b(?:no|not|cannot|can't|can not|don't|do not|won't|unable|never)\b[^.]{0,25}$/i;
-const WITHDRAW = /\b(?:withdraw\w*|rescind\w*|retract\w*|pull\w*|cancel\w*) (?:the |our |my |yesterday's |that |this )?(?:[\w%.-]+ ){0,3}?(?:offer|discount|settlement|proposal)\b|\bplease disregard (?:the |our |my )?(?:[\w%.-]+ ){0,3}?(?:offer|discount|settlement)|\b(?:offer|discount|settlement)\b[^.]{0,30}?\b(?:is|has been|was)\s+(?:now\s+)?(?:withdrawn|cancel+ed|rescinded|off the table|no longer (?:valid|available|on offer))|\bdid not approve (?:it|the (?:discount|offer|settlement))/i;
+const WITHDRAW = /\b(?:withdraw\w*|rescind\w*|retract\w*|pull\w*|cancel\w*) (?:the |our |my |yesterday's |that |this )?(?:[\w%.-]+ ){0,3}?(?:offer|discount|settlement|proposal)\b|\bplease disregard (?:the |our |my )?(?:[\w%.-]+ ){0,3}?(?:offer|discount|settlement)|\b(?:offer|discount|settlement)\b[^.]{0,30}?\b(?:is|has been|was)\s+(?:now\s+)?(?:withdrawn|cancel+ed|rescinded|off the table|no longer (?:valid|available|on offer))|\bdid not approve (?:it|the (?:discount|offer|settlement))|\b(?:the )?\d+(?:\.\d+)?\s*%[^.]{0,30}?\b(?:is|are) no longer (?:available|valid|on offer|offered)|\bpulled the (?:early[- ]payment|discount) (?:program|offer)/i;
 const NOT_WITHDRAWN = /\b(?:not|never|haven't|hasn't)\s+(?:been\s+)?(?:withdraw|cancel|rescind)/i;
 const CONDITIONAL = /\b(if|unless|in case|would you|should we)\b/i;
 const SCHEDULED = /\b(?:payment (?:has been|was|is now|is) (?:scheduled|released|sent|approved|made|initiated)|(?:we|i)(?:'ve| have) (?:scheduled|released|sent|paid|remitted) (?:the |your |this )?(?:payment|invoice|wire|installment)|(?:we|i)(?:'ll| will) (?:release|remit|send|make|process|schedule) (?:the |your )?(?:full )?payment)\b/i;
 const WORD_NUM: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6 };
 
-interface FinanceState { withdraw: { evidence: string; hedged: boolean } | null; offered: boolean }
+interface FinanceState { withdraw: { evidence: string; hedged: boolean } | null; offered: boolean; bank: string | null }
 
 const has = (auth: string[], key: string) => auth.some((a) => key.startsWith(a));
 
@@ -176,7 +182,7 @@ function financeSentence(x: HeuristicSentence, st: FinanceState): void {
       x.claim({ key: 'decision.payment', value: 'scheduled', kind: 'decision', evidence: s, hedged });
     }
     // our own payment of an installment ("Installment 1 of $16,000 was sent today")
-    const paid = s.match(/\binstall?ment\s+(\d|one|two|three)\b[^.]{0,40}?\b(?:paid|sent|remitted|wired|went out)\b|\b(?:paid|sent|remitted|wired)\b[^.]{0,30}\binstall?ment\s+(\d|one|two|three)\b/i);
+    const paid = s.match(/\binstall?ment\s+(\d|one|two|three)\b[^.]{0,40}?\b(?:paid|sent|remitted|wired|went out)\b|\b(?:paid|sent|remitted|wired)\b[^.]{0,90}\binstall?ment\s+(\d|one|two|three)\b/i);
     if (paid && !x.fromAttachment) x.fulfillment({ quantity: 1, evidence: s, term_key: 'payment.schedule', obligation_id: null });
     return;
   }
@@ -194,7 +200,11 @@ function financeSentence(x: HeuristicSentence, st: FinanceState): void {
   }
 
   const all = amounts(s);
-  const remit = bankAccount(s);
+  // "Our accounts have moved to Westgate Commerce Bank. New details: account ending 2691" spans two sentences
+  const named = bankName(s);
+  const ending = accountEnding(s);
+  const remit = bankAccount(s) ?? (ending && (named ?? st.bank) ? { value: `${named ?? st.bank} account ending ${ending}`, index: 0 } : null);
+  if (named && !ending) st.bank = named;
   const remitOk = remit && !/\b(?:not|old|previous|instead of|from|closed)\s*(?:the\s+|our\s+)?$/i.test(s.slice(Math.max(0, remit.index - 16), remit.index));
   if (internal) {
     // a colleague relaying "new bank details" is recorded, never applied (purchasing has no say over remittance)
@@ -271,7 +281,7 @@ function financeSentence(x: HeuristicSentence, st: FinanceState): void {
   };
   const due = dateAfter(/\b(?:due date|(?:invoice |it |which )?(?:is |now |will be )?(?:now )?due(?: on| by)?|payable (?:by|on)|pay(?:ment)? by the due date of)\b/i);
   if (due && !/\bdeposit|discount|if paid|to take/i.test(s.slice(Math.max(0, due.index - 40), due.index))) claim('invoice.due_date', due.iso);
-  const pct = s.match(/(\d{1,2}(?:\.\d+)?)\s*%\s*(?:early[- ]payment\s+)?(?:discount|off)\b|\b(?:discount|take|offer)\b[^.%]{0,30}?(\d{1,2}(?:\.\d+)?)\s*%|\b(?:honou?r|keep|stay at|back to|restore)\s+(?:the\s+)?(\d{1,2}(?:\.\d+)?)\s*%/i);
+  const pct = s.match(/(\d{1,2}(?:\.\d+)?)\s*%\s*(?:early[- ]pay(?:ment)?\s+)?(?:discount|off)\b|\b(?:discount|take|offer)\b[^.%]{0,30}?(\d{1,2}(?:\.\d+)?)\s*%|\b(?:honou?r|keep|stay at|back to|restore|with)\s+(?:the\s+)?(\d{1,2}(?:\.\d+)?)\s*%/i);
   if (pct && !NEGATED.test(s.slice(0, pct.index)) && !/\b(?:not|no longer)\b/i.test(s.slice(Math.max(0, pct.index! - 12), pct.index!))) {
     claim('discount.early_pay_pct', Number(pct[1] ?? pct[2] ?? pct[3]));
     const by = dateAfter(/\b(?:if (?:paid|we (?:have|receive) (?:the funds|payment)|payment is received)|paid|received|funds)\s+by\b|\bby\b(?=[^.]{0,30}\b(?:mon|tue|wed|thu|fri|sat|sun|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\d))/i);
@@ -281,14 +291,26 @@ function financeSentence(x: HeuristicSentence, st: FinanceState): void {
     if (window && !/\bdue\b/i.test(s.slice(Math.max(0, window.index - 12), window.index))) claim('discount.deadline', window.iso);
   }
 
-  // installments: "$16,000 on Nov 12, $16,000 on Dec 12 and $16,000 on Jan 12"
-  if (/\binstall?ments?\b|\bpayment plan\b/i.test(s)) {
+  // installments: "$16,000 on Nov 12, $16,000 on Dec 12 and $16,000 on Jan 12" or "Schedule: Tue Nov 17 $56,000; Thu Dec 17 $56,000"
+  if (!x.fromAttachment && all.length) {
     const lots: Lot[] = [];
     for (const a of all) {
-      const d = dates.find((x2) => x2.index > a.end && x2.index - a.end <= 12);
+      const d = dates.find((x2) => a.index - (x2.index + x2.text.length) >= 0 && a.index - (x2.index + x2.text.length) <= 3)
+        ?? dates.find((x2) => x2.index > a.end && x2.index - a.end <= 12);
       if (d) lots.push({ qty: a.value, date: d.iso });
     }
-    if (lots.length >= 2) claim('payment.schedule', lots);
+    // "…, the same on Tuesday, November 17": repeat the previous installment
+    for (const m of s.matchAll(/\bthe same (?:amount )?(?:on|by)\s+/gi)) {
+      const d = dates.find((x2) => x2.index >= m.index! + m[0].length - 1 && x2.index <= m.index! + m[0].length + 2);
+      const prev = lots.filter((l) => l.date < (d?.iso ?? '')).at(-1);
+      if (d && prev) lots.push({ qty: prev.qty, date: d.iso });
+    }
+    const planned = /\binstall?ments?\b|\bpayment plan\b|\bschedule\b|\bplan\b/i.test(s) || new Set(lots.map((l) => l.date)).size >= 3;
+    if (planned && lots.length >= 2 && !/\b(?:remaining|have sent|we sent)\b/i.test(s)) {
+      claim('payment.schedule', lots);
+      // the plan replaces the single due date it was agreed against
+      if (!x.senderAuthority.length || has(x.senderAuthority, 'invoice.')) x.claim({ key: 'invoice.due_date', value: lots[0].date, kind: 'offer', mode: 'retraction', evidence: s, hedged });
+    }
   }
 
   // remit-to and the dispute
@@ -351,7 +373,7 @@ export const finance: DomainPack = {
   verifiedSenderOnly: ['payment.remit_to'],
   withdrawable: ['discount.', 'balance.'],
   documents: [
-    { kind: 'credit_memo', match: /credit memo|credit note|\bCM-\d/i, mention: /credit (?:memo|note)s?/i },
+    { kind: 'credit_memo', match: /credit memo|credit note|\bCM-\d/i, mention: /credit (?:memo|note)s?/i, multipart: true },
     { kind: 'w9', match: /\bW-?9\b|taxpayer identification/i, mention: /\bW-?9\b/i },
     { kind: 'statement', match: /statement of account|account statement/i, mention: /\bstatement\b/i },
     { kind: 'invoice', match: /invoice/i, mention: /\binvoice\b/i },
@@ -365,13 +387,18 @@ export const finance: DomainPack = {
     commit: (who) => `${who}'s invoice matches the PO and the goods received and is approved — schedule payment by the due date to the account on file`,
   }),
   heuristic: {
-    begin: (): FinanceState => ({ withdraw: null, offered: false }),
+    begin: (): FinanceState => ({ withdraw: null, offered: false, bank: null }),
     sentence: (s, st) => financeSentence(s, st as FinanceState),
     end: (st, emit) => financeEnd(st as FinanceState, emit),
   },
   quantityOf(text) {
-    const inst = text.match(/\b(\d|two|three|four|five|six)\s+install?ments\b/i);
+    const inst = text.match(/\b(\d|two|three|four|five|six)\s+(?:monthly\s+)?install?ments\b/i);
     if (inst) return WORD_NUM[inst[1].toLowerCase()] ?? Number(inst[1]);
+    // "pay … per that schedule ($56,000 Tue Nov 17 + $56,000 Thu Dec 17 + $56,000 Sat Jan 16)"
+    if (/\bpay\b/i.test(text)) {
+      const dated = [...text.matchAll(/\$[\d,]+(?:\.\d{2})?\s+(?:on\s+)?(?:mon|tue|wed|thu|fri|sat|sun|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/gi)].length;
+      if (dated >= 2) return dated;
+    }
     if (!/\bcredit\b/i.test(text)) return null;
     const m = text.match(/\b(?:for|on) (?:the |all )?(?:remaining |last |other )?(\d{1,4})\s+(?!x\b)[a-z-]+/i);
     const n = m ? Number(m[1]) : NaN;

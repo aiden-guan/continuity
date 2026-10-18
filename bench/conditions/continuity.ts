@@ -143,6 +143,7 @@ const CHECK_TERMS: Record<string, Record<string, { kind: ConflictKind; term: str
   finance: {
     three_way_match: { kind: 'requirement_violation', term: 'invoice.quantity' },
     po_amount: { kind: 'requirement_violation', term: 'invoice.amount' },
+    received_amount: { kind: 'requirement_violation', term: 'invoice.amount' },
     max_amount: { kind: 'requirement_violation', term: 'invoice.amount' },
     payment_run: { kind: 'requirement_violation', term: 'discount.deadline' },
     verified_remit_to: { kind: 'unverified_change', term: 'payment.remit_to' },

@@ -45,7 +45,7 @@ function questionItems(body: string): { items: string[]; raw: Set<string> } {
   const lines = body.split('\n');
   for (let i = 0; i < lines.length; i++) {
     const header = lines[i].trim();
-    if (!/[:?]\s*$/.test(header) || !/\b(confirm|can you|could you|please|let me know|questions?)\b/i.test(lines[i])) continue;
+    if (!/[:?]\s*$/.test(header) || !/\b(confirm|can you|could you|please|let me know|questions?|need from you|we need|we'd need|following)\b/i.test(lines[i])) continue;
     const listed: string[] = [];
     for (let j = i + 1; j < lines.length && LIST_ITEM.test(lines[j]); j++) listed.push(lines[j]);
     if (listed.length < 2) continue;
@@ -115,6 +115,12 @@ function extractFromText(text: string, input: ExtractInput, fromAttachment: stri
     if (BOILERPLATE.test(s)) continue;
 
     const topics = topicKeysFor(pack, s);
+    // an item of an asks list that names one of the pack's documents is a request for that document
+    const listedDoc = listed.items.includes(s) ? pack.documents?.find((d) => d.mention.test(s.split(' — ').slice(1).join(' — ') || s)) : undefined;
+    if (listedDoc) {
+      addObligation(p, { kind: 'request', debtor: 'recipient', text: s, topic_keys: topics, expects_artifact: listedDoc.kind, evidence: s, confidence: 0.75 });
+      continue;
+    }
     if (isQuestion) {
       if (/^(?:can|could) you confirm\b[^?]*:\s*$/i.test(s)) continue; // a list header; the items are the questions
       if (topics.length || s.split(/\s+/).length >= 5) {

@@ -29,6 +29,7 @@ export function labelAmount(s: string, a: Amount, all: Amount[], labels: [string
   const tail = s.slice(a.end, Math.min(next, a.end + reach));
   const after = tail.slice(0, (tail.search(/[,;]|\.\s|\s[-–—]\s/) + 1 || tail.length + 1) - 1);
   // before: filler between a label and its amount ("linehaul has to be $1,825") does not count as distance
+  const rawBefore = s.slice(Math.max(prev ? prev.end : 0, a.index - reach), a.index);
   const before = s.slice(Math.max(prev ? prev.end : 0, a.index - reach - 12), a.index)
     .replace(/(?:\s*(?:is|are|was|of|at|to|be|now|will|would|has|have|had|goes|go|drops?|moves?|comes?|back|down|up|then|just|only|:|=))+\s*$/i, ' ');
   let best: { key: string; dist: number } | null = null;
@@ -36,10 +37,11 @@ export function labelAmount(s: string, a: Amount, all: Amount[], labels: [string
     const r = new RegExp(rx.source, rx.flags.replace('g', ''));
     const ma = after.match(r);
     if (ma && (!best || ma.index! < best.dist)) best = { key, dist: ma.index! };
-    // before: the label must be the last thing before the amount
-    const mb = [...before.matchAll(new RegExp(r.source, `${r.flags}g`))].pop();
-    if (mb) {
-      const dist = before.length - (mb.index! + mb[0].length);
+    // before: the label must be the last thing before the amount (filler words between them do not count)
+    for (const text of [before, rawBefore]) {
+      const mb = [...text.matchAll(new RegExp(r.source, `${r.flags}g`))].pop();
+      if (!mb) continue;
+      const dist = text === rawBefore ? text.replace(/\s+$/, '').length - (mb.index! + mb[0].length) : text.length - (mb.index! + mb[0].length);
       if (!best || dist < best.dist) best = { key, dist };
     }
   }
@@ -152,6 +154,19 @@ export function fieldValue(s: string, label: RegExp): string | null {
 }
 
 const BANK_ACCOUNT = /\b([A-Z][A-Za-z&.]*(?:\s+[A-Z][A-Za-z&.]*){0,4}\s+(?:Bank|Trust|Credit Union|Savings|Bancorp|Financial)(?:\s+[A-Z][A-Za-z&.]*){0,2}),?\s+(?:account|acct\.?)\s+(?:ending(?: in)?|no\.?\s*\S*?|#\s*\S*?)\s*(\d{4})\b/;
+
+const BANK_NAME = /\b([A-Z][A-Za-z&.]*(?:\s+[A-Z][A-Za-z&.]*){0,4}\s+(?:Bank|Trust|Credit Union|Savings|Bancorp|Financial)(?:\s+[A-Z][A-Za-z&.]*){0,2})\b/;
+
+/** A bank named without an account ("Our accounts have moved to Westgate Commerce Bank."). */
+export function bankName(s: string): string | null {
+  const m = s.match(BANK_NAME);
+  return m ? m[1].replace(/\s+/g, ' ').replace(/^(?:Pay|Wire|Remit|Send|To|Use|At|Via|Our|The|New)\s+/, '') : null;
+}
+
+/** "account ending 2691" without the bank's name: the last four digits. */
+export function accountEnding(s: string): string | null {
+  return s.match(/\b(?:account|acct\.?)\s+(?:ending(?: in)?|no\.?\s*\S*?|#\s*\S*?)\s*(\d{4})\b/i)?.[1] ?? null;
+}
 
 /** A bank account as people write it ("First Harbor Bank account ending 4471"), normalised to that form. */
 export function bankAccount(s: string): { value: string; index: number } | null {

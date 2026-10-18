@@ -515,6 +515,27 @@ export function applyProposal(inp: ApplyInput) {
 
   // ---- 5. derived state: artifact currency and constraint checks
   refreshDerived(store, task, event.id, at);
+
+  // ---- 6. a colleague passing round an out-of-date document is acting on dead values: we owe them the correction
+  if (whoParty?.role === 'internal') {
+    for (const incoming of inp.artifacts) {
+      const original = store.artifactsForTask(task.id).find((a) => a.id !== incoming.id && a.sha256 === incoming.sha256 && a.owner !== incoming.owner);
+      if (!original || (original.status !== 'partially_stale' && original.status !== 'superseded')) continue;
+      const stale = [...new Set(store.claimsSupportedByArtifact(original.id).filter((c) => c.status === 'superseded').map((c) => c.key))];
+      if (!stale.length) continue;
+      const text = `${who} is working from ${original.filename}, which is out of date on ${stale.join(', ')}: tell them the current value`;
+      if (openNow().some((o) => o.creditor === speaker && o.debtor === task.self_address.toLowerCase() && o.text === text)) continue;
+      const ob = store.insertObligation({
+        task_id: task.id, kind: 'request', debtor: task.self_address.toLowerCase(), creditor: speaker, text, topic_keys: stale,
+        expects_artifact: null, status: 'open', source_event_id: event.id, evidence: incoming.filename, resolved_by_event_id: null,
+        resolution_note: null, created_at: at, resolved_at: null, confidence: 0.8, notes: [], due_at: null,
+        issue_key: stale.length === 1 ? stale[0] : null, group_id: null, quantity: null, fulfilled_quantity: null,
+        artifact_match: null, condition: null, condition_met_at: null,
+      });
+      log('obligation_opened', `${who} forwarded a stale copy of ${original.filename} (${stale.join(', ')} superseded) — we owe them the current value`, ob.id,
+        { kind: 'request', debtor: task.self_address.toLowerCase(), creditor: speaker });
+    }
+  }
 }
 
 export function refreshDerived(store: StateStore, task: TaskSpec, eventId: string | null, at: string) {
@@ -530,7 +551,9 @@ export function refreshDerived(store: StateStore, task: TaskSpec, eventId: strin
     const backing = store.claimsSupportedByArtifact(a.id);
     // a term is stale on the document only while its current value differs (a value that came back is current again)
     const currentAgain = (c: Claim) => claims.some((x) => x.status === 'active' && x.key === c.key && x.speaker === c.speaker && sameValue(x.value, c.value));
-    const outdated = backing.filter((c) => (c.status === 'superseded' && !currentAgain(c)) || c.status === 'retracted');
+    // one part of a set (a credit memo, a signature page) is not made stale by the next part's own figures
+    const multipart = !!pack.documents?.find((d) => d.kind === a.kind)?.multipart;
+    const outdated = backing.filter((c) => (c.status === 'superseded' && !currentAgain(c) && !multipart) || c.status === 'retracted');
     let status: Artifact['status'];
     if (a.superseded_by) status = 'superseded';
     // withdrawn: its owner withdrew and nothing it states is still live (an invoice outlives a withdrawn discount offer)
