@@ -556,6 +556,31 @@ function suggestActions(store: StateStore, task: TaskSpec, s: SuggestInput) {
   });
   actions.push(...(domainActions ?? []));
 
+  // their offer is waiting on us: a counterparty stated or changed terms (a live offer claim introduced by that
+  // message) and nobody on our side has written to their side since. Unless another urgent action already goes
+  // to them, answering it — accept, counter or raise — is our move. While we still wait on our own side (an
+  // approver, the buyer) for an answer, it is a reminder, not urgent.
+  const groupOf = (address: string) => task.participants.find((p) => p.address === address)?.group ?? address;
+  const latestOffer = new Map<string, { seq: number; event: string }>();
+  for (const c of s.live) {
+    if (c.kind !== 'offer' || c.speaker === self || partyOf(task, c.speaker)?.role !== 'counterparty') continue;
+    const seq = ingestSeqOf.get(c.source_event_id) ?? 0;
+    if (seq > (latestOffer.get(c.speaker)?.seq ?? -1)) latestOffer.set(c.speaker, { seq, event: c.source_event_id });
+  }
+  for (const [party, offer] of latestOffer) {
+    if (goneParties.has(party)) continue;
+    const side = task.participants.filter((p) => groupOf(p.address) === groupOf(party)).map((p) => p.address);
+    if (!side.every((p) => notAddressedSince(p, offer.seq))) continue;
+    if (actions.some((a) => a.priority === 1 && a.to_address && side.includes(a.to_address))) continue;
+    const askedOwnSide = s.openObs.some((o) => o.creditor === self && o.kind !== 'commitment' && partyOf(task, o.debtor)?.role === 'internal');
+    actions.push({
+      priority: askedOwnSide ? 2 : 1, kind: 'respond_to_offer', to: label(party), to_address: party,
+      action: `Respond to ${label(party)}'s current terms (${offer.event}): accept, counter, or raise what does not work`,
+      why: askedOwnSide ? 'Their terms are waiting on us; we are waiting on our own approver first' : 'They stated or changed terms and we have not replied since',
+      evidence: [offer.event],
+    });
+  }
+
   actions.sort((a, b) => a.priority - b.priority);
   const waitingOn = s.openObs.filter((o) => o.debtor !== self);
   const urgent = actions.filter((a) => a.priority === 1);
